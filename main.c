@@ -61,6 +61,8 @@ int main(void)
 	printf("Renderer: %s\n", renderer);
 	printf("OpenGL version supported %s\n", version);
 
+    glEnable(GL_DEPTH_TEST);
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
@@ -70,7 +72,7 @@ int main(void)
 
         /* Render here */
         glViewport(0, 0, width, height);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         tr->draw(tr, &ctx);
 

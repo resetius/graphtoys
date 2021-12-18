@@ -43,8 +43,8 @@ static struct Vertex* init (int* nvertices) {
     float R = 0.5;
     float r = 0.25;
     int i,j,k;
-#define N 200
-#define M 200
+#define N 50
+#define M 50
     int n = N;
     int m = M;
     vec3 A[N][M];
@@ -85,8 +85,13 @@ static struct Vertex* init (int* nvertices) {
     }
 
     for (i = 0; i < k; i++) {
-        vec3 col = {1.f, 0.f, 0.f};
+        vec3 col = {
+            rand()/(float)RAND_MAX,
+            rand()/(float)RAND_MAX,
+            rand()/(float)RAND_MAX
+        };
         memcpy(vertices[i].col, col, sizeof(col));
+        //vertices[i].col[0] = fmax(0, vertices[i].pos[2]);
     }
 
     printf("nvertices %d\n", k);
