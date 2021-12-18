@@ -7,6 +7,7 @@
 
 #include "object.h"
 #include "triangle.h"
+#include "torus.h"
 
 static void error_callback(int error, const char* description)
 {
@@ -53,7 +54,7 @@ int main(void)
     gladLoadGL(glfwGetProcAddress);
     glfwSwapInterval(1);
 
-    tr = CreateTriangle();
+    tr = CreateTorus(); //CreateTriangle();
 
     const GLubyte* renderer = glGetString(GL_RENDERER);
 	const GLubyte* version = glGetString(GL_VERSION);
