@@ -7,6 +7,9 @@
 #include "triangle.h"
 #include "linmath.h"
 
+#include "triangle_vertex_shader.h"
+#include "triangle_fragment_shader.h"
+
 typedef struct Vertex
 {
     vec2 pos;
@@ -33,27 +36,6 @@ struct Triangle {
 
     GLuint vertex_array;
 };
-
-static const char* vertex_shader_text =
-"#version 330\n"
-"uniform mat4 MVP;\n"
-"in vec3 vCol;\n"
-"in vec2 vPos;\n"
-"out vec3 color;\n"
-"void main()\n"
-"{\n"
-"    gl_Position = MVP * vec4(vPos, 0.0, 1.0);\n"
-"    color = vCol;\n"
-"}\n";
-
-static const char* fragment_shader_text =
-"#version 330\n"
-"in vec3 color;\n"
-"out vec4 fragment;\n"
-"void main()\n"
-"{\n"
-"    fragment = vec4(color, 1.0);\n"
-"}\n";
 
 void tr_draw(struct Object* obj, struct DrawContext* ctx) {
     struct Triangle* tr = (struct Triangle*)obj;
@@ -83,11 +65,11 @@ struct Object* CreateTriangle() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     tr->vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(tr->vertex_shader, 1, &vertex_shader_text, NULL);
+    glShaderSource(tr->vertex_shader, 1, &triangle_vertex_shader, NULL);
     glCompileShader(tr->vertex_shader);
 
     tr->fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(tr->fragment_shader, 1, &fragment_shader_text, NULL);
+    glShaderSource(tr->fragment_shader, 1, &triangle_fragment_shader, NULL);
     glCompileShader(tr->fragment_shader);
 
     tr->program = glCreateProgram();
