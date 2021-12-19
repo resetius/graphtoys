@@ -31,8 +31,13 @@ struct Torus {
     GLuint program;
 
     GLint mvp_location;
+    GLint mv_location;
+    GLint nm_location;
+    GLint pm_location;
+
     GLint vpos_location;
     GLint vcol_location;
+    GLint vnorm_location;
 
     GLuint vertex_array;
 
@@ -113,16 +118,38 @@ static struct Vertex* init (int* nvertices) {
 
 static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     struct Torus* t = (struct Torus*)obj;
-    mat4x4 m, p, mvp;
+    mat4x4 m, v, p, mv, mvp;
     mat4x4_identity(m);
     mat4x4_rotate_X(m, m, (float)glfwGetTime());
     mat4x4_rotate_Y(m, m, (float)glfwGetTime());
     mat4x4_rotate_Z(m, m, (float)glfwGetTime());
-    mat4x4_ortho(p, -ctx->ratio, ctx->ratio, -1.f, 1.f, 1.f, -1.f);
-    mat4x4_mul(mvp, p, m);
+
+    vec3 eye = {.0f, .0f, 2.f};
+    vec3 center = {.0f, .0f, .0f};
+    vec3 up = {.0f, 1.f, .0f};
+    mat4x4_look_at(v, eye, center, up);
+
+    mat4x4_mul(mv, v, m);
+
+    //mat4x4_ortho(p, -ctx->ratio, ctx->ratio, -1.f, 1.f, 1.f, -1.f);
+    //mat4x4_identity(p);
+    mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 100.f);
+    mat4x4_mul(mvp, p, mv);
+
+    //mat4x4 norm4;
+    //mat4x4_invert(norm4, mv);
+    //mat4x4_transpose(norm4, norm4);
+    mat3x3 norm;
+    //mat3x3_from_mat4x4(norm, norm4);
+    mat3x3_from_mat4x4(norm, mv);
 
     glUseProgram(t->program);
+
     glUniformMatrix4fv(t->mvp_location, 1, GL_FALSE, (const GLfloat*) &mvp);
+    glUniformMatrix4fv(t->mv_location, 1, GL_FALSE, (const GLfloat*) &mv);
+    glUniformMatrix4fv(t->pm_location, 1, GL_FALSE, (const GLfloat*) &p);
+    glUniformMatrix3fv(t->nm_location, 1, GL_FALSE, (const GLfloat*) &norm);
+
     glBindVertexArray(t->vertex_array);
     glDrawArrays(GL_TRIANGLES, 0, t->nvertices);
 }
@@ -159,19 +186,31 @@ struct Object* CreateTorus() {
     glLinkProgram(t->program);
 
     t->mvp_location = glGetUniformLocation(t->program, "MVP");
+    t->mv_location = glGetUniformLocation(t->program, "ModelViewMatrix");
+    t->nm_location = glGetUniformLocation(t->program, "NormalMatrix");
+    t->pm_location = glGetUniformLocation(t->program, "ProjectionMatrix");
+
     t->vpos_location = glGetAttribLocation(t->program, "vPos");
     t->vcol_location = glGetAttribLocation(t->program, "vCol");
+    t->vnorm_location = glGetAttribLocation(t->program, "vNorm");
 
     glGenVertexArrays(1, &t->vertex_array);
     glBindVertexArray(t->vertex_array);
+
     glEnableVertexAttribArray(t->vpos_location);
     glVertexAttribPointer(
         t->vpos_location, 3, GL_FLOAT, GL_FALSE,
         sizeof(struct Vertex), (void*) offsetof(struct Vertex, pos));
+
     glEnableVertexAttribArray(t->vcol_location);
     glVertexAttribPointer(
         t->vcol_location, 3, GL_FLOAT, GL_FALSE,
         sizeof(struct Vertex), (void*) offsetof(struct Vertex, col));
+
+    glEnableVertexAttribArray(t->vnorm_location);
+    glVertexAttribPointer(
+        t->vnorm_location, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct Vertex), (void*) offsetof(struct Vertex, norm));
 
     return (struct Object*)t;
 }
