@@ -1,6 +1,6 @@
 All: main.exe rcc.exe
 
-main.exe: main.o triangle.o torus.o
+main.exe: main.o triangle.o torus.o program.o
 	gcc $^ `pkg-config --static --libs glfw3` -framework OpenGl -o $@
 
 rcc.exe: rcc.c
