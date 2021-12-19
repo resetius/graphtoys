@@ -2,6 +2,8 @@
 
 #include "glad/gl.h"
 
+#include "linmath.h"
+
 struct Program {
     GLuint program;
     void (*log)(const char* msg);
@@ -17,5 +19,5 @@ int prog_link(struct Program* p);
 int prog_use(struct Program* p);
 int prog_validate(struct Program* p);
 
-int prog_bind_attr(struct Program* p, GLuint location, const char* name);
-int prog_set_uniform(struct Program* p, const char* name);
+int prog_set_mat3x3(struct Program* p, const char* name, mat3x3 mat);
+int prog_set_mat4x4(struct Program* p, const char* name, mat4x4 mat);

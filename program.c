@@ -39,8 +39,8 @@ static int prog_add(struct Program* p, const char* shaderText, GLuint shader) {
     int result;
     glShaderSource(shader, 1, &shaderText, NULL);
     glCompileShader(shader);
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
 
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
     if (GL_FALSE == result) {
         // get error log
         int length = 0;
@@ -67,4 +67,39 @@ int prog_add_vs(struct Program* p, const char* shader) {
 int prog_add_fs(struct Program* p, const char* shader) {
     GLuint shaderId = glCreateShader(GL_FRAGMENT_SHADER);
     return prog_add(p, shader, shaderId);
+}
+
+int prog_link(struct Program* p) {
+    int result;
+    glLinkProgram(p->program);
+
+    glGetProgramiv(p->program, GL_COMPILE_STATUS, &result);
+    if (GL_FALSE == result) {
+        // get error log
+        int length = 0;
+        p->log("Program link failed");
+        glGetProgramiv(p->program, GL_INFO_LOG_LENGTH, &length);
+        if (length > 0) {
+            char* msg = malloc(length+1);
+            int written = 0;
+            glGetProgramInfoLog(p->program, length, &written, msg);
+            p->log(msg);
+            free(msg);
+        }
+        return 0;
+    }
+
+    return 1;
+}
+
+int prog_set_mat3x3(struct Program* p, const char* name, mat3x3 mat) {
+    GLuint location = glGetUniformLocation(p->program, name);
+    glUniformMatrix3fv(location, 1, GL_FALSE, (const GLfloat*)&mat);
+    return 1;
+}
+
+int prog_set_mat4x4(struct Program* p, const char* name, mat4x4 mat) {
+    GLuint location = glGetUniformLocation(p->program, name);
+    glUniformMatrix4fv(location, 1, GL_FALSE, (const GLfloat*)&mat);
+    return 1;
 }
