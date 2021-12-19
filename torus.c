@@ -19,6 +19,7 @@
 
 struct Vertex {
     vec3 pos;
+    vec3 norm;
     vec3 col;
 };
 
@@ -47,7 +48,7 @@ static struct Vertex* init (int* nvertices) {
 #define M 50
     int n = N;
     int m = M;
-    vec3 A[N][M];
+    struct Vertex A[N][M];
     struct Vertex* vertices = calloc(n*m*3*2, sizeof(struct Vertex));
 
     for (i = 0; i < n; i++) {
@@ -55,12 +56,21 @@ static struct Vertex* init (int* nvertices) {
         for (j = 0; j < m; j++) {
             float psi = 2.f*M_PI*j/m-M_PI/2.;
 
-            float x = (R+r*cosf(psi))*cosf(phi);
-            float y = (R+r*cosf(psi))*sinf(phi);
-            float z = r*sinf(psi);
-            vec3 v = {x,y,z};
+            vec3 v;
+            v[0] = (R+r*cosf(psi))*cosf(phi);
+            v[1] = (R+r*cosf(psi))*sinf(phi);
+            v[2] = r*sinf(psi);
 
-            memcpy(A[i][j], v, sizeof(v));
+            vec3 v1;
+            v1[0] = (R+(r+.1f)*cosf(psi))*cosf(phi);
+            v1[1] = (R+(r+.1f)*cosf(psi))*sinf(phi);
+            v1[2] = (r+.1f)*sinf(psi);
+
+            vec3_sub(v1, v1, v);
+            vec3_scale(v1, v1, 10.f);
+
+            memcpy(A[i][j].pos, v, sizeof(vec3));
+            memcpy(A[i][j].norm, v1, sizeof(vec3));
         }
     }
 
@@ -74,13 +84,13 @@ static struct Vertex* init (int* nvertices) {
             {i+1,j},{i+1,j+1}
             */
 
-            memcpy(vertices[k++].pos, A[i][j], sizeof(vec3));
-            memcpy(vertices[k++].pos, A[i][(j+1)%m], sizeof(vec3));
-            memcpy(vertices[k++].pos, A[(i+1)%n][j], sizeof(vec3));
+            memcpy(&vertices[k++], &A[i][j], sizeof(struct Vertex));
+            memcpy(&vertices[k++], &A[i][(j+1)%m], sizeof(struct Vertex));
+            memcpy(&vertices[k++], &A[(i+1)%n][j], sizeof(struct Vertex));
 
-            memcpy(vertices[k++].pos, A[i][(j+1)%m], sizeof(vec3));
-            memcpy(vertices[k++].pos, A[(i+1)%n][j], sizeof(vec3));
-            memcpy(vertices[k++].pos, A[(i+1)%n][(j+1)%m], sizeof(vec3));
+            memcpy(&vertices[k++], &A[i][(j+1)%m], sizeof(struct Vertex));
+            memcpy(&vertices[k++], &A[(i+1)%n][j], sizeof(struct Vertex));
+            memcpy(&vertices[k++], &A[(i+1)%n][(j+1)%m], sizeof(struct Vertex));
         }
     }
 
