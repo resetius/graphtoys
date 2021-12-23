@@ -1,10 +1,20 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "program.h"
 
 static void log_func(const char* msg) {
     puts(msg);
+}
+
+static void prog_log(struct Program* p, const char* format, ...) {
+    char buffer[256];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buffer, sizeof(buffer), format, args);
+    p->log(buffer);
+    va_end(args);
 }
 
 struct Program* prog_new() {
@@ -69,6 +79,11 @@ int prog_add_fs(struct Program* p, const char* shader) {
     return prog_add(p, shader, shaderId);
 }
 
+int prog_use(struct Program* p) {
+    glUseProgram(p->program);
+    return 1;
+}
+
 int prog_link(struct Program* p) {
     int result;
     glLinkProgram(p->program);
@@ -92,14 +107,22 @@ int prog_link(struct Program* p) {
     return 1;
 }
 
-int prog_set_mat3x3(struct Program* p, const char* name, mat3x3 mat) {
-    GLuint location = glGetUniformLocation(p->program, name);
-    glUniformMatrix3fv(location, 1, GL_FALSE, (const GLfloat*)&mat);
+int prog_set_mat3x3(struct Program* p, const char* name, const mat3x3* mat) {
+    GLint location = glGetUniformLocation(p->program, name);
+    if (location < 0) {
+        prog_log(p, "Unknown location: '%s'", name);
+        return 0;
+    }
+    glUniformMatrix3fv(location, 1, GL_FALSE, (const GLfloat*)mat);
     return 1;
 }
 
-int prog_set_mat4x4(struct Program* p, const char* name, mat4x4 mat) {
-    GLuint location = glGetUniformLocation(p->program, name);
-    glUniformMatrix4fv(location, 1, GL_FALSE, (const GLfloat*)&mat);
+int prog_set_mat4x4(struct Program* p, const char* name, const mat4x4* mat) {
+    GLint location = glGetUniformLocation(p->program, name);
+    if (location < 0) {
+        prog_log(p, "Unknown location: '%s'", name);
+        return 0;
+    }
+    glUniformMatrix4fv(location, 1, GL_FALSE, (const GLfloat*)mat);
     return 1;
 }

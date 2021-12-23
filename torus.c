@@ -7,6 +7,7 @@
 
 #include "object.h"
 #include "torus.h"
+#include "program.h"
 #include "linmath.h"
 #include "triangle_fragment_shader.h"
 #include "torus_vertex_shader.h"
@@ -25,19 +26,10 @@ struct Vertex {
 
 struct Torus {
     struct Object base;
+
+    struct Program* p;
+
     GLuint vertex_buffer;
-    GLuint vertex_shader;
-    GLuint fragment_shader;
-    GLuint program;
-
-    GLint mvp_location;
-    GLint mv_location;
-    GLint nm_location;
-    GLint pm_location;
-
-    GLint vpos_location;
-    GLint vcol_location;
-    GLint vnorm_location;
 
     GLuint vertex_array;
 
@@ -143,12 +135,11 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     //mat3x3_from_mat4x4(norm, norm4);
     mat3x3_from_mat4x4(norm, mv);
 
-    glUseProgram(t->program);
+    prog_use(t->p);
 
-    glUniformMatrix4fv(t->mvp_location, 1, GL_FALSE, (const GLfloat*) &mvp);
-    glUniformMatrix4fv(t->mv_location, 1, GL_FALSE, (const GLfloat*) &mv);
-    glUniformMatrix4fv(t->pm_location, 1, GL_FALSE, (const GLfloat*) &p);
-    glUniformMatrix3fv(t->nm_location, 1, GL_FALSE, (const GLfloat*) &norm);
+    prog_set_mat4x4(t->p, "MVP", &mvp);
+    prog_set_mat4x4(t->p, "ModelViewMatrix", &mv);
+    prog_set_mat3x3(t->p, "NormalMatrix", &norm);
 
     glBindVertexArray(t->vertex_array);
     glDrawArrays(GL_TRIANGLES, 0, t->nvertices);
@@ -157,12 +148,15 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
 static void t_free(struct Object* obj) {
     struct Torus* t = (struct Torus*)obj;
 // TODO: free opengl resources
+    prog_free(t->p);
     free(t->vertices);
     free(t);
 }
 
 struct Object* CreateTorus() {
     struct Torus* t = calloc(1, sizeof(struct Torus));
+    t->p = prog_new();
+
     t->base.draw = t_draw;
     t->base.free = t_free;
     t->vertices = init(&t->nvertices);
@@ -172,44 +166,30 @@ struct Object* CreateTorus() {
     glBufferData(GL_ARRAY_BUFFER, t->nvertices*sizeof(struct Vertex),
                  t->vertices, GL_STATIC_DRAW);
 
-    t->vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(t->vertex_shader, 1, &torus_vertex_shader, NULL);
-    glCompileShader(t->vertex_shader);
+    prog_add_vs(t->p, torus_vertex_shader);
+    prog_add_fs(t->p, triangle_fragment_shader);
+    prog_link(t->p);
 
-    t->fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(t->fragment_shader, 1, &triangle_fragment_shader, NULL);
-    glCompileShader(t->fragment_shader);
-
-    t->program = glCreateProgram();
-    glAttachShader(t->program, t->vertex_shader);
-    glAttachShader(t->program, t->fragment_shader);
-    glLinkProgram(t->program);
-
-    t->mvp_location = glGetUniformLocation(t->program, "MVP");
-    t->mv_location = glGetUniformLocation(t->program, "ModelViewMatrix");
-    t->nm_location = glGetUniformLocation(t->program, "NormalMatrix");
-    t->pm_location = glGetUniformLocation(t->program, "ProjectionMatrix");
-
-    t->vpos_location = glGetAttribLocation(t->program, "vPos");
-    t->vcol_location = glGetAttribLocation(t->program, "vCol");
-    t->vnorm_location = glGetAttribLocation(t->program, "vNorm");
+    GLint vpos_location = glGetAttribLocation(t->p->program, "vPos");
+    GLint vcol_location = glGetAttribLocation(t->p->program, "vCol");
+    GLint vnorm_location = glGetAttribLocation(t->p->program, "vNorm");
 
     glGenVertexArrays(1, &t->vertex_array);
     glBindVertexArray(t->vertex_array);
 
-    glEnableVertexAttribArray(t->vpos_location);
+    glEnableVertexAttribArray(vpos_location);
     glVertexAttribPointer(
-        t->vpos_location, 3, GL_FLOAT, GL_FALSE,
+        vpos_location, 3, GL_FLOAT, GL_FALSE,
         sizeof(struct Vertex), (void*) offsetof(struct Vertex, pos));
 
-    glEnableVertexAttribArray(t->vcol_location);
+    glEnableVertexAttribArray(vcol_location);
     glVertexAttribPointer(
-        t->vcol_location, 3, GL_FLOAT, GL_FALSE,
+        vcol_location, 3, GL_FLOAT, GL_FALSE,
         sizeof(struct Vertex), (void*) offsetof(struct Vertex, col));
 
-    glEnableVertexAttribArray(t->vnorm_location);
+    glEnableVertexAttribArray(vnorm_location);
     glVertexAttribPointer(
-        t->vnorm_location, 3, GL_FLOAT, GL_FALSE,
+        vnorm_location, 3, GL_FLOAT, GL_FALSE,
         sizeof(struct Vertex), (void*) offsetof(struct Vertex, norm));
 
     return (struct Object*)t;

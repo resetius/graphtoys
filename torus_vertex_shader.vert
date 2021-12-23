@@ -2,7 +2,7 @@
 
 uniform mat4 ModelViewMatrix;
 uniform mat3 NormalMatrix;
-uniform mat4 ProjectionMatrix;
+//uniform mat4 ProjectionMatrix;
 uniform mat4 MVP;
 
 in vec3 vCol;

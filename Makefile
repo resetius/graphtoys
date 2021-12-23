@@ -6,6 +6,8 @@ main.exe: main.o triangle.o torus.o program.o
 rcc.exe: rcc.c
 	gcc $^ -o $@
 
+program.o: program.h
+
 triangle.o: triangle.h triangle_vertex_shader.h triangle_fragment_shader.h
 
 torus.o: torus.h triangle_fragment_shader.h torus_vertex_shader.h
