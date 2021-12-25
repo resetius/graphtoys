@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "glad/gl.h"
 #include <GLFW/glfw3.h>
@@ -19,6 +20,36 @@ struct Mandelbrot {
     float sy;
     float sz;
 };
+
+static void t_left(struct Object* obj) {
+    struct Mandelbrot* t = (struct Mandelbrot*)obj;
+    t->T[0] += t->T[2]*0.01;
+}
+
+static void t_right(struct Object* obj) {
+    struct Mandelbrot* t = (struct Mandelbrot*)obj;
+    t->T[0] -= t->T[2]*0.01;
+}
+
+static void t_up(struct Object* obj) {
+    struct Mandelbrot* t = (struct Mandelbrot*)obj;
+    t->T[1] += t->T[2]*0.01;
+}
+
+static void t_down(struct Object* obj) {
+    struct Mandelbrot* t = (struct Mandelbrot*)obj;
+    t->T[1] -= t->T[2]*0.01;
+}
+
+static void t_zoom_in(struct Object* obj) {
+    struct Mandelbrot* t = (struct Mandelbrot*)obj;
+    t->T[2] /= 1.01;
+}
+
+static void t_zoom_out(struct Object* obj) {
+    struct Mandelbrot* t = (struct Mandelbrot*)obj;
+    t->T[2] *= 1.01;
+}
 
 static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     struct Mandelbrot* t = (struct Mandelbrot*)obj;
@@ -43,7 +74,7 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     prog_use(t->p);
     prog_set_mat4x4(t->p, "MVP", &mvp);
     prog_set_vec3(t->p, "T", &t->T);
-
+/*
     t->T[0] += t->sx*0.01f;
     if (t->T[0] > 1.0 || t->T[0] < -1.0) {
         t->sx = -t->sx;
@@ -56,7 +87,7 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     if (t->T[2] > 4.0 || t->T[2] < 0.1) {
         t->sz = 1./t->sz;
     }
-
+*/
     mesh_render(t->m);
 }
 
@@ -79,14 +110,24 @@ struct Object* CreateMandelbrot() {
         {{ 1.0f, 1.0f,0.0f}}
     };
 
-    t->base.free = t_free;
-    t->base.draw = t_draw;
+    struct Object base = {
+        .draw = t_draw,
+        .free = t_free,
+        .move_left = t_left,
+        .move_right = t_right,
+        .move_up = t_up,
+        .move_down = t_down,
+        .zoom_in = t_zoom_in,
+        .zoom_out = t_zoom_out
+    };
+
+    t->base = base;
 
     t->m = mesh1_new(vertices, 6, 0);
     t->p = prog_new();
     t->T[0] = t->T[1] = 0.0; t->T[2] = 2.0;
     t->sx = 1.0;
-    t->sy = 1.0;
+    t->sy = -1.0;
     t->sz = 1.01;
     prog_add_vs(t->p, mandelbrot_vs);
     prog_add_fs(t->p, mandelbrot_fs);

@@ -10,6 +10,18 @@
 #include "torus.h"
 #include "mandelbrot.h"
 
+struct App {
+    struct DrawContext ctx;
+    struct ObjectVec objs;
+};
+
+static void glInfo() {
+    const GLubyte* renderer = glGetString(GL_RENDERER);
+    const GLubyte* version = glGetString(GL_VERSION);
+    printf("Renderer: %s\n", renderer);
+    printf("OpenGL version supported %s\n", version);
+}
+
 static void error_callback(int error, const char* description)
 {
     fprintf(stderr, "Error: %s\n", description);
@@ -17,8 +29,49 @@ static void error_callback(int error, const char* description)
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    struct App* app = glfwGetWindowUserPointer(window);
+    int i;
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+    if (key == GLFW_KEY_LEFT && action != GLFW_RELEASE) {
+        for (i = 0; i < app->objs.size; i++) {
+            if (app->objs.objs[i]->move_left) {
+                app->objs.objs[i]->move_left(app->objs.objs[i]);
+            }
+        }
+    } else if (key == GLFW_KEY_RIGHT && action != GLFW_RELEASE) {
+        for (i = 0; i < app->objs.size; i++) {
+            if (app->objs.objs[i]->move_right) {
+                app->objs.objs[i]->move_right(app->objs.objs[i]);
+            }
+        }
+    } else if (key == GLFW_KEY_UP && action != GLFW_RELEASE) {
+        for (i = 0; i < app->objs.size; i++) {
+            if (app->objs.objs[i]->move_up) {
+                app->objs.objs[i]->move_up(app->objs.objs[i]);
+            }
+        }
+    } else if (key == GLFW_KEY_DOWN && action != GLFW_RELEASE) {
+        for (i = 0; i < app->objs.size; i++) {
+            if (app->objs.objs[i]->move_down) {
+                app->objs.objs[i]->move_down(app->objs.objs[i]);
+            }
+        }
+    } else if (key == GLFW_KEY_A && action != GLFW_RELEASE) {
+        for (i = 0; i < app->objs.size; i++) {
+            if (app->objs.objs[i]->zoom_in) {
+                app->objs.objs[i]->zoom_in(app->objs.objs[i]);
+            }
+        }
+    } else if (key == GLFW_KEY_Z && action != GLFW_RELEASE) {
+        for (i = 0; i < app->objs.size; i++) {
+            if (app->objs.objs[i]->zoom_out) {
+                app->objs.objs[i]->zoom_out(app->objs.objs[i]);
+            }
+        }
+    }
+    //printf("%d %d %d\n", key, action, mods);
 }
 
 typedef struct Object* (*ConstructorT)();
@@ -32,7 +85,7 @@ int main(int argc, char** argv)
 {
     GLFWwindow* window;
     struct Object* obj;
-    struct DrawContext ctx;
+    struct App app;
     struct ObjectAndConstructor constructors[] = {
         {"torus", CreateTorus},
         {"triangle", CreateTriangle},
@@ -41,7 +94,7 @@ int main(int argc, char** argv)
     };
     int i, j;
     ConstructorT constr = CreateTorus;
-
+    memset(&app, 0, sizeof(app));
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--help")) {
             for (j = 0; constructors[j].name; j++) {
@@ -56,8 +109,6 @@ int main(int argc, char** argv)
             }
         }
     }
-
-    memset(&ctx, 0, sizeof(ctx));
 
     glfwSetErrorCallback(error_callback);
 
@@ -78,7 +129,7 @@ int main(int argc, char** argv)
         glfwTerminate();
         return -1;
     }
-
+    glfwSetWindowUserPointer(window, &app);
     glfwSetKeyCallback(window, key_callback);
 
     /* Make the window's context current */
@@ -86,12 +137,11 @@ int main(int argc, char** argv)
     gladLoadGL(glfwGetProcAddress);
     glfwSwapInterval(1);
 
+    glInfo();
+
     obj = constr();
 
-    const GLubyte* renderer = glGetString(GL_RENDERER);
-	const GLubyte* version = glGetString(GL_VERSION);
-	printf("Renderer: %s\n", renderer);
-	printf("OpenGL version supported %s\n", version);
+    ovec_add(&app.objs, obj);
 
     glEnable(GL_DEPTH_TEST);
 
@@ -100,13 +150,13 @@ int main(int argc, char** argv)
     {
         int width, height;
         glfwGetFramebufferSize(window, &width, &height);
-        ctx.ratio = width / (float) height;
+        app.ctx.ratio = width / (float) height;
 
         /* Render here */
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        obj->draw(obj, &ctx);
+        obj->draw(obj, &app.ctx);
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
