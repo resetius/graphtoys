@@ -7,7 +7,7 @@ endif
 
 All: main.exe rcc.exe
 
-main.exe: main.o triangle.o torus.o program.o mesh.o
+main.exe: main.o triangle.o torus.o program.o mesh.o mandelbrot.o
 	gcc $^ `pkg-config --static --libs glfw3` $(LIBGL) -o $@
 
 rcc.exe: rcc.c
@@ -16,6 +16,8 @@ rcc.exe: rcc.c
 program.o: program.h
 
 mesh.o: mesh.h
+
+mandelbrot.o: mandelbrot.h
 
 triangle.o: triangle.h triangle_vertex_shader.h triangle_fragment_shader.h
 

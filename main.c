@@ -8,6 +8,7 @@
 #include "object.h"
 #include "triangle.h"
 #include "torus.h"
+#include "mandelbrot.h"
 
 static void error_callback(int error, const char* description)
 {
@@ -35,6 +36,7 @@ int main(int argc, char** argv)
     struct ObjectAndConstructor constructors[] = {
         {"torus", CreateTorus},
         {"triangle", CreateTriangle},
+        {"mandelbrot", CreateMandelbrot},
         {NULL, NULL}
     };
     int i, j;

@@ -6,6 +6,30 @@
 
 #include "mesh.h"
 
+struct Mesh* mesh1_new(
+    struct Vertex1* vertices,
+    int nvertices,
+    int vpos_location)
+{
+    struct Mesh* m = calloc(1, sizeof(struct Mesh));
+
+    m->nvertices = nvertices;
+    glGenBuffers(1, &m->buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, m->buffer);
+    glBufferData(GL_ARRAY_BUFFER, m->nvertices*sizeof(struct Vertex1),
+                 vertices, GL_STATIC_DRAW);
+
+    glGenVertexArrays(1, &m->vao);
+    glBindVertexArray(m->vao);
+
+    glEnableVertexAttribArray(vpos_location);
+    glVertexAttribPointer(
+        vpos_location, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct Vertex1), (void*) offsetof(struct Vertex1, pos));
+
+    return m;
+}
+
 struct Mesh* mesh_new(
     struct Program* p,
     struct Vertex* vertices,

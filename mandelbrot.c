@@ -24,11 +24,19 @@ static void t_free(struct Object* obj) {
     free(t);
 }
 
-struct Object* CreateMandlebrot() {
+struct Object* CreateMandelbrot() {
     struct Mandelbrot* t = calloc(1, sizeof(struct Mandelbrot));
+    struct Vertex1 vertices[] = {
+        {{0.0f,0.0f,0.0f}},
+        {{1.0f,0.0f,0.0f}},
+        {{1.0f,1.0f,0.0f}},
+        {{0.0f,1.0f,0.0f}}
+    };
+
     t->base.free = t_free;
     t->base.draw = t_draw;
 
+    t->m = mesh1_new(vertices, 4, 0);
     t->p = prog_new();
     return (struct Object*)t;
 }
