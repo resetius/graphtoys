@@ -23,7 +23,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 typedef struct Object* (*ConstructorT)();
 
 struct ObjectAndConstructor {
-    const char name[256];
+    const char* name;
     ConstructorT constructor;
 };
 
@@ -32,18 +32,24 @@ int main(int argc, char** argv)
     GLFWwindow* window;
     struct Object* obj;
     struct DrawContext ctx;
-    struct ObjectAndConstructor constuctors[] = {
+    struct ObjectAndConstructor constructors[] = {
         {"torus", CreateTorus},
         {"triangle", CreateTriangle},
-        {"", NULL}
+        {NULL, NULL}
     };
     int i, j;
     ConstructorT constr = CreateTorus;
 
     for (i = 1; i < argc; i++) {
-        for (j = 0; constuctors[j].constructor; j++) {
-            if (!strcmp(constuctors[j].name, argv[i])) {
-                constr = constuctors[j].constructor;
+        if (!strcmp(argv[i], "--help")) {
+            for (j = 0; constructors[j].name; j++) {
+                printf("%s %s\n", argv[0], constructors[j].name);
+            }
+            return 0;
+        }
+        for (j = 0; constructors[j].name; j++) {
+            if (!strcmp(constructors[j].name, argv[i])) {
+                constr = constructors[j].constructor;
                 break;
             }
         }
