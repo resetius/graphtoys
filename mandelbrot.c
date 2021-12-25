@@ -14,10 +14,15 @@ struct Mandelbrot {
     struct Object base;
     struct Program* p;
     struct Mesh* m;
+    vec3 T;
+    float sx;
+    float sy;
+    float sz;
 };
 
 static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     struct Mandelbrot* t = (struct Mandelbrot*)obj;
+    //vec3 T = {0.0f, 0.0f, 2.0f};
     mat4x4 m, v, mv, p, mvp;
     mat4x4_identity(m);
     //mat4x4_rotate_X(m, m, (float)glfwGetTime());
@@ -37,6 +42,20 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
 
     prog_use(t->p);
     prog_set_mat4x4(t->p, "MVP", &mvp);
+    prog_set_vec3(t->p, "T", &t->T);
+
+    t->T[0] += t->sx*0.01f;
+    if (t->T[0] > 1.0 || t->T[0] < -1.0) {
+        t->sx = -t->sx;
+    }
+    t->T[1] += t->sx*0.01f;
+    if (t->T[1] > 1.0 || t->T[1] < -1.0) {
+        t->sy = -t->sy;
+    }
+    t->T[2] *= t->sz;
+    if (t->T[2] > 4.0 || t->T[2] < 0.1) {
+        t->sz = 1./t->sz;
+    }
 
     mesh_render(t->m);
 }
@@ -65,6 +84,10 @@ struct Object* CreateMandelbrot() {
 
     t->m = mesh1_new(vertices, 6, 0);
     t->p = prog_new();
+    t->T[0] = t->T[1] = 0.0; t->T[2] = 2.0;
+    t->sx = 1.0;
+    t->sy = 1.0;
+    t->sz = 1.01;
     prog_add_vs(t->p, mandelbrot_vs);
     prog_add_fs(t->p, mandelbrot_fs);
     prog_link(t->p);

@@ -21,3 +21,5 @@ int prog_validate(struct Program* p);
 
 int prog_set_mat3x3(struct Program* p, const char* name, const mat3x3* mat);
 int prog_set_mat4x4(struct Program* p, const char* name, const mat4x4* mat);
+
+int prog_set_vec3(struct Program* p, const char* name, const vec3* vec);

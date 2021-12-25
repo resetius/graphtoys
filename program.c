@@ -126,3 +126,13 @@ int prog_set_mat4x4(struct Program* p, const char* name, const mat4x4* mat) {
     glUniformMatrix4fv(location, 1, GL_FALSE, (const GLfloat*)mat);
     return 1;
 }
+
+int prog_set_vec3(struct Program* p, const char* name, const vec3* vec) {
+    GLint location = glGetUniformLocation(p->program, name);
+    if (location < 0) {
+        prog_log(p, "Unknown location: '%s'", name);
+        return 0;
+    }
+    glUniform3fv(location, 1, (const GLfloat*)vec);
+    return 1;
+}
