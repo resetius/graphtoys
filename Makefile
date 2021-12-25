@@ -17,7 +17,7 @@ program.o: program.h
 
 mesh.o: mesh.h
 
-mandelbrot.o: mandelbrot.h
+mandelbrot.o: mandelbrot.h mandelbrot_vs.h mandelbrot_fs.h
 
 triangle.o: triangle.h triangle_vertex_shader.h triangle_fragment_shader.h
 
@@ -25,6 +25,12 @@ torus.o: torus.h triangle_fragment_shader.h torus_vertex_shader.h mesh.h
 
 %.o: %.c Makefile object.h triangle.h
 	gcc  -Wall -g -c -DGL_SILENCE_DEPRECATION `pkg-config --cflags glfw3` $< -o $@
+
+%.h: %.vs rcc.exe
+	./rcc.exe $< -o $@
+
+%.h: %.fs rcc.exe
+	./rcc.exe $< -o $@
 
 %.h: %.vert rcc.exe
 	./rcc.exe $< -o $@
