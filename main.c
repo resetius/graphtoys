@@ -20,11 +20,35 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
-int main(void)
+typedef struct Object* (*ConstructorT)();
+
+struct ObjectAndConstructor {
+    const char name[256];
+    ConstructorT constructor;
+};
+
+int main(int argc, char** argv)
 {
     GLFWwindow* window;
-    struct Object* tr;
+    struct Object* obj;
     struct DrawContext ctx;
+    struct ObjectAndConstructor constuctors[] = {
+        {"torus", CreateTorus},
+        {"triangle", CreateTriangle},
+        {"", NULL}
+    };
+    int i, j;
+    ConstructorT constr = CreateTorus;
+
+    for (i = 1; i < argc; i++) {
+        for (j = 0; constuctors[j].constructor; j++) {
+            if (!strcmp(constuctors[j].name, argv[i])) {
+                constr = constuctors[j].constructor;
+                break;
+            }
+        }
+    }
+
     memset(&ctx, 0, sizeof(ctx));
 
     glfwSetErrorCallback(error_callback);
@@ -54,7 +78,7 @@ int main(void)
     gladLoadGL(glfwGetProcAddress);
     glfwSwapInterval(1);
 
-    tr = CreateTorus(); //CreateTriangle();
+    obj = constr();
 
     const GLubyte* renderer = glGetString(GL_RENDERER);
 	const GLubyte* version = glGetString(GL_VERSION);
@@ -74,7 +98,7 @@ int main(void)
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        tr->draw(tr, &ctx);
+        obj->draw(obj, &ctx);
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
@@ -83,7 +107,7 @@ int main(void)
         glfwPollEvents();
     }
 
-    tr->free(tr);
+    obj->free(obj);
 
     glfwTerminate();
     return 0;
