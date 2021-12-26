@@ -13,6 +13,7 @@ struct Object {
     void (*move_down)(struct Object*);
     void (*zoom_in)(struct Object*);
     void (*zoom_out)(struct Object*);
+    void (*mode)(struct Object*);
 };
 
 struct ObjectVec {

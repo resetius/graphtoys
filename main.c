@@ -71,6 +71,12 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
                 app->objs.objs[i]->zoom_out(app->objs.objs[i]);
             }
         }
+    } else if (key == GLFW_KEY_TAB && action == GLFW_PRESS) {
+        for (i = 0; i < app->objs.size; i++) {
+            if (app->objs.objs[i]->mode) {
+                app->objs.objs[i]->mode(app->objs.objs[i]);
+            }
+        }
     }
     //printf("%d %d %d\n", key, action, mods);
 }

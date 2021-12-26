@@ -136,3 +136,9 @@ int prog_set_vec3(struct Program* p, const char* name, const vec3* vec) {
     glUniform3fv(location, 1, (const GLfloat*)vec);
     return 1;
 }
+
+int prog_set_sub_fs(struct Program* p, const char* name) {
+    GLuint location = glGetSubroutineIndex(p->program, GL_FRAGMENT_SHADER, name);
+    glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &location);
+    return 1;
+}

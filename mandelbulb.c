@@ -16,9 +16,10 @@ struct Mandelbulb {
     struct Program* p;
     struct Mesh* m;
     vec3 T;
-    float sx;
-    float sy;
-    float sz;
+
+    const char* types[10];
+    int cur_type;
+    int n_types;
 };
 
 static void t_left(struct Object* obj) {
@@ -49,6 +50,11 @@ static void t_zoom_in(struct Object* obj) {
 static void t_zoom_out(struct Object* obj) {
     struct Mandelbulb* t = (struct Mandelbulb*)obj;
     t->T[2] *= 1.01;
+}
+
+static void t_mode(struct Object* obj) {
+    struct Mandelbulb* t = (struct Mandelbulb*)obj;
+    t->cur_type = (t->cur_type + 1) % t->n_types;
 }
 
 static void t_draw(struct Object* obj, struct DrawContext* ctx) {
@@ -82,20 +88,8 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_rotate_Z(rot, rot, (float)glfwGetTime());
     prog_set_mat4x4(t->p, "Rot", &rot);
 
-/*
-    t->T[0] += t->sx*0.01f;
-    if (t->T[0] > 1.0 || t->T[0] < -1.0) {
-        t->sx = -t->sx;
-    }
-    t->T[1] += t->sx*0.01f;
-    if (t->T[1] > 1.0 || t->T[1] < -1.0) {
-        t->sy = -t->sy;
-    }
-    t->T[2] *= t->sz;
-    if (t->T[2] > 4.0 || t->T[2] < 0.1) {
-        t->sz = 1./t->sz;
-    }
-*/
+    prog_set_sub_fs(t->p, t->types[t->cur_type]);
+
     mesh_render(t->m);
 }
 
@@ -126,7 +120,8 @@ struct Object* CreateMandelbulb() {
         .move_up = t_up,
         .move_down = t_down,
         .zoom_in = t_zoom_in,
-        .zoom_out = t_zoom_out
+        .zoom_out = t_zoom_out,
+        .mode = t_mode
     };
 
     t->base = base;
@@ -134,11 +129,15 @@ struct Object* CreateMandelbulb() {
     t->m = mesh1_new(vertices, 6, 0);
     t->p = prog_new();
     t->T[0] = t->T[1] = 0.0; t->T[2] = 2.0;
-    t->sx = 1.0;
-    t->sy = -1.0;
-    t->sz = 1.01;
     prog_add_vs(t->p, mandelbulb_vs);
     prog_add_fs(t->p, mandelbulb_fs);
     prog_link(t->p);
+
+    t->types[0] = "next_quadratic";
+    t->types[1] = "next_cubic";
+    t->types[2] = "next_nine";
+    t->types[3] = "next_quintic";
+    t->n_types = 4;
+    t->cur_type = 0;
     return (struct Object*)t;
 }

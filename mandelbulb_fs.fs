@@ -1,11 +1,15 @@
-#version 330
+#version 410
 // precision highp float;
 uniform mat4 Rot;
 uniform vec3 T;
 
+subroutine vec3 next_point_type(vec3 p, vec3 p0);
+subroutine uniform next_point_type next_point;
+
 in vec2 coord;
 out vec4 fragColor;
 
+subroutine(next_point_type)
 vec3 next_quadratic(vec3 p, vec3 p0) {
     return vec3(
         p.x*p.x-p.y*p.y-p.z*p.z,
@@ -13,6 +17,7 @@ vec3 next_quadratic(vec3 p, vec3 p0) {
         2*p.x*p.y) + p0;
 }
 
+subroutine(next_point_type)
 vec3 next_cubic(vec3 p, vec3 p0) {
     return vec3(
         p.x*p.x*p.x-3*p.x*(p.y*p.y+p.z*p.z),
@@ -20,6 +25,7 @@ vec3 next_cubic(vec3 p, vec3 p0) {
         p.z*p.z*p.z-3*p.z*p.x*p.x+p.z*p.y*p.y) + p0;
 }
 
+subroutine(next_point_type)
 vec3 next_nine(vec3 p, vec3 p0) {
     float x = p.x; float y = p.y; float z = p.z;
     float x2 = x*x, x3 = x*x2, x5 = x3*x2, x7 = x5*x2;
@@ -36,6 +42,7 @@ vec3 next_nine(vec3 p, vec3 p0) {
     return vec3(xn, yn, zn) + p0;
 }
 
+subroutine(next_point_type)
 vec3 next_quintic(vec3 p, vec3 p0) {
     float A, B, C, D;
     A = B = C = D = 0;
@@ -64,7 +71,7 @@ bool iterate(vec3 p0) {
         //p = next_quadratic(p, p0);
         //p = next_cubic(p, p0);
         //p = next_nine(p, p0);
-        p = next_quintic(p, p0);
+        p = next_point(p, p0);
         if (dot(p, p) > 4) {
             ans = false;
             break;
