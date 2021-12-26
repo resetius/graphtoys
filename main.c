@@ -9,6 +9,7 @@
 #include "triangle.h"
 #include "torus.h"
 #include "mandelbrot.h"
+#include "mandelbulb.h"
 
 struct App {
     struct DrawContext ctx;
@@ -90,6 +91,7 @@ int main(int argc, char** argv)
         {"torus", CreateTorus},
         {"triangle", CreateTriangle},
         {"mandelbrot", CreateMandelbrot},
+        {"mandelbulb", CreateMandelbulb},
         {NULL, NULL}
     };
     int i, j;

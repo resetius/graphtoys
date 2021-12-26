@@ -82,4 +82,5 @@ void mesh_render(struct Mesh* m)
 {
     glBindVertexArray(m->vao);
     glDrawArrays(GL_TRIANGLES, 0, m->nvertices);
+    //glDrawArrays(GL_POINTS, 0, m->nvertices);
 }
