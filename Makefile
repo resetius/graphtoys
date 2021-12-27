@@ -1,5 +1,6 @@
 UNAME_S := $(shell uname -s)
 PLATFORM=$(UNAME_S)
+CFLAGS?=-g -O2
 LIBGL=
 ifeq ($(UNAME_S),Darwin)
 	LIBGL=-framework OpenGl
@@ -26,7 +27,7 @@ triangle.o: triangle.h triangle_vertex_shader.h triangle_fragment_shader.h
 torus.o: torus.h triangle_fragment_shader.h torus_vertex_shader.h mesh.h
 
 %.o: %.c Makefile object.h triangle.h
-	gcc  -Wall -g -c -DGL_SILENCE_DEPRECATION `pkg-config --cflags glfw3` $< -o $@
+	gcc $(CFLAGS) -c -DGL_SILENCE_DEPRECATION `pkg-config --cflags glfw3` $< -o $@
 
 %.h: %.vs rcc.exe
 	./rcc.exe $< -o $@
