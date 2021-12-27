@@ -45,8 +45,6 @@ static void char_load(struct FontImpl* f, wchar_t ch) {
     glBindTexture(GL_TEXTURE_2D, out->tex_id);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, bitmap.pitch);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(
         GL_TEXTURE_2D, 0,
         GL_RED,
@@ -62,21 +60,24 @@ static void font_render(struct Font* o, float x, float y, const char* string, fl
 
     mat4x4 m, v, mv, p, mvp;
     mat4x4_identity(m);
-    vec3 eye = {.0f, .0f, -1.f};
-    vec3 center = {.0f, .0f, .0f};
-    vec3 up = {.0f, 1.f, .0f};
-    mat4x4_look_at(v, eye, center, up);
-    mat4x4_mul(mv, v, m);
-    mat4x4_perspective(p, 70./2./M_PI, ratio, 0.3f, 100.f);
-    mat4x4_mul(mvp, p, mv);
+    mat4x4_ortho(p, -ratio, ratio, 1.f, -1.f, 1.f, -1.f);
+    mat4x4_mul(mvp, p, m);
+
+    //vec3 eye = {.0f, .0f, -1.f};
+    //vec3 center = {.0f, .0f, .0f};
+    //vec3 up = {.0f, 1.f, .0f};
+    //mat4x4_look_at(v, eye, center, up);
+    //mat4x4_mul(mv, v, m);
+    //mat4x4_perspective(p, 70./2./M_PI, ratio, 0.3f, 100.f);
+    //mat4x4_mul(mvp, p, mv);
 
     prog_use(f->p);
     prog_set_mat4x4(f->p, "MVP", &mvp);
 
-    glBindSampler(0, f->sampler);
-
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, f->chars['Z'].tex_id);
+    glBindTexture(GL_TEXTURE_2D, f->chars['a'].tex_id);
+
+    glBindSampler(0, f->sampler);
 
     mesh_render(f->m);
 }
@@ -88,13 +89,13 @@ struct Font* font_new() {
     // {-1, 1} {1, 1}
     // {-1,-1} {1, -1}
     struct TexVertex1 vertices[] = {
-        {{-1.0f, 1.0f, 0.0f}, {-1.0f, 0.0f}},
-        {{-1.0f,-1.0f, 0.0f}, {-1.0f,-1.0f}},
-        {{ 1.0f,-1.0f, 0.0f}, { 0.0f,-1.0f}},
+        {{-1.0f, 1.0f, 0.0f}, { 0.0f, 1.0f}},
+        {{-1.0f,-1.0f, 0.0f}, { 0.0f, 0.0f}},
+        {{ 1.0f,-1.0f, 0.0f}, { 1.0f, 0.0f}},
 
-        {{-1.0f, 1.0f, 0.0f}, {-1.0f, 0.0f}},
-        {{ 1.0f,-1.0f, 0.0f}, { 0.0f,-1.0f}},
-        {{ 1.0f, 1.0f, 0.0f}, { 0.0f, 0.0f}}
+        {{-1.0f, 1.0f, 0.0f}, { 0.0f, 1.0f}},
+        {{ 1.0f,-1.0f, 0.0f}, { 1.0f, 0.0f}},
+        {{ 1.0f, 1.0f, 0.0f}, { 1.0f, 1.0f}}
     };
 
     struct Font base = {
@@ -138,6 +139,10 @@ struct Font* font_new() {
     glGenSamplers(1, &t->sampler);
     glSamplerParameteri(t->sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glSamplerParameteri(t->sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glSamplerParameteri(t->sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glSamplerParameteri(t->sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    vec4 border = {0.0f,0.0f,0.0f,0.5f};
+    glSamplerParameterfv(t->sampler, GL_TEXTURE_BORDER_COLOR, border);
 
     GLint location = glGetUniformLocation(t->p->program, "Texture");
     if (location < 0) {

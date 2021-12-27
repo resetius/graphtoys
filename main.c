@@ -157,6 +157,9 @@ int main(int argc, char** argv)
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
     font = font_new();
 
@@ -171,8 +174,8 @@ int main(int argc, char** argv)
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        obj->draw(obj, &app.ctx);
         font->render(font, 0, 0, "ABCD", app.ctx.ratio);
-        //obj->draw(obj, &app.ctx);
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
