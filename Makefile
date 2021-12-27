@@ -35,10 +35,10 @@ triangle.o: triangle.h triangle_vertex_shader.h triangle_fragment_shader.h
 
 torus.o: torus.h triangle_fragment_shader.h torus_vertex_shader.h mesh.h
 
-font/font.o: font/font.h font/RobotoMono-Regular.h
+font/font.o: font/font.h font/RobotoMono-Regular.h font/font_vs.h font/font_fs.h
 
 %.o: %.c Makefile object.h triangle.h
-	gcc $(CFLAGS) -c -DGL_SILENCE_DEPRECATION `pkg-config --cflags glfw3,freetype2` $< -o $@
+	gcc $(CFLAGS) -c -DGL_SILENCE_DEPRECATION -I. `pkg-config --cflags glfw3,freetype2` $< -o $@
 
 %.h: %.ttf rcc.exe
 	./rcc.exe $< -o $@

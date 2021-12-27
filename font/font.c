@@ -2,10 +2,16 @@
 #include <stdio.h>
 #include <freetype/freetype.h>
 #include "font.h"
+#include "font_vs.h"
+#include "font_fs.h"
+#include "mesh.h"
+#include "program.h"
 #include "RobotoMono-Regular.h"
 
 struct FontImpl {
     struct Font base;
+    struct Mesh* m;
+    struct Program* p;
     FT_Library library;
     FT_Face face;
 };
@@ -21,6 +27,17 @@ void font_render(struct Font* o, float x, float y, const char* string) {
 
 struct Font* font_new() {
     struct FontImpl* t = calloc(1, sizeof(*t));
+
+    struct Vertex1 vertices[] = {
+        {{-1.0f, 1.0f,0.0f}},
+        {{-1.0f,-1.0f,0.0f}},
+        {{ 1.0f,-1.0f,0.0f}},
+
+        {{-1.0f, 1.0f,0.0f}},
+        {{ 1.0f,-1.0f,0.0f}},
+        {{ 1.0f, 1.0f,0.0f}}
+    };
+
     struct Font base = {
         .render = font_render
     };
@@ -51,9 +68,20 @@ struct Font* font_new() {
         printf("Cannot set char size\n");
         exit(1);
     }
+
+    t->m = mesh1_new(vertices, 6, 0);
+    t->p = prog_new();
+
+    prog_add_vs(t->p, font_font_vs);
+    prog_add_fs(t->p, font_font_fs);
+    prog_link(t->p);
+
     return (struct Font*)t;
 }
 
-void font_free(struct Font* f) {
+void font_free(struct Font* o) {
+    struct FontImpl* f = (struct FontImpl*)o;
+    mesh_free(f->m);
+    prog_free(f->p);
     free(f);
 }
