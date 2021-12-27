@@ -145,6 +145,7 @@ int main(int argc, char** argv)
     gladLoadGL(glfwGetProcAddress);
     glfwSwapInterval(1);
 
+    setbuf(stdout, NULL);
     glInfo();
 
     obj = constr();

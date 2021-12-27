@@ -88,7 +88,7 @@ int prog_link(struct Program* p) {
     int result;
     glLinkProgram(p->program);
 
-    glGetProgramiv(p->program, GL_COMPILE_STATUS, &result);
+    glGetProgramiv(p->program, GL_LINK_STATUS, &result);
     if (GL_FALSE == result) {
         // get error log
         int length = 0;
