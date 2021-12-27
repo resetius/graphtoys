@@ -22,6 +22,7 @@ struct FontImpl {
     struct Char chars[65536];
     FT_Library library;
     FT_Face face;
+    GLuint sampler;
 };
 
 static void char_load(struct FontImpl* f, wchar_t ch) {
@@ -39,10 +40,13 @@ static void char_load(struct FontImpl* f, wchar_t ch) {
     }
 
     FT_Bitmap bitmap = f->face->glyph->bitmap;
-
     glGenTextures(1, &out->tex_id);
+
     glBindTexture(GL_TEXTURE_2D, out->tex_id);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, bitmap.pitch);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(
         GL_TEXTURE_2D, 0,
         GL_RED,
@@ -53,27 +57,44 @@ static void char_load(struct FontImpl* f, wchar_t ch) {
         bitmap.buffer);
 }
 
-static void font_render(struct Font* o, float x, float y, const char* string) {
+static void font_render(struct Font* o, float x, float y, const char* string, float ratio) {
     struct FontImpl* f = (struct FontImpl*)o;
-    int error = FT_Load_Char(f->face, 'A', FT_LOAD_RENDER);
-    if (error) {
-        printf("Cannot load char: %d\n", error);
-        exit(1);
-    }
+
+    mat4x4 m, v, mv, p, mvp;
+    mat4x4_identity(m);
+    vec3 eye = {.0f, .0f, -1.f};
+    vec3 center = {.0f, .0f, .0f};
+    vec3 up = {.0f, 1.f, .0f};
+    mat4x4_look_at(v, eye, center, up);
+    mat4x4_mul(mv, v, m);
+    mat4x4_perspective(p, 70./2./M_PI, ratio, 0.3f, 100.f);
+    mat4x4_mul(mvp, p, mv);
+
+    prog_use(f->p);
+    prog_set_mat4x4(f->p, "MVP", &mvp);
+
+    glBindSampler(0, f->sampler);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, f->chars['Z'].tex_id);
+
+    mesh_render(f->m);
 }
 
 struct Font* font_new() {
     struct FontImpl* t = calloc(1, sizeof(*t));
     int i;
 
-    struct Vertex1 vertices[] = {
-        {{-1.0f, 1.0f,0.0f}},
-        {{-1.0f,-1.0f,0.0f}},
-        {{ 1.0f,-1.0f,0.0f}},
+    // {-1, 1} {1, 1}
+    // {-1,-1} {1, -1}
+    struct TexVertex1 vertices[] = {
+        {{-1.0f, 1.0f, 0.0f}, {-1.0f, 0.0f}},
+        {{-1.0f,-1.0f, 0.0f}, {-1.0f,-1.0f}},
+        {{ 1.0f,-1.0f, 0.0f}, { 0.0f,-1.0f}},
 
-        {{-1.0f, 1.0f,0.0f}},
-        {{ 1.0f,-1.0f,0.0f}},
-        {{ 1.0f, 1.0f,0.0f}}
+        {{-1.0f, 1.0f, 0.0f}, {-1.0f, 0.0f}},
+        {{ 1.0f,-1.0f, 0.0f}, { 0.0f,-1.0f}},
+        {{ 1.0f, 1.0f, 0.0f}, { 0.0f, 0.0f}}
     };
 
     struct Font base = {
@@ -107,12 +128,23 @@ struct Font* font_new() {
         exit(1);
     }
 
-    t->m = mesh1_new(vertices, 6, 0);
+    t->m = mesh_tex1_new(vertices, 6, 0, 1);
     t->p = prog_new();
 
     prog_add_vs(t->p, font_font_vs);
     prog_add_fs(t->p, font_font_fs);
     prog_link(t->p);
+
+    glGenSamplers(1, &t->sampler);
+    glSamplerParameteri(t->sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glSamplerParameteri(t->sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    GLint location = glGetUniformLocation(t->p->program, "Texture");
+    if (location < 0) {
+        printf("WTF?\n");
+        exit(1);
+    }
+    glUniform1i(location, 0);
 
     memset(t->chars, 0, sizeof(t->chars));
     for (i = 'a'; i <= 'z'; i++) {

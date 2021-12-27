@@ -13,6 +13,11 @@ struct Vertex1 {
     vec3 pos;
 };
 
+struct TexVertex1 {
+    vec3 pos;
+    vec2 tpos;
+};
+
 struct Mesh {
     int nvertices;
     GLuint buffer;
@@ -31,6 +36,12 @@ struct Mesh* mesh1_new(
     struct Vertex1* vertices,
     int nvertices,
     int vpos_location);
+
+struct Mesh* mesh_tex1_new(
+    struct TexVertex1* vertices,
+    int nvertices,
+    int vpos_location,
+    int tpos_tlocation);
 
 void mesh_free(struct Mesh*);
 void mesh_render(struct Mesh*);

@@ -156,6 +156,7 @@ int main(int argc, char** argv)
     ovec_add(&app.objs, obj);
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
 
     font = font_new();
 
@@ -170,8 +171,8 @@ int main(int argc, char** argv)
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        font->render(font, 0, 0, "ABCD");
-        obj->draw(obj, &app.ctx);
+        font->render(font, 0, 0, "ABCD", app.ctx.ratio);
+        //obj->draw(obj, &app.ctx);
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
