@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 void usage(char* name) {
     printf("%s text.txt [-o output_name]\n", name);
@@ -15,6 +16,8 @@ int main(int argc, char** argv) {
     FILE* fout;
     char* dot;
     int ch;
+    int count = 0;
+    int size = 0;
 
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-o")) {
@@ -43,6 +46,13 @@ int main(int argc, char** argv) {
     if ((dot = strchr(output, '.'))) {
         varname[dot-output] = 0;
     }
+    dot = varname;
+    while (*dot) {
+        if (strchr("/-", *dot)) {
+            *dot = '_';
+        }
+        dot++;
+    }
 
     fin = fopen(input, "rb");
     if (!fin) {
@@ -56,25 +66,38 @@ int main(int argc, char** argv) {
     }
     fprintf(fout, "static const char* %s = \"", varname);
     while ((ch = fgetc(fin)) != EOF) {
-        switch (ch) {
-        case '"':
-            fputc('\\', fout);
-            fputc('"', fout);
-            break;
-        case '\t':
-            fputc('\\', fout);
-            fputc('t', fout);
-            break;
-        case '\n':
-            fputc('\\', fout);
-            fputc('n', fout);
-            break;
-        default:
-            fputc(ch, fout);
-            break;
+        if (count == 0) {
+            fprintf(fout, "\\\n");
         }
+
+        if (isalnum(ch)) {
+            switch (ch) {
+            case '"':
+                fputc('\\', fout);
+                fputc('"', fout);
+                break;
+            case '\t':
+                fputc('\\', fout);
+                fputc('t', fout);
+                break;
+            case '\n':
+                fputc('\\', fout);
+                fputc('n', fout);
+                break;
+            case 0:
+                fputs("\000", fout);
+            default:
+                fputc(ch, fout);
+                break;
+            }
+        } else {
+            fprintf(fout, "\\%03hho", ch);
+        }
+        count = (count+1)%10;
+        size ++;
     }
-    fprintf(fout, "\";");
+    fprintf(fout, "\";\n");
+    fprintf(fout, "static int %s_size = %d;\n", varname, size);
 
 end:
     if (fin) {

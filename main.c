@@ -5,6 +5,8 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#include "font/font.h"
+
 #include "object.h"
 #include "triangle.h"
 #include "torus.h"
@@ -93,6 +95,7 @@ int main(int argc, char** argv)
     GLFWwindow* window;
     struct Object* obj;
     struct App app;
+    struct Font* font;
     struct ObjectAndConstructor constructors[] = {
         {"torus", CreateTorus},
         {"triangle", CreateTriangle},
@@ -154,6 +157,8 @@ int main(int argc, char** argv)
 
     glEnable(GL_DEPTH_TEST);
 
+    font = font_new();
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
@@ -165,6 +170,7 @@ int main(int argc, char** argv)
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        font->render(font, 0, 0, "ABCD");
         obj->draw(obj, &app.ctx);
 
         /* Swap front and back buffers */
@@ -176,6 +182,7 @@ int main(int argc, char** argv)
 
     obj->free(obj);
 
+    font_free(font);
     glfwTerminate();
     return 0;
 }
