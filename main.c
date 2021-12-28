@@ -96,6 +96,9 @@ int main(int argc, char** argv)
     struct Object* obj;
     struct App app;
     struct Font* font;
+    struct Label* fps;
+    float t1, t2;
+    long long frames = 0;
     struct ObjectAndConstructor constructors[] = {
         {"torus", CreateTorus},
         {"triangle", CreateTriangle},
@@ -162,6 +165,11 @@ int main(int argc, char** argv)
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
     font = font_new();
+    fps = label_new(font);
+    label_set_pos(fps, 100, 100);
+    label_set_text(fps, "FPS:");
+
+    t1 = glfwGetTime();
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
@@ -172,6 +180,7 @@ int main(int argc, char** argv)
 
         /* Render here */
         glViewport(0, 0, width, height);
+        label_set_screen(fps, width, height);
 
         glEnable(GL_DEPTH_TEST);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -179,17 +188,24 @@ int main(int argc, char** argv)
         obj->draw(obj, &app.ctx);
 
         glDisable(GL_DEPTH_TEST);
-        font->render(font, 50, 50, "ABCDEFghk", width, height);
+        label_render(fps);
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
 
         /* Poll for and process events */
         glfwPollEvents();
+        t2 = glfwGetTime();
+        if (t2 - t1 > 1.0) {
+            label_set_vtext(fps, "FPS:%.2f", frames/(t2-t1));
+            frames = 0;
+            t1 = t2;
+        }
+        frames ++;
     }
 
     obj->free(obj);
-
+    label_free(fps);
     font_free(font);
     glfwTerminate();
     return 0;
