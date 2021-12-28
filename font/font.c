@@ -24,8 +24,6 @@ struct Char {
 struct FontImpl {
     struct Program* p;
     struct Char chars[65536];
-    FT_Library library;
-    FT_Face face;
     GLuint vao;
     GLuint vbo;
     GLuint sampler;
@@ -69,27 +67,29 @@ static void char_load(struct Char* chars, FT_Face face, wchar_t ch) {
 struct Font* font_new() {
     struct FontImpl* t = calloc(1, sizeof(*t));
     int i;
+    FT_Library library;
+    FT_Face face;
     const wchar_t* cyr =
         L"АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
         L"абвгдеёжзийклмнопрстуфхцчшщъыьэюя";
 
-    int error = FT_Init_FreeType(&t->library);
+    int error = FT_Init_FreeType(&library);
     if (error) {
         printf("Cannot load FreeType\n");
         exit(1);
     }
     error = FT_New_Memory_Face(
-        t->library,
+        library,
         (const FT_Byte*)font_RobotoMono_Regular,
         font_RobotoMono_Regular_size,
         0,
-        &t->face);
+        &face);
     if (error) {
         printf("Cannot load Font\n");
         exit(1);
     }
     error = FT_Set_Char_Size(
-          t->face,    /* handle to face object           */
+          face,    /* handle to face object           */
           0,       /* char_width in 1/64th of points  */
           16*64,   /* char_height in 1/64th of points */
           300,     /* horizontal device resolution    */
@@ -135,14 +135,14 @@ struct Font* font_new() {
     memset(t->chars, 0, sizeof(t->chars));
     // load ascii
     for (i = 1; i < 128; i++) {
-        char_load(t->chars, t->face, i);
+        char_load(t->chars, face, i);
     }
     while (*cyr) {
-        char_load(t->chars, t->face, *cyr++);
+        char_load(t->chars, face, *cyr++);
     }
 
-    FT_Done_Face(t->face);
-    FT_Done_FreeType(t->library);
+    FT_Done_Face(face);
+    FT_Done_FreeType(library);
 
     return (struct Font*)t;
 }
