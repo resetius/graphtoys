@@ -69,6 +69,9 @@ static void char_load(struct Char* chars, FT_Face face, wchar_t ch) {
 struct Font* font_new() {
     struct FontImpl* t = calloc(1, sizeof(*t));
     int i;
+    const wchar_t* cyr =
+        L"АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
+        L"абвгдеёжзийклмнопрстуфхцчшщъыьэюя";
 
     int error = FT_Init_FreeType(&t->library);
     if (error) {
@@ -133,6 +136,9 @@ struct Font* font_new() {
     // load ascii
     for (i = 1; i < 128; i++) {
         char_load(t->chars, t->face, i);
+    }
+    while (*cyr) {
+        char_load(t->chars, t->face, *cyr++);
     }
 
     FT_Done_Face(t->face);
@@ -222,14 +228,22 @@ void char_render(struct FontImpl* f, struct Char* ch, int x, int y) {
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
+static int next_or_die(unsigned char** p) {
+    if (((**p) >> 6) != 0x2) {
+        printf("UPS\n"); exit(-1);
+    }
+    return (*((*p)++)) & 0x3f;
+}
+
 void label_render(struct Label* l)
 {
     struct FontImpl* f = (struct FontImpl*)l->f;
-    char* s = l->text;
+    unsigned char* s = (unsigned char*)l->text;
     int x = l->x;
     int y = l->y;
     mat4x4 m, v, mv, p, mvp;
     struct Char* ch;
+    int symbol;
     mat4x4_identity(m);
     mat4x4_ortho(p, 0, l->w, 0, l->h, 1.f, -1.f);
     p[3][2] = 0;
@@ -239,13 +253,29 @@ void label_render(struct Label* l)
     prog_set_mat4x4(f->p, "MVP", &mvp);
 
     while (*s) {
-        if (isspace(*s)) {
+        symbol = 0;
+        if ((*s & 0x80) == 0) {
+            symbol = *s++;
+        } else if (((*s) >> 5) == 0x6) {
+            symbol  = ((*s++) & 0x1f) << 6;
+            symbol |= next_or_die(&s);
+        } else if (((*s) >> 4) == 0xe) {
+            symbol  = ((*s++) & 0xf)  << 12;
+            symbol |= next_or_die(&s) << 6;
+            symbol |= next_or_die(&s);
+        } else if (((*s) >> 3) == 0x1e) {
+            symbol  = ((*s++) & 0x7)  << 18;
+            symbol |= next_or_die(&s) << 12;
+            symbol |= next_or_die(&s) << 6;
+            symbol |= next_or_die(&s);
+        }
+
+        if (isspace(symbol)) {
             ch = &f->chars['o'];
         } else {
-            ch = &f->chars[*s];
+            ch = &f->chars[symbol];
             char_render(f, ch, x, y);
         }
-        s++;
         x += ch->advance>>6;
     }
 }

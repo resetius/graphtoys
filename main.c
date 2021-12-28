@@ -97,6 +97,7 @@ int main(int argc, char** argv)
     struct App app;
     struct Font* font;
     struct Label* fps;
+    struct Label* text;
     float t1, t2;
     long long frames = 0;
     struct ObjectAndConstructor constructors[] = {
@@ -169,6 +170,10 @@ int main(int argc, char** argv)
     label_set_pos(fps, 100, 100);
     label_set_text(fps, "FPS:");
 
+    text = label_new(font);
+    label_set_pos(text, 100, 200);
+    label_set_text(text, "Проверка русских букв");
+
     t1 = glfwGetTime();
 
     /* Loop until the user closes the window */
@@ -181,6 +186,7 @@ int main(int argc, char** argv)
         /* Render here */
         glViewport(0, 0, width, height);
         label_set_screen(fps, width, height);
+        label_set_screen(text, width, height);
 
         glEnable(GL_DEPTH_TEST);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -189,6 +195,7 @@ int main(int argc, char** argv)
 
         glDisable(GL_DEPTH_TEST);
         label_render(fps);
+        label_render(text);
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
@@ -206,6 +213,7 @@ int main(int argc, char** argv)
 
     obj->free(obj);
     label_free(fps);
+    label_free(text);
     font_free(font);
     glfwTerminate();
     return 0;
