@@ -13,15 +13,19 @@ struct Char {
     wchar_t ch;
     int w;
     int h;
+    int left;
+    int top;
+    int advance;
 };
 
 struct FontImpl {
     struct Font base;
-    struct Mesh* m;
     struct Program* p;
     struct Char chars[65536];
     FT_Library library;
     FT_Face face;
+    GLuint vao;
+    GLuint vbo;
     GLuint sampler;
 };
 
@@ -41,6 +45,11 @@ static void char_load(struct FontImpl* f, wchar_t ch) {
 
     FT_Bitmap bitmap = f->face->glyph->bitmap;
     glGenTextures(1, &out->tex_id);
+    out->w = bitmap.width;
+    out->h = bitmap.rows;
+    out->left = f->face->glyph->bitmap_left;
+    out->top = f->face->glyph->bitmap_top;
+    out->advance = f->face->glyph->advance.x;
 
     glBindTexture(GL_TEXTURE_2D, out->tex_id);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, bitmap.pitch);
@@ -55,12 +64,16 @@ static void char_load(struct FontImpl* f, wchar_t ch) {
         bitmap.buffer);
 }
 
-static void font_render(struct Font* o, float x, float y, const char* string, float ratio) {
+static void font_render(
+    struct Font* o, float x, float y, const char* s, int width, int height)
+{
     struct FontImpl* f = (struct FontImpl*)o;
 
     mat4x4 m, v, mv, p, mvp;
     mat4x4_identity(m);
-    mat4x4_ortho(p, -ratio, ratio, 1.f, -1.f, 1.f, -1.f);
+    //mat4x4_ortho(p, -ratio, ratio, 1.0f, -1.0f, 1.f, -1.f);
+    mat4x4_ortho(p, 0, width, 0, height, 1.f, -1.f);
+    p[3][2] = 0;
     mat4x4_mul(mvp, p, m);
 
     //vec3 eye = {.0f, .0f, -1.f};
@@ -71,32 +84,45 @@ static void font_render(struct Font* o, float x, float y, const char* string, fl
     //mat4x4_perspective(p, 70./2./M_PI, ratio, 0.3f, 100.f);
     //mat4x4_mul(mvp, p, mv);
 
-    prog_use(f->p);
-    prog_set_mat4x4(f->p, "MVP", &mvp);
+    while (*s) {
+        struct Char* ch = &f->chars[*s];
+        float xpos = x + ch->left;
+        float ypos = y - (ch->h - ch->top);
+        float w = ch->w;
+        float h = ch->h;
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, f->chars['a'].tex_id);
+        float vertices[6][4] = {
+            { xpos, ypos + h,     0.0, 0.0 },
+            { xpos, ypos,         0.0, 1.0 },
+            { xpos + w, ypos,     1.0, 1.0 },
 
-    glBindSampler(0, f->sampler);
+            { xpos, ypos + h,     0.0, 0.0 },
+            { xpos + w, ypos,     1.0, 1.0 },
+            { xpos + w, ypos + h, 1.0, 0.0 }
+        };
 
-    mesh_render(f->m);
+        prog_use(f->p);
+        prog_set_mat4x4(f->p, "MVP", &mvp);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, ch->tex_id);
+
+        glBindSampler(0, f->sampler);
+
+        glBindVertexArray(f->vao);
+        glBindBuffer(GL_ARRAY_BUFFER, f->vbo);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices),
+                        vertices);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        s++;
+        x += ch->advance>>6;
+    }
 }
 
 struct Font* font_new() {
     struct FontImpl* t = calloc(1, sizeof(*t));
     int i;
-
-    // {-1, 1} {1, 1}
-    // {-1,-1} {1, -1}
-    struct TexVertex1 vertices[] = {
-        {{-1.0f, 1.0f, 0.0f}, { 0.0f, 1.0f}},
-        {{-1.0f,-1.0f, 0.0f}, { 0.0f, 0.0f}},
-        {{ 1.0f,-1.0f, 0.0f}, { 1.0f, 0.0f}},
-
-        {{-1.0f, 1.0f, 0.0f}, { 0.0f, 1.0f}},
-        {{ 1.0f,-1.0f, 0.0f}, { 1.0f, 0.0f}},
-        {{ 1.0f, 1.0f, 0.0f}, { 1.0f, 1.0f}}
-    };
 
     struct Font base = {
         .render = font_render
@@ -129,12 +155,23 @@ struct Font* font_new() {
         exit(1);
     }
 
-    t->m = mesh_tex1_new(vertices, 6, 0, 1);
     t->p = prog_new();
 
     prog_add_vs(t->p, font_font_vs);
     prog_add_fs(t->p, font_font_fs);
     prog_link(t->p);
+
+    glGenVertexArrays(1, &t->vao);
+    glGenBuffers(1, &t->vbo);
+    glBindVertexArray(t->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, t->vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, NULL,
+                 GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 *
+                          sizeof(GLfloat), 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     glGenSamplers(1, &t->sampler);
     glSamplerParameteri(t->sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -170,7 +207,8 @@ void font_free(struct Font* o) {
             glDeleteTextures(1, &f->chars[i].tex_id);
         }
     }
-    mesh_free(f->m);
+    glDeleteBuffers(1, &f->vbo);
+    glDeleteVertexArrays(1, &f->vao);
     prog_free(f->p);
     free(f);
 }

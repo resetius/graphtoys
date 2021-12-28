@@ -179,7 +179,7 @@ int main(int argc, char** argv)
         obj->draw(obj, &app.ctx);
 
         glDisable(GL_DEPTH_TEST);
-        font->render(font, 0, 0, "ABCD", app.ctx.ratio);
+        font->render(font, 50, 50, "ABCDEFghk", width, height);
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
