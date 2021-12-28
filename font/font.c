@@ -192,6 +192,36 @@ void label_set_screen(struct Label* l, int w, int h) {
     l->h = h;
 }
 
+void char_render(struct FontImpl* f, struct Char* ch, int x, int y) {
+    float xpos, ypos, w, h;
+    xpos = x + ch->left;
+    ypos = y - (ch->h - ch->top);
+    w = ch->w;
+    h = ch->h;
+
+    float vertices[6][4] = {
+        { xpos, ypos + h,     0.0, 0.0 },
+        { xpos, ypos,         0.0, 1.0 },
+        { xpos + w, ypos,     1.0, 1.0 },
+
+        { xpos, ypos + h,     0.0, 0.0 },
+        { xpos + w, ypos,     1.0, 1.0 },
+        { xpos + w, ypos + h, 1.0, 0.0 }
+    };
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, ch->tex_id);
+
+    glBindSampler(0, f->sampler);
+
+    glBindVertexArray(f->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, f->vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices),
+                    vertices);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
 void label_render(struct Label* l)
 {
     struct FontImpl* f = (struct FontImpl*)l->f;
@@ -200,46 +230,20 @@ void label_render(struct Label* l)
     int y = l->y;
     mat4x4 m, v, mv, p, mvp;
     struct Char* ch;
-    float xpos, ypos, w, h;
     mat4x4_identity(m);
     mat4x4_ortho(p, 0, l->w, 0, l->h, 1.f, -1.f);
     p[3][2] = 0;
     mat4x4_mul(mvp, p, m);
+
+    prog_use(f->p);
+    prog_set_mat4x4(f->p, "MVP", &mvp);
 
     while (*s) {
         if (isspace(*s)) {
             ch = &f->chars['o'];
         } else {
             ch = &f->chars[*s];
-            xpos = x + ch->left;
-            ypos = y - (ch->h - ch->top);
-            w = ch->w;
-            h = ch->h;
-
-            float vertices[6][4] = {
-                { xpos, ypos + h,     0.0, 0.0 },
-                { xpos, ypos,         0.0, 1.0 },
-                { xpos + w, ypos,     1.0, 1.0 },
-
-                { xpos, ypos + h,     0.0, 0.0 },
-                { xpos + w, ypos,     1.0, 1.0 },
-                { xpos + w, ypos + h, 1.0, 0.0 }
-            };
-
-            prog_use(f->p);
-            prog_set_mat4x4(f->p, "MVP", &mvp);
-
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, ch->tex_id);
-
-            glBindSampler(0, f->sampler);
-
-            glBindVertexArray(f->vao);
-            glBindBuffer(GL_ARRAY_BUFFER, f->vbo);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices),
-                            vertices);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
+            char_render(f, ch, x, y);
         }
         s++;
         x += ch->advance>>6;
