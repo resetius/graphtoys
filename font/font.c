@@ -42,7 +42,6 @@ static void char_load(struct Char* chars, FT_Face face, wchar_t ch) {
         printf("Cannot render glyph: %d\n", error);
         exit(1);
     }
-
     FT_Bitmap bitmap = face->glyph->bitmap;
     glGenTextures(1, &out->tex_id);
     out->w = bitmap.width;
@@ -228,9 +227,9 @@ void char_render(struct FontImpl* f, struct Char* ch, int x, int y) {
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-static int next_or_die(unsigned char** p) {
+static int next_or_die(unsigned char** p, jmp_buf* buf) {
     if (((**p) >> 6) != 0x2) {
-        printf("UPS\n"); exit(-1);
+        longjmp(*buf, 1);
     }
     return (*((*p)++)) & 0x3f;
 }
@@ -252,31 +251,44 @@ void label_render(struct Label* l)
     prog_use(f->p);
     prog_set_mat4x4(f->p, "MVP", &mvp);
 
-    while (*s) {
+    jmp_buf buf;
+    int except = setjmp(buf);
+    while (*s && !except) {
         symbol = 0;
         if ((*s & 0x80) == 0) {
             symbol = *s++;
         } else if (((*s) >> 5) == 0x6) {
             symbol  = ((*s++) & 0x1f) << 6;
-            symbol |= next_or_die(&s);
+            symbol |= next_or_die(&s, &buf);
         } else if (((*s) >> 4) == 0xe) {
             symbol  = ((*s++) & 0xf)  << 12;
-            symbol |= next_or_die(&s) << 6;
-            symbol |= next_or_die(&s);
+            symbol |= next_or_die(&s, &buf) << 6;
+            symbol |= next_or_die(&s, &buf);
         } else if (((*s) >> 3) == 0x1e) {
             symbol  = ((*s++) & 0x7)  << 18;
-            symbol |= next_or_die(&s) << 12;
-            symbol |= next_or_die(&s) << 6;
-            symbol |= next_or_die(&s);
+            symbol |= next_or_die(&s, &buf) << 12;
+            symbol |= next_or_die(&s, &buf) << 6;
+            symbol |= next_or_die(&s, &buf);
+        } else {
+            longjmp(buf, 1);
         }
 
         if (isspace(symbol)) {
             ch = &f->chars['o'];
         } else {
             ch = &f->chars[symbol];
+            if (!ch->tex_id) {
+                continue;
+            }
             char_render(f, ch, x, y);
         }
+        if (!ch->tex_id) {
+            continue;
+        }
         x += ch->advance>>6;
+    }
+    if (except) {
+        printf("Bad utf-8 sequence\n");
     }
 }
 
