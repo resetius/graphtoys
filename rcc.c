@@ -97,7 +97,7 @@ int main(int argc, char** argv) {
         size ++;
     }
     fprintf(fout, "\";\n");
-    fprintf(fout, "static int %s_size = %d;\n", varname, size);
+    fprintf(fout, "static int %s_size __attribute__((unused)) = %d;\n", varname, size);
 
 end:
     if (fin) {

@@ -1,6 +1,6 @@
 UNAME_S := $(shell uname -s)
 PLATFORM=$(UNAME_S)
-CFLAGS?=-g -O2
+CFLAGS?=-g -O2 -Wall
 LIBGL=
 ifeq ($(UNAME_S),Darwin)
 	LIBGL=-framework OpenGl

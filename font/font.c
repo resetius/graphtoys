@@ -241,7 +241,7 @@ void label_render(struct Label* l)
     unsigned char* s = (unsigned char*)l->text;
     int x = l->x;
     int y = l->y;
-    mat4x4 m, v, mv, p, mvp;
+    mat4x4 m, p, mvp;
     struct Char* ch;
     int symbol;
     mat4x4_identity(m);
