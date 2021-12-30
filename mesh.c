@@ -69,10 +69,11 @@ struct Mesh* mesh_new(
     const char* normName)
 {
     struct Mesh* m = calloc(1, sizeof(struct Mesh));
+    int handle = prog_handle(p);
 
-    GLint vpos_location = glGetAttribLocation(p->program, posName);
-    GLint vcol_location = glGetAttribLocation(p->program, colName);
-    GLint vnorm_location = glGetAttribLocation(p->program, normName);
+    GLint vpos_location = glGetAttribLocation(handle, posName);
+    GLint vcol_location = glGetAttribLocation(handle, colName);
+    GLint vnorm_location = glGetAttribLocation(handle, normName);
 
     m->nvertices = nvertices;
     glGenBuffers(1, &m->buffer);

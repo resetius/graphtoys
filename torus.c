@@ -7,7 +7,7 @@
 
 #include "object.h"
 #include "torus.h"
-#include "program.h"
+#include <render/program.h>
 #include "mesh.h"
 #include "linmath.h"
 #include "triangle_fragment_shader.h"

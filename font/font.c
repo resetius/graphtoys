@@ -8,7 +8,7 @@
 #include "font.h"
 #include "font_vs.h"
 #include "font_fs.h"
-#include "program.h"
+#include <render/program.h>
 #include "RobotoMono-Regular.h"
 
 struct Char {
@@ -124,7 +124,7 @@ struct Font* font_new() {
     vec4 border = {0.0f,0.0f,0.0f,0.5f};
     glSamplerParameterfv(t->sampler, GL_TEXTURE_BORDER_COLOR, border);
 
-    GLint location = glGetUniformLocation(t->p->program, "Texture");
+    GLint location = glGetUniformLocation(prog_handle(t->p), "Texture");
     if (location < 0) {
         printf("WTF?\n");
         exit(1);

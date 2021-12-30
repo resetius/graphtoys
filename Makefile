@@ -9,13 +9,19 @@ endif
 OBJECTS=main.o\
 	triangle.o\
 	torus.o\
-	program.o\
-	mesh.o mandelbrot.o\
+	opengl/program.o\
+	mesh.o\
+	mandelbrot.o\
 	mandelbulb.o\
 	object.o\
-	font/font.o
+	font/font.o\
+	ref.o
 
 All: main.exe rcc.exe
+
+clean:
+	rm -f *.exe
+	rm -f $(OBJECTS)
 
 main.exe: $(OBJECTS)
 	gcc $^ `pkg-config --static --libs glfw3,freetype2` $(LIBGL) -o $@

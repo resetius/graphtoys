@@ -1,7 +1,7 @@
 #pragma once
 
 #include "linmath.h"
-#include "program.h"
+#include <render/program.h>
 
 struct Vertex {
     vec3 pos;

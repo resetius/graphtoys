@@ -9,7 +9,7 @@
 #include "mandelbulb_fs.h"
 #include "object.h"
 #include "mesh.h"
-#include "program.h"
+#include <render/program.h>
 
 struct Mandelbulb {
     struct Object base;
