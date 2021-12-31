@@ -84,8 +84,6 @@ int main(int argc, char** argv) {
                 fputc('\\', fout);
                 fputc('n', fout);
                 break;
-            case 0:
-                fputs("\000", fout);
             default:
                 fputc(ch, fout);
                 break;
