@@ -20,13 +20,15 @@ struct CharImpl {
 };
 
 struct RenderImpl {
+    struct Render base;
+
     // Char
     GLuint char_vao;
     GLuint char_vbo;
     GLuint char_sampler;
 };
 
-struct Program* rend_prog_new(struct Render* r) {
+static struct Program* rend_prog_new_(struct Render* r) {
     return prog_opengl_new();
 };
 
@@ -94,7 +96,7 @@ static void char_free_(struct Char* ch) {
     }
 }
 
-struct Char* rend_char_new(struct Render* r, wchar_t ch, void* bm) {
+static struct Char* rend_char_new_(struct Render* r, wchar_t ch, void* bm) {
     struct CharImpl* c = calloc(1, sizeof(*c));
     FT_Face face = (FT_Face)bm;
     FT_Bitmap bitmap = face->glyph->bitmap;
@@ -130,16 +132,22 @@ struct Char* rend_char_new(struct Render* r, wchar_t ch, void* bm) {
     return (struct Char*)c;
 };
 
-struct Render* rend_opengl_new()
-{
-    struct RenderImpl* r = calloc(1, sizeof(*r));
-    init_char_render(r);
-    return (struct Render*)r;
-}
-
-void rend_free(struct Render* r1) {
+static void rend_free_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
     glDeleteBuffers(1, &r->char_vbo);
     glDeleteVertexArrays(1, &r->char_vao);
     free(r);
+}
+
+struct Render* rend_opengl_new()
+{
+    struct RenderImpl* r = calloc(1, sizeof(*r));
+    struct Render base = {
+        .free = rend_free_,
+        .char_new = rend_char_new_,
+        .prog_new = rend_prog_new_
+    };
+    r->base = base;
+    init_char_render(r);
+    return (struct Render*)r;
 }

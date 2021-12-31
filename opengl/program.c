@@ -4,6 +4,8 @@
 
 #include <render/program.h>
 
+#include <glad/gl.h>
+
 struct ProgramImpl {
     struct Program base;
     GLuint program;

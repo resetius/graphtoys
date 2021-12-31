@@ -86,7 +86,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     //printf("%d %d %d\n", key, action, mods);
 }
 
-typedef struct Object* (*ConstructorT)();
+typedef struct Object* (*ConstructorT)(struct Render*);
 
 struct ObjectAndConstructor {
     const char* name;
@@ -159,11 +159,11 @@ int main(int argc, char** argv)
     setbuf(stdout, NULL);
     glInfo();
 
-    obj = constr();
+    render = rend_opengl_new();
+
+    obj = constr(render);
 
     ovec_add(&app.objs, obj);
-
-    render = rend_opengl_new();
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);

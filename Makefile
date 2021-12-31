@@ -12,6 +12,7 @@ OBJECTS=main.o\
 	opengl/program.o\
 	opengl/render.o\
 	render/program.o\
+	render/render.o\
 	mesh.o\
 	mandelbrot.o\
 	mandelbulb.o\
