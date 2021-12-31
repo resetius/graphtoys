@@ -48,7 +48,7 @@ mesh.o: mesh.h
 %.d: %.c
 	gcc $(CFLAGS) -MM -MT '$(patsubst %.c,%.o,$<)' $< -MF $@
 
-%.o: %.c Makefile object.h triangle.h
+%.o: %.c Makefile
 	gcc $(CFLAGS) -c $< -o $@
 
 %.h: %.ttf rcc.exe
