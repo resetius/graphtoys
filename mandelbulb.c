@@ -100,7 +100,7 @@ static void t_free(struct Object* obj) {
     free(t);
 }
 
-struct Object* CreateMandelbulb() {
+struct Object* CreateMandelbulb(struct Render* r) {
     struct Mandelbulb* t = calloc(1, sizeof(struct Mandelbulb));
     struct Vertex1 vertices[] = {
         {{-1.0f, 1.0f,0.0f}},
@@ -127,7 +127,7 @@ struct Object* CreateMandelbulb() {
     t->base = base;
 
     t->m = mesh1_new(vertices, 6, 0);
-    t->p = prog_new();
+    t->p = rend_prog_new(r);
     t->T[0] = t->T[1] = 0.0; t->T[2] = 2.0;
     prog_add_vs(t->p, mandelbulb_vs);
     prog_add_fs(t->p, mandelbulb_fs);

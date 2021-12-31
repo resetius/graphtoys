@@ -1,5 +1,7 @@
 #pragma once
 
+#include <render/render.h>
+
 struct Font;
 
 struct Label {
@@ -12,7 +14,7 @@ struct Label {
     int h;
 };
 
-struct Font* font_new();
+struct Font* font_new(struct Render* r);
 void font_free(struct Font*);
 
 struct Label* label_new(struct Font* f);

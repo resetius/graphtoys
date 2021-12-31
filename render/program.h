@@ -1,12 +1,24 @@
 #pragma once
 
-#include "glad/gl.h"
+#include <glad/gl.h>
 
 #include "linmath.h"
 
-struct Program;
+struct Program {
+    void (*free)(struct Program*);
+    int (*link)(struct Program*);
+    int (*use)(struct Program*);
+    int (*validate)(struct Program*);
+    int (*add_vs)(struct Program* p, const char* shader);
+    int (*add_fs)(struct Program* p, const char* shader);
+    int (*set_mat3x3)(struct Program*, const char* name, const mat3x3* mat);
+    int (*set_mat4x4)(struct Program*, const char* name, const mat4x4* mat);
+    int (*set_vec3)(struct Program*, const char* name, const vec3* vec);
+    int (*set_sub_fs)(struct Program* p, const char* name);
+    int (*attrib_location)(struct Program* p, const char* name);
+    int (*handle)(struct Program* p);
+};
 
-struct Program* prog_new();
 void prog_free(struct Program* p);
 
 int prog_add_vs(struct Program* p, const char* shader);

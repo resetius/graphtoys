@@ -10,6 +10,8 @@ OBJECTS=main.o\
 	triangle.o\
 	torus.o\
 	opengl/program.o\
+	opengl/render.o\
+	render/program.o\
 	mesh.o\
 	mandelbrot.o\
 	mandelbulb.o\

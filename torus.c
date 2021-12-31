@@ -141,11 +141,11 @@ static void t_free(struct Object* obj) {
     free(t);
 }
 
-struct Object* CreateTorus() {
+struct Object* CreateTorus(struct Render* r) {
     struct Torus* t = calloc(1, sizeof(struct Torus));
     struct Vertex* vertices;
     int nvertices;
-    t->p = prog_new();
+    t->p = rend_prog_new(r);
 
     t->base.draw = t_draw;
     t->base.free = t_free;

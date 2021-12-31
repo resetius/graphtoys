@@ -80,22 +80,40 @@ bool iterate(vec3 p0) {
     return ans;
 }
 
-float check_point(vec2 p0) {
+vec2 check_point(vec2 p0) {
     bool flag = false;
     float z0 = -1;
+    float dist = 0;
+    vec4 p1 = vec4(0,0,0,0);
     for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-0.01) {
-        vec4 p0 = Rot*vec4(p0, z0, 1.0);
-        flag = iterate(vec3(p0));
+        p1 = Rot*vec4(p0, z0, 1.0);
+        flag = iterate(vec3(p1));
     }
-    return z0;
+    dist = length(p1);
+    return vec2(z0, dist);
 }
 
 void main() {
     vec2 p = coord;
-    float z = check_point(p);
+    vec2 p1 = check_point(p);
+    float z = p1.x;
+    float l = p1.y;
     if (z >= -1.0) {
-        fragColor = 0.5*(z+1.0)*vec4(1.0, 1.0, 0.0, 1.0);
+        //float colorRegulator = 20*l;
+        //vec3 color = vec3(0.95 + .012*colorRegulator , 1.0, .2+.4*(1.0+sin(.3*colorRegulator)));
+        //vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+        //vec3 m = abs(fract(color.xxx + K.xyz) * 6.0 - K.www);
+
+        //float r = 0.5*(z+1.0);
+        //float b = 0.5*(z+1.0);
+        //fragColor = 0.5*(z+1.0)*vec4(r, 1.0, b, 1.0);
+        fragColor = 0.5*(z+1.0)*vec4(1.0, 1.0, 0, 1.0);
+        //float light = 0.5*(z+1.0);
+        //float light = l;
+        //fragColor = light*vec4(color.z * mix(K.xxx, clamp(m - K.xxx, 0.0, 1.0), color.y), 1.0);
+
+
     } else {
-        fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        fragColor = vec4(0.0, 0.0, 0.0, 0.0);
     }
 }

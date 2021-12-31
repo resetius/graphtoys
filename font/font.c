@@ -63,7 +63,7 @@ static void char_load(struct Char* chars, FT_Face face, wchar_t ch) {
         bitmap.buffer);
 }
 
-struct Font* font_new() {
+struct Font* font_new(struct Render* r) {
     struct FontImpl* t = calloc(1, sizeof(*t));
     int i;
     FT_Library library;
@@ -98,7 +98,7 @@ struct Font* font_new() {
         exit(1);
     }
 
-    t->p = prog_new();
+    t->p = rend_prog_new(r);
 
     prog_add_vs(t->p, font_font_vs);
     prog_add_fs(t->p, font_font_fs);

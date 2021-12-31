@@ -1,9 +1,12 @@
 #include <stdio.h>
+#include <string.h>
 
-#define GLAD_GL_IMPLEMENTATION
-#include "glad/gl.h"
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+
+#include "glad/gl.h"
+
+#include <render/render.h>
 
 #include "font/font.h"
 
@@ -98,6 +101,7 @@ int main(int argc, char** argv)
     struct Font* font;
     struct Label* fps;
     struct Label* text;
+    struct Render* render;
     float t1, t2;
     long long frames = 0;
     struct ObjectAndConstructor constructors[] = {
@@ -159,13 +163,15 @@ int main(int argc, char** argv)
 
     ovec_add(&app.objs, obj);
 
+    render = rend_opengl_new();
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
-    font = font_new();
+    font = font_new(render);
     fps = label_new(font);
     label_set_pos(fps, 100, 100);
     label_set_text(fps, "FPS:");

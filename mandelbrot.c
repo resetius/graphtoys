@@ -98,7 +98,7 @@ static void t_free(struct Object* obj) {
     free(t);
 }
 
-struct Object* CreateMandelbrot() {
+struct Object* CreateMandelbrot(struct Render* r) {
     struct Mandelbrot* t = calloc(1, sizeof(struct Mandelbrot));
     struct Vertex1 vertices[] = {
         {{-1.0f, 1.0f,0.0f}},
@@ -124,7 +124,7 @@ struct Object* CreateMandelbrot() {
     t->base = base;
 
     t->m = mesh1_new(vertices, 6, 0);
-    t->p = prog_new();
+    t->p = rend_prog_new(r);
     t->T[0] = t->T[1] = 0.0; t->T[2] = 2.0;
     t->sx = 1.0;
     t->sy = -1.0;
