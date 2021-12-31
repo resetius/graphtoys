@@ -1,3 +1,6 @@
+.PHONY: All
+.DEFAULT_GOAL := All
+
 UNAME_S := $(shell uname -s)
 PLATFORM=$(UNAME_S)
 CFLAGS?=-g -O2 -Wall
@@ -20,11 +23,27 @@ OBJECTS=main.o\
 	font/font.o\
 	ref.o
 
+DEPS=main.d\
+	triangle.d\
+	torus.d\
+	opengl/program.d\
+	opengl/render.d\
+	render/program.d\
+	render/render.d\
+	mesh.d\
+	mandelbrot.d\
+	mandelbulb.d\
+	object.d\
+	font/font.d\
+	ref.d
+
+-include $(DEPS)
+
 All: main.exe rcc.exe
 
 clean:
 	rm -f *.exe
-	rm -f $(OBJECTS)
+	rm -f $(OBJECTS) $(DEPS)
 
 main.exe: $(OBJECTS)
 	gcc $^ `pkg-config --static --libs glfw3,freetype2` $(LIBGL) -o $@
@@ -36,15 +55,8 @@ program.o: program.h
 
 mesh.o: mesh.h
 
-mandelbulb.o: mandelbulb.h mandelbulb_vs.h mandelbulb_fs.h
-
-mandelbrot.o: mandelbrot.h mandelbrot_vs.h mandelbrot_fs.h
-
-triangle.o: triangle.h triangle_vertex_shader.h triangle_fragment_shader.h
-
-torus.o: torus.h triangle_fragment_shader.h torus_vertex_shader.h mesh.h
-
-font/font.o: font/font.h font/RobotoMono-Regular.h font/font_vs.h font/font_fs.h
+%.d: %.c
+	gcc $(CFLAGS) -I. `pkg-config --cflags glfw3,freetype2` -MM -MT '$(patsubst %.c,%.o,$<)' $< -MF $@
 
 %.o: %.c Makefile object.h triangle.h
 	gcc $(CFLAGS) -c -DGL_SILENCE_DEPRECATION -I. `pkg-config --cflags glfw3,freetype2` $< -o $@
