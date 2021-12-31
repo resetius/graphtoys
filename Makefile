@@ -38,7 +38,7 @@ clean:
 main.exe: $(OBJECTS)
 	gcc $^ `pkg-config --static --libs glfw3,freetype2` $(LIBGL) -o $@
 
-rcc.exe: rcc.c
+rcc.exe: rcc.o
 	gcc $^ -o $@
 
 program.o: program.h

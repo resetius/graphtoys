@@ -12,8 +12,8 @@ int main(int argc, char** argv) {
     char* input = NULL;
     char* output = NULL;
     char* varname = NULL;
-    FILE* fin;
-    FILE* fout;
+    FILE* fin = NULL;
+    FILE* fout = NULL;
     char* dot;
     int ch;
     int count = 0;
@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
                 break;
             }
         } else {
-            fprintf(fout, "\\%03hho", ch);
+            fprintf(fout, "\\%03hho", (char) ch);
         }
         count = (count+1)%10;
         size ++;
