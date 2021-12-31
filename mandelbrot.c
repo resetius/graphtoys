@@ -1,9 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "glad/gl.h"
-#include <GLFW/glfw3.h>
-
 #include "mandelbrot.h"
 #include "mandelbrot_vs.h"
 #include "mandelbrot_fs.h"

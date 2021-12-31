@@ -1,9 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "glad/gl.h"
-#include <GLFW/glfw3.h>
-
 #include "mandelbulb.h"
 #include "mandelbulb_vs.h"
 #include "mandelbulb_fs.h"
@@ -83,9 +80,9 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
 
     mat4x4 rot;
     mat4x4_identity(rot);
-    mat4x4_rotate_X(rot, rot, (float)glfwGetTime());
-    mat4x4_rotate_Y(rot, rot, (float)glfwGetTime());
-    mat4x4_rotate_Z(rot, rot, (float)glfwGetTime());
+    mat4x4_rotate_X(rot, rot, ctx->time);
+    mat4x4_rotate_Y(rot, rot, ctx->time);
+    mat4x4_rotate_Z(rot, rot, ctx->time);
     prog_set_mat4x4(t->p, "Rot", &rot);
 
     prog_set_sub_fs(t->p, t->types[t->cur_type]);

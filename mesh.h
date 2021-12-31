@@ -3,6 +3,8 @@
 #include "linmath.h"
 #include <render/program.h>
 
+#include <glad/gl.h>
+
 struct Vertex {
     vec3 pos;
     vec3 norm;

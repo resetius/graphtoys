@@ -1,5 +1,3 @@
-#include "glad/gl.h"
-#include <GLFW/glfw3.h>
 
 #include <math.h>
 #include <stdio.h>
@@ -102,9 +100,9 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     struct Torus* t = (struct Torus*)obj;
     mat4x4 m, v, p, mv, mvp;
     mat4x4_identity(m);
-    mat4x4_rotate_X(m, m, (float)glfwGetTime());
-    mat4x4_rotate_Y(m, m, (float)glfwGetTime());
-    mat4x4_rotate_Z(m, m, (float)glfwGetTime());
+    mat4x4_rotate_X(m, m, ctx->time);
+    mat4x4_rotate_Y(m, m, ctx->time);
+    mat4x4_rotate_Z(m, m, ctx->time);
 
     vec3 eye = {.0f, .0f, 2.f};
     vec3 center = {.0f, .0f, .0f};

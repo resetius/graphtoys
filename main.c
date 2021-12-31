@@ -4,8 +4,6 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-#include "glad/gl.h"
-
 #include <render/render.h>
 
 #include "font/font.h"
@@ -20,13 +18,6 @@ struct App {
     struct DrawContext ctx;
     struct ObjectVec objs;
 };
-
-static void glInfo() {
-    const GLubyte* renderer = glGetString(GL_RENDERER);
-    const GLubyte* version = glGetString(GL_VERSION);
-    printf("Renderer: %s\n", renderer);
-    printf("OpenGL version supported %s\n", version);
-}
 
 static void error_callback(int error, const char* description)
 {
@@ -138,7 +129,7 @@ int main(int argc, char** argv)
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* Create a windowed mode window and its OpenGL context */
@@ -153,23 +144,16 @@ int main(int argc, char** argv)
 
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
-    gladLoadGL(glfwGetProcAddress);
+
+    render = rend_opengl_new();
+
     glfwSwapInterval(1);
 
     setbuf(stdout, NULL);
-    glInfo();
-
-    render = rend_opengl_new();
 
     obj = constr(render);
 
     ovec_add(&app.objs, obj);
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
     font = font_new(render);
     fps = label_new(font);
@@ -182,29 +166,33 @@ int main(int argc, char** argv)
 
     t1 = glfwGetTime();
 
+    render->set_view_entity(render, window);
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
+
+        render->draw_begin(render, &width, &height);
+
         app.ctx.ratio = width / (float) height;
+        app.ctx.time = (float)glfwGetTime();
 
         /* Render here */
-        glViewport(0, 0, width, height);
+
         label_set_screen(fps, width, height);
         label_set_screen(text, width, height);
 
-        glEnable(GL_DEPTH_TEST);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         obj->draw(obj, &app.ctx);
 
-        glDisable(GL_DEPTH_TEST);
+        render->draw_ui(render);
+
         label_render(fps);
         label_render(text);
 
         /* Swap front and back buffers */
-        glfwSwapBuffers(window);
+        render->draw_end(render);
 
         /* Poll for and process events */
         glfwPollEvents();

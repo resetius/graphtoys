@@ -1,5 +1,8 @@
 #include <stdlib.h>
 
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
 #define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
 
@@ -21,6 +24,7 @@ struct CharImpl {
 
 struct RenderImpl {
     struct Render base;
+    GLFWwindow* window;
 
     // Char
     GLuint char_vao;
@@ -139,15 +143,59 @@ static void rend_free_(struct Render* r1) {
     free(r);
 }
 
+static void set_view_entity_(struct Render* r, void* data) {
+    GLFWwindow* window = data;
+    ((struct RenderImpl*)r)->window = window;
+}
+
+static void draw_begin_(struct Render* r, int* w, int* h) {
+    glfwGetFramebufferSize(((struct RenderImpl*)r)->window, w, h);
+    glViewport(0, 0, *w, *h);
+    glEnable(GL_DEPTH_TEST);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+}
+
+static void draw_ui_(struct Render* r) {
+    glDisable(GL_DEPTH_TEST);
+}
+
+static void draw_end_(struct Render* r) {
+    glfwSwapBuffers(((struct RenderImpl*)r)->window);
+}
+
+static void gl_info() {
+    const GLubyte* renderer = glGetString(GL_RENDERER);
+    const GLubyte* version = glGetString(GL_VERSION);
+    printf("Renderer: %s\n", renderer);
+    printf("OpenGL version supported %s\n", version);
+}
+
 struct Render* rend_opengl_new()
 {
     struct RenderImpl* r = calloc(1, sizeof(*r));
     struct Render base = {
         .free = rend_free_,
         .char_new = rend_char_new_,
-        .prog_new = rend_prog_new_
+        .prog_new = rend_prog_new_,
+        .set_view_entity = set_view_entity_,
+        .draw_begin = draw_begin_,
+        .draw_end = draw_end_,
+        .draw_ui = draw_ui_
     };
     r->base = base;
+
+    gladLoadGL(glfwGetProcAddress);
+
     init_char_render(r);
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+
+    gl_info();
+
     return (struct Render*)r;
 }
