@@ -171,20 +171,8 @@ static void gl_info() {
     printf("OpenGL version supported %s\n", version);
 }
 
-struct Render* rend_opengl_new()
-{
-    struct RenderImpl* r = calloc(1, sizeof(*r));
-    struct Render base = {
-        .free = rend_free_,
-        .char_new = rend_char_new_,
-        .prog_new = rend_prog_new_,
-        .set_view_entity = set_view_entity_,
-        .draw_begin = draw_begin_,
-        .draw_end = draw_end_,
-        .draw_ui = draw_ui_
-    };
-    r->base = base;
-
+static void init_(struct Render* r1) {
+    struct RenderImpl* r = (struct RenderImpl*)r1;
     gladLoadGL(glfwGetProcAddress);
 
     init_char_render(r);
@@ -196,6 +184,29 @@ struct Render* rend_opengl_new()
 //    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
     gl_info();
+
+    glfwSwapInterval(1); // vsync
+}
+
+struct Render* rend_opengl_new()
+{
+    struct RenderImpl* r = calloc(1, sizeof(*r));
+    struct Render base = {
+        .free = rend_free_,
+        .char_new = rend_char_new_,
+        .prog_new = rend_prog_new_,
+        .set_view_entity = set_view_entity_,
+        .draw_begin = draw_begin_,
+        .draw_end = draw_end_,
+        .draw_ui = draw_ui_,
+        .init = init_
+    };
+    r->base = base;
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1); // mac os compatible
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 1);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     return (struct Render*)r;
 }

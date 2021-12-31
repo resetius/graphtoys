@@ -13,6 +13,7 @@ struct Render {
     struct Char* (*char_new)(struct Render*, wchar_t ch, void* face);
     void (*free)(struct Render*);
 
+    void (*init)(struct Render*);
     void (*set_view_entity)(struct Render*, void* );
     void (*draw_begin)(struct Render*, int* w, int* h);
     void (*draw_ui)(struct Render*);
