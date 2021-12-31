@@ -221,6 +221,7 @@ int main(int argc, char** argv)
     label_free(fps);
     label_free(text);
     font_free(font);
+    rend_free(render);
     glfwTerminate();
     return 0;
 }

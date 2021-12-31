@@ -9,4 +9,5 @@ struct Char {
     int advance;
 
     void (*render)(struct Char* ch, int x, int y);
+    void (*free)(struct Char* ch);
 };

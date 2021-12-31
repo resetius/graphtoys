@@ -5,32 +5,22 @@
 
 #include <freetype/freetype.h>
 
+#include <render/program.h>
+#include <render/char.h>
+#include <render/render.h>
+
 #include "font.h"
 #include "font_vs.h"
 #include "font_fs.h"
-#include <render/program.h>
 #include "RobotoMono-Regular.h"
-
-struct Char {
-    GLuint tex_id;
-    wchar_t ch;
-    int w;
-    int h;
-    int left;
-    int top;
-    int advance;
-};
 
 struct FontImpl {
     struct Program* p;
-    struct Char chars[65536];
-    GLuint vao;
-    GLuint vbo;
-    GLuint sampler;
+    struct Char* chars[65536];
 };
 
-static void char_load(struct Char* chars, FT_Face face, wchar_t ch) {
-    struct Char* out = &chars[ch];
+static void char_load(struct Render* r, struct Char* chars[], FT_Face face, wchar_t ch) {
+    struct Char** out = &chars[ch];
     int error;
     error = FT_Load_Char(face, ch, FT_LOAD_RENDER);
     if (error) {
@@ -42,25 +32,7 @@ static void char_load(struct Char* chars, FT_Face face, wchar_t ch) {
         printf("Cannot render glyph: %d\n", error);
         exit(1);
     }
-    FT_Bitmap bitmap = face->glyph->bitmap;
-    glGenTextures(1, &out->tex_id);
-    out->w = bitmap.width;
-    out->h = bitmap.rows;
-    out->left = face->glyph->bitmap_left;
-    out->top = face->glyph->bitmap_top;
-    out->advance = face->glyph->advance.x;
-
-    glBindTexture(GL_TEXTURE_2D, out->tex_id);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, bitmap.pitch);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexImage2D(
-        GL_TEXTURE_2D, 0,
-        GL_RED,
-        bitmap.width,
-        bitmap.rows, 0,
-        GL_RED,
-        GL_UNSIGNED_BYTE,
-        bitmap.buffer);
+    *out = rend_char_new(r, ch, face);
 }
 
 struct Font* font_new(struct Render* r) {
@@ -104,40 +76,13 @@ struct Font* font_new(struct Render* r) {
     prog_add_fs(t->p, font_font_fs);
     prog_link(t->p);
 
-    glGenVertexArrays(1, &t->vao);
-    glGenBuffers(1, &t->vbo);
-    glBindVertexArray(t->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, t->vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, NULL,
-                 GL_DYNAMIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 *
-                          sizeof(GLfloat), 0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
-    glGenSamplers(1, &t->sampler);
-    glSamplerParameteri(t->sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glSamplerParameteri(t->sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glSamplerParameteri(t->sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glSamplerParameteri(t->sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    vec4 border = {0.0f,0.0f,0.0f,0.5f};
-    glSamplerParameterfv(t->sampler, GL_TEXTURE_BORDER_COLOR, border);
-
-    GLint location = glGetUniformLocation(prog_handle(t->p), "Texture");
-    if (location < 0) {
-        printf("WTF?\n");
-        exit(1);
-    }
-    glUniform1i(location, 0);
-
     memset(t->chars, 0, sizeof(t->chars));
     // load ascii
     for (i = 1; i < 128; i++) {
-        char_load(t->chars, face, i);
+        char_load(r, t->chars, face, i);
     }
     while (*cyr) {
-        char_load(t->chars, face, *cyr++);
+        char_load(r, t->chars, face, *cyr++);
     }
 
     FT_Done_Face(face);
@@ -149,13 +94,11 @@ struct Font* font_new(struct Render* r) {
 void font_free(struct Font* o) {
     int i;
     struct FontImpl* f = (struct FontImpl*)o;
-    for (i = 0; i < sizeof(f->chars)/sizeof(struct Char); i++) {
-        if (f->chars[i].ch) {
-            glDeleteTextures(1, &f->chars[i].tex_id);
+    for (i = 0; i < sizeof(f->chars)/sizeof(struct Char*); i++) {
+        if (f->chars[i]) {
+            f->chars[i]->free(f->chars[i]);
         }
     }
-    glDeleteBuffers(1, &f->vbo);
-    glDeleteVertexArrays(1, &f->vao);
     prog_free(f->p);
     free(f);
 }
@@ -195,36 +138,6 @@ void label_set_pos(struct Label* l, int x, int y) {
 void label_set_screen(struct Label* l, int w, int h) {
     l->w = w;
     l->h = h;
-}
-
-void char_render(struct FontImpl* f, struct Char* ch, int x, int y) {
-    float xpos, ypos, w, h;
-    xpos = x + ch->left;
-    ypos = y - (ch->h - ch->top);
-    w = ch->w;
-    h = ch->h;
-
-    float vertices[6][4] = {
-        { xpos, ypos + h,     0.0, 0.0 },
-        { xpos, ypos,         0.0, 1.0 },
-        { xpos + w, ypos,     1.0, 1.0 },
-
-        { xpos, ypos + h,     0.0, 0.0 },
-        { xpos + w, ypos,     1.0, 1.0 },
-        { xpos + w, ypos + h, 1.0, 0.0 }
-    };
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, ch->tex_id);
-
-    glBindSampler(0, f->sampler);
-
-    glBindVertexArray(f->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, f->vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices),
-                    vertices);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 static int next_or_die(unsigned char** p, jmp_buf* buf) {
@@ -274,15 +187,15 @@ void label_render(struct Label* l)
         }
 
         if (isspace(symbol)) {
-            ch = &f->chars['o'];
+            ch = f->chars['o'];
         } else {
-            ch = &f->chars[symbol];
-            if (!ch->tex_id) {
+            ch = f->chars[symbol];
+            if (!ch) {
                 continue;
             }
-            char_render(f, ch, x, y);
+            ch->render(ch, x, y);
         }
-        if (!ch->tex_id) {
+        if (!ch) {
             continue;
         }
         x += ch->advance>>6;
