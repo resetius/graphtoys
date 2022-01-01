@@ -14,6 +14,7 @@
 
 static void free_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
+    rt_destroy(&r->rt);
     rp_destroy(&r->rp);
     sc_destroy(&r->sc);
     free(r->modes);
@@ -163,6 +164,8 @@ static void init_(struct Render* r1) {
     printf("Swapchain initialized\n");
     rp_init(&r->rp, r->log_dev, r->sc.im_format);
     printf("Renderpass initialized\n");
+    rt_init(&r->rt, r);
+    printf("Rendertarget initialized\n");
 }
 
 struct Render* rend_vulkan_new() {
