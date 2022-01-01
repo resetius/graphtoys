@@ -109,7 +109,7 @@ struct Object* CreateTriangle() {
     glGenBuffers(1, &tr->ubo_buffer);
     glBindBuffer(GL_UNIFORM_BUFFER, tr->ubo_buffer);
     glBufferData(GL_UNIFORM_BUFFER, sizeof(mat4x4), NULL, GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_UNIFORM_BUFFER, tr->ubo_index, tr->ubo_buffer);
+    glBindBufferBase(GL_UNIFORM_BUFFER, tr->ubo_binding, tr->ubo_buffer);
 
     //tr->mvp_location = glGetUniformLocation(tr->program, "MVP");
     tr->vpos_location = glGetAttribLocation(tr->program, "vPos");
