@@ -1,7 +1,7 @@
-#version 330
+#version 410
 
-in vec3 color;
-out vec4 fragment;
+layout (location = 0) in vec3 color;
+layout (location = 0) out vec4 fragment;
 
 void main()
 {

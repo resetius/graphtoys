@@ -35,6 +35,10 @@ struct Triangle {
     GLint vcol_location;
 
     GLuint vertex_array;
+
+    GLuint ubo_binding;
+    GLuint ubo_buffer;
+    GLuint ubo_index;
 };
 
 void tr_draw(struct Object* obj, struct DrawContext* ctx) {
@@ -45,8 +49,12 @@ void tr_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_ortho(p, -ctx->ratio, ctx->ratio, -1.f, 1.f, 1.f, -1.f);
     mat4x4_mul(mvp, p, m);
 
+    glBindBuffer(GL_UNIFORM_BUFFER, tr->ubo_buffer);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4x4), &mvp[0][0]);
+
     glUseProgram(tr->program);
-    glUniformMatrix4fv(tr->mvp_location, 1, GL_FALSE, (const GLfloat*) &mvp);
+
+//glUniformMatrix4fv(tr->mvp_location, 1, GL_FALSE, (const GLfloat*) &mvp);
     glBindVertexArray(tr->vertex_array);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
@@ -68,6 +76,23 @@ struct Object* CreateTriangle() {
     glShaderSource(tr->vertex_shader, 1, &triangle_vertex_shader, NULL);
     glCompileShader(tr->vertex_shader);
 
+    int result;
+    glGetShaderiv(tr->vertex_shader, GL_COMPILE_STATUS, &result);
+    if (GL_FALSE == result) {
+        // get error log
+        int length = 0;
+        puts("Shader compilation failed");
+        glGetShaderiv(tr->vertex_shader, GL_INFO_LOG_LENGTH, &length);
+        if (length > 0) {
+            char* msg = malloc(length+1);
+            int written = 0;
+            glGetShaderInfoLog(tr->vertex_shader, length, &written, msg);
+            puts(msg);
+            free(msg);
+        }
+        return 0;
+    }
+
     tr->fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(tr->fragment_shader, 1, &triangle_fragment_shader, NULL);
     glCompileShader(tr->fragment_shader);
@@ -77,7 +102,16 @@ struct Object* CreateTriangle() {
     glAttachShader(tr->program, tr->fragment_shader);
     glLinkProgram(tr->program);
 
-    tr->mvp_location = glGetUniformLocation(tr->program, "MVP");
+    tr->ubo_index = glGetUniformBlockIndex(tr->program, "MatrixBlock");
+    tr->ubo_binding = 0;
+    glUniformBlockBinding(tr->program, tr->ubo_index, tr->ubo_binding);
+
+    glGenBuffers(1, &tr->ubo_buffer);
+    glBindBuffer(GL_UNIFORM_BUFFER, tr->ubo_buffer);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(mat4x4), NULL, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_UNIFORM_BUFFER, tr->ubo_index, tr->ubo_buffer);
+
+    //tr->mvp_location = glGetUniformLocation(tr->program, "MVP");
     tr->vpos_location = glGetAttribLocation(tr->program, "vPos");
     tr->vcol_location = glGetAttribLocation(tr->program, "vCol");
 
