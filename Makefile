@@ -1,6 +1,7 @@
 .PHONY: All
 .DEFAULT_GOAL := All
 
+CC=gcc
 UNAME_S := $(shell uname -s)
 PLATFORM=$(UNAME_S)
 CFLAGS?=-g -O2 -Wall
@@ -64,20 +65,20 @@ clean:
 	rm -f $(GENERATED)
 
 main.exe: $(OBJECTS)
-	gcc $^ $(LDFLAGS) -o $@
+	$(CC) $^ $(LDFLAGS) -o $@
 
 rcc.exe: rcc.o
-	gcc $^ -o $@
+	$(CC) $^ -o $@
 
 program.o: program.h
 
 mesh.o: mesh.h
 
-%.d: %.c $(GENERATED)
-	gcc $(CFLAGS) -MM -MT '$(patsubst %.c,%.o,$<)' $< -MF $@
+%.d: %.c
+	$(CC) $(CFLAGS) -MM -MG -MT '$(patsubst %.c,%.o,$<)' $< -MF $@
 
-%.o: %.c Makefile
-	gcc $(CFLAGS) -c $< -o $@
+%.o: %.c %.d
+	$(CC) $(CFLAGS) -c $< -o $@
 
 %.ttf.h: %.ttf rcc.exe
 	./rcc.exe $< -o $@

@@ -9,10 +9,11 @@
 #include <render/char.h>
 #include <render/render.h>
 
+#include <font/font_vs.vert.h>
+#include <font/font_fs.frag.h>
+#include <font/RobotoMono-Regular.ttf.h>
+
 #include "font.h"
-#include "font_vs.vert.h"
-#include "font_fs.frag.h"
-#include "RobotoMono-Regular.ttf.h"
 
 struct FontImpl {
     struct Program* p;
