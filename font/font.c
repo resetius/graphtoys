@@ -12,7 +12,7 @@
 #include "font.h"
 #include "font_vs.vert.h"
 #include "font_fs.frag.h"
-#include "RobotoMono-Regular.h"
+#include "RobotoMono-Regular.ttf.h"
 
 struct FontImpl {
     struct Program* p;

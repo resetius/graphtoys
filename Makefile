@@ -48,10 +48,13 @@ SHADERS=triangle_fragment_shader.frag\
 	font/font_vs.vert\
 	font/font_fs.frag
 
+FONTS=font/RobotoMono-Regular.ttf
+
 OBJECTS=$(patsubst %.c,%.o,$(SOURCES))
 DEPS=$(patsubst %.c,%.d,$(SOURCES))
 GENERATED1=$(patsubst %.frag,%.frag.h,$(SHADERS))
 GENERATED=$(patsubst %.vert,%.vert.h,$(GENERATED1))
+GENERATED+=$(patsubst %.ttf,%.ttf.h,$(FONTS))
 
 All: main.exe rcc.exe
 
