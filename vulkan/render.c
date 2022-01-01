@@ -8,6 +8,8 @@
 
 #include <render/render.h>
 
+#include "renderpass.h"
+
 struct RenderImpl {
     struct Render base;
     VkInstance instance;
@@ -27,6 +29,9 @@ struct RenderImpl {
     VkQueue p_queue;
     // GLFW specific
     GLFWwindow* window;
+
+    struct SwapChain sc;
+    struct RenderPass rp;
 };
 
 static void free_(struct Render* r1) {
@@ -34,6 +39,15 @@ static void free_(struct Render* r1) {
     free(r->modes);
     free(r->formats);
     free(r);
+}
+
+static void draw_begin_(struct Render* r, int* w, int* h) {
+}
+
+static void draw_ui_(struct Render* r) {
+}
+
+static void draw_end_(struct Render* r) {
 }
 
 static void set_window_(struct Render* r1, void* w) {
@@ -171,7 +185,10 @@ struct Render* rend_vulkan_new() {
     struct Render base = {
         .free = free_,
         .init = init_,
-        .set_view_entity = set_window_
+        .set_view_entity = set_window_,
+        .draw_begin = draw_begin_,
+        .draw_end = draw_end_,
+        .draw_ui = draw_ui_
     };
     uint32_t extensionCount = 0;
     const char** extensionNames = glfwGetRequiredInstanceExtensions(&extensionCount);

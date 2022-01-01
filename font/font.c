@@ -94,13 +94,15 @@ struct Font* font_new(struct Render* r) {
 void font_free(struct Font* o) {
     int i;
     struct FontImpl* f = (struct FontImpl*)o;
-    for (i = 0; i < sizeof(f->chars)/sizeof(struct Char*); i++) {
-        if (f->chars[i]) {
-            f->chars[i]->free(f->chars[i]);
+    if (f) {
+        for (i = 0; i < sizeof(f->chars)/sizeof(struct Char*); i++) {
+            if (f->chars[i]) {
+                f->chars[i]->free(f->chars[i]);
+            }
         }
+        prog_free(f->p);
+        free(f);
     }
-    prog_free(f->p);
-    free(f);
 }
 
 struct Label* label_new(struct Font* f) {
@@ -206,6 +208,8 @@ void label_render(struct Label* l)
 }
 
 void label_free(struct Label* l) {
-    free(l->text);
-    free(l);
+    if (l) {
+        free(l->text);
+        free(l);
+    }
 }

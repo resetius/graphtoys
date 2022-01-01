@@ -86,13 +86,13 @@ struct ObjectAndConstructor {
 
 int main(int argc, char** argv)
 {
-    GLFWwindow* window;
-    struct Object* obj;
+    GLFWwindow* window = NULL;
+    struct Object* obj = NULL;
     struct App app;
-    struct Font* font;
-    struct Label* fps;
-    struct Label* text;
-    struct Render* render;
+    struct Font* font = NULL;
+    struct Label* fps = NULL;
+    struct Label* text = NULL;
+    struct Render* render = NULL;
     float t1, t2;
     long long frames = 0;
     struct ObjectAndConstructor constructors[] = {
@@ -158,18 +158,18 @@ int main(int argc, char** argv)
 
     setbuf(stdout, NULL);
 
-    obj = constr(render);
+    //obj = constr(render);
 
-    ovec_add(&app.objs, obj);
+    //ovec_add(&app.objs, obj);
 
-    font = font_new(render);
-    fps = label_new(font);
-    label_set_pos(fps, 100, 100);
-    label_set_text(fps, "FPS:");
+    //font = font_new(render);
+    //fps = label_new(font);
+    //label_set_pos(fps, 100, 100);
+    //label_set_text(fps, "FPS:");
 
-    text = label_new(font);
-    label_set_pos(text, 100, 200);
-    label_set_text(text, "Проверка русских букв");
+    //text = label_new(font);
+    //label_set_pos(text, 100, 200);
+    //label_set_text(text, "Проверка русских букв");
 
     t1 = glfwGetTime();
 
@@ -185,16 +185,16 @@ int main(int argc, char** argv)
 
         /* Render here */
 
-        label_set_screen(fps, width, height);
-        label_set_screen(text, width, height);
+        //label_set_screen(fps, width, height);
+        //label_set_screen(text, width, height);
 
 
-        obj->draw(obj, &app.ctx);
+        //obj->draw(obj, &app.ctx);
 
         render->draw_ui(render);
 
-        label_render(fps);
-        label_render(text);
+        //label_render(fps);
+        //label_render(text);
 
         /* Swap front and back buffers */
         render->draw_end(render);
@@ -203,14 +203,16 @@ int main(int argc, char** argv)
         glfwPollEvents();
         t2 = glfwGetTime();
         if (t2 - t1 > 1.0) {
-            label_set_vtext(fps, "FPS:%.2f", frames/(t2-t1));
+            //label_set_vtext(fps, "FPS:%.2f", frames/(t2-t1));
             frames = 0;
             t1 = t2;
         }
         frames ++;
     }
 
-    obj->free(obj);
+    if (obj) {
+        obj->free(obj);
+    }
     label_free(fps);
     label_free(text);
     font_free(font);
