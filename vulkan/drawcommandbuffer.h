@@ -13,3 +13,5 @@ struct DrawCommandBuffer {
 
 void dcb_init(struct DrawCommandBuffer* d, struct RenderImpl* r);
 void dcb_destroy(struct DrawCommandBuffer* d);
+void dcb_begin(struct DrawCommandBuffer* d, VkCommandBuffer buffer);
+void dcb_end(struct DrawCommandBuffer* d, VkCommandBuffer buffer);

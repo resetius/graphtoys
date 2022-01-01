@@ -31,8 +31,14 @@ struct RenderImpl {
     // GLFW specific
     GLFWwindow* window;
 
+    //
+
     struct SwapChain sc;
     struct RenderPass rp;
     struct RenderTarget rt;
     struct DrawCommandBuffer dcb;
+
+    //
+    uint32_t image_index;
+    VkCommandBuffer buffer;
 };

@@ -23,13 +23,59 @@ static void free_(struct Render* r1) {
     free(r);
 }
 
-static void draw_begin_(struct Render* r, int* w, int* h) {
+static void draw_begin_(struct Render* r1, int* w, int* h) {
+    struct RenderImpl* r = (struct RenderImpl*)r1;
+
+    vkAcquireNextImageKHR(
+        r->log_dev,
+        r->sc.swapchain,
+        (uint64_t)-1,
+        NULL,
+        VK_NULL_HANDLE,
+        &r->image_index);
+
+    r->buffer = r->dcb.buffers[r->image_index];
+    dcb_begin(&r->dcb, r->buffer);
+    VkClearColorValue color =  {
+        .float32 = {1.0f, 1.0f, 1.0f, 1.0f}
+    };
+    VkClearValue clearval = {
+        .color = color
+    };
+    rp_begin(
+        &r->rp,
+        clearval,
+        r->buffer,
+        r->rt.framebuffers[r->image_index],
+        r->sc.extent);
 }
 
 static void draw_ui_(struct Render* r) {
 }
 
-static void draw_end_(struct Render* r) {
+static void draw_end_(struct Render* r1) {
+    struct RenderImpl* r = (struct RenderImpl*)r1;
+
+    rp_end(&r->rp, r->buffer);
+    dcb_end(&r->dcb, r->buffer);
+
+    VkSubmitInfo submitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &r->buffer
+    };
+
+    vkQueueSubmit(r->g_queue, 1, &submitInfo, NULL);
+
+    VkPresentInfoKHR presentInfo = {
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .swapchainCount = 1,
+        .pSwapchains = &r->sc.swapchain,
+        .pImageIndices = &r->image_index
+    };
+
+    vkQueuePresentKHR(r->p_queue, &presentInfo);
+    vkQueueWaitIdle(r->p_queue);
 }
 
 static void set_window_(struct Render* r1, void* w) {
@@ -143,6 +189,9 @@ static void init_(struct Render* r1) {
         fprintf(stderr, "Cannot create logical device\n");
         exit(-1);
     }
+
+    vkGetDeviceQueue(r->log_dev, r->graphics_family, 0, &r->g_queue);
+    vkGetDeviceQueue(r->log_dev, r->present_family, 0, &r->p_queue);
 
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(r->phy_dev, r->surface, &r->caps);
 
