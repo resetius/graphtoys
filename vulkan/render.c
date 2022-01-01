@@ -16,9 +16,9 @@ struct RenderImpl {
     VkPhysicalDevice phy_dev;
     VkSurfaceCapabilitiesKHR caps;
     VkSurfaceFormatKHR* formats;
-    int n_formats;
+    uint32_t n_formats;
     VkPresentModeKHR* modes;
-    int n_modes;
+    uint32_t n_modes;
     int graphics_family;
     int present_family;
     // Logical Device
@@ -31,6 +31,8 @@ struct RenderImpl {
 
 static void free_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
+    free(r->modes);
+    free(r->formats);
     free(r);
 }
 
@@ -145,6 +147,21 @@ static void init_(struct Render* r1) {
         fprintf(stderr, "Cannot create logical device\n");
         exit(-1);
     }
+
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(r->phy_dev, r->surface, &r->caps);
+
+    vkGetPhysicalDeviceSurfaceFormatsKHR(r->phy_dev, r->surface, &r->n_formats, NULL);
+    if (r->n_formats) {
+        r->formats = malloc(r->n_formats*sizeof(VkSurfaceFormatKHR));
+        vkGetPhysicalDeviceSurfaceFormatsKHR(r->phy_dev, r->surface, &r->n_formats, r->formats);
+    }
+
+    vkGetPhysicalDeviceSurfacePresentModesKHR(r->phy_dev, r->surface, &r->n_modes, NULL);
+    if (r->n_modes) {
+        r->modes = malloc(r->n_modes*sizeof(VkPresentModeKHR));
+        vkGetPhysicalDeviceSurfacePresentModesKHR(r->phy_dev, r->surface, &r->n_modes, r->modes);
+    }
+    printf("formats: %d, modes: %d\n", r->n_formats, r->n_modes);
 
     printf("Logical device created\n");
 }
