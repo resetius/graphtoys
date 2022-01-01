@@ -85,6 +85,12 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_rotate_Z(rot, rot, ctx->time);
     prog_set_mat4x4(t->p, "Rot", &rot);
 
+
+    mat3x3 norm;
+    mat3x3_from_mat4x4(norm, rot);
+    // prog_set_mat4x4(t->p, "ModelViewMatrix", &rot);
+    // prog_set_mat3x3(t->p, "NormalMatrix", &norm);
+
     prog_set_sub_fs(t->p, t->types[t->cur_type]);
 
     mesh_render(t->m);

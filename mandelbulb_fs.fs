@@ -3,6 +3,9 @@
 uniform mat4 Rot;
 uniform vec3 T;
 
+uniform mat4 ModelViewMatrix;
+uniform mat3 NormalMatrix;
+
 subroutine vec3 next_point_type(vec3 p, vec3 p0);
 subroutine uniform next_point_type next_point;
 
@@ -80,22 +83,67 @@ bool iterate(vec3 p0) {
     return ans;
 }
 
-vec2 check_point(vec2 p0) {
+vec2 check_point(vec2 p0, out vec3 n) {
     bool flag = false;
     float z0 = -1;
     float dist = 0;
     vec4 p1 = vec4(0,0,0,0);
+    vec2 res = vec2(0,0);
     for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-0.01) {
         p1 = Rot*vec4(p0, z0, 1.0);
         flag = iterate(vec3(p1));
     }
     dist = length(p1);
-    return vec2(z0, dist);
+    res = vec2(z0, dist);
+// normal?
+    //n = vec3(0, 0, 1.0);
+    n = vec3(Rot*vec4(0,0,1,0));
+    //flag = false;
+    if (flag) {
+        // x-eps, x+eps
+        // y-eps, y+eps
+        float eps = 1e-2;
+        float x1, x2, dx;
+        float y1, y2, dy;
+        flag = false;
+        vec2 p0x1 = vec2(p0.x-eps, p0.y);
+        for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-0.01) {
+            p1 = Rot*vec4(p0x1, z0, 1.0);
+            flag = iterate(vec3(p1));
+        }
+        x1 = p1.z;
+        flag = false;
+        vec2 p0x2 = vec2(p0.x+eps, p0.y);
+        for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-0.01) {
+            p1 = Rot*vec4(p0x2, z0, 1.0);
+            flag = iterate(vec3(p1));
+        }
+        x2 = p1.z;
+        dx = (x2-x1)/(2.*eps);
+        flag = false;
+        vec2 p0y1 = vec2(p0.x, p0.y-eps);
+        for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-0.01) {
+            p1 = Rot*vec4(p0y1, z0, 1.0);
+            flag = iterate(vec3(p1));
+        }
+        y1 = p1.z;
+        flag = false;
+        vec2 p0y2 = vec2(p0.x, p0.y+eps);
+        for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-0.01) {
+            p1 = Rot*vec4(p0y2, z0, 1.0);
+            flag = iterate(vec3(p1));
+        }
+        y2 = p1.z;
+        dy = (y2-y1)/(2*eps);
+        n = normalize(vec3(-dx, -dy, 1));
+    }
+    return res;
 }
 
 void main() {
     vec2 p = coord;
-    vec2 p1 = check_point(p);
+    vec3 n = vec3(0,0,0);
+    vec2 p1 = check_point(p, n);
     float z = p1.x;
     float l = p1.y;
     if (z >= -1.0) {
@@ -107,7 +155,18 @@ void main() {
         //float r = 0.5*(z+1.0);
         //float b = 0.5*(z+1.0);
         //fragColor = 0.5*(z+1.0)*vec4(r, 1.0, b, 1.0);
-        fragColor = 0.5*(z+1.0)*vec4(1.0, 1.0, 0, 1.0);
+
+        vec4 LightPosition = vec4(0.0, 0.0, 10.0, 1.0);
+        vec3 tnorm = n; //normalize(NormalMatrix * n);
+        vec4 eyeCoords = vec4(-1.0, 0.0, 4.0, 1.0); //ModelViewMatrix * vec4(coord, 1.0, 1.0);
+        vec3 s = normalize(vec3(LightPosition - eyeCoords));
+
+        vec3 Kd = vec3(1.0, 1.0, 1.0);
+        vec3 Ld = vec3(0.9, 0.5, 0.3);
+
+        fragColor = vec4(Ld * Kd * max( dot( s, tnorm ), 0.0 ), 1.0);
+
+        //fragColor = 0.5*(z+1.0)*vec4(1.0, 1.0, 0, 1.0);
         //float light = 0.5*(z+1.0);
         //float light = l;
         //fragColor = light*vec4(color.z * mix(K.xxx, clamp(m - K.xxx, 0.0, 1.0), color.y), 1.0);
