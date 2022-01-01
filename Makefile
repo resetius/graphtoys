@@ -26,6 +26,7 @@ SOURCES=main.c\
 	opengl/render.c\
 	render/program.c\
 	render/render.c\
+	vulkan/drawcommandbuffer.c\
 	vulkan/render.c\
 	vulkan/renderpass.c\
 	vulkan/rendertarget.c\

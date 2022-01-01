@@ -9,6 +9,7 @@
 #include "swapchain.h"
 #include "renderpass.h"
 #include "rendertarget.h"
+#include "drawcommandbuffer.h"
 
 struct RenderImpl {
     struct Render base;
@@ -33,4 +34,5 @@ struct RenderImpl {
     struct SwapChain sc;
     struct RenderPass rp;
     struct RenderTarget rt;
+    struct DrawCommandBuffer dcb;
 };

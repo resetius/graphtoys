@@ -14,6 +14,7 @@
 
 static void free_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
+    dcb_destroy(&r->dcb);
     rt_destroy(&r->rt);
     rp_destroy(&r->rp);
     sc_destroy(&r->sc);
@@ -166,6 +167,8 @@ static void init_(struct Render* r1) {
     printf("Renderpass initialized\n");
     rt_init(&r->rt, r);
     printf("Rendertarget initialized\n");
+    dcb_init(&r->dcb, r);
+    printf("Drawcommandbuffer initialized\n");
 }
 
 struct Render* rend_vulkan_new() {
