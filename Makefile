@@ -4,8 +4,8 @@
 UNAME_S := $(shell uname -s)
 PLATFORM=$(UNAME_S)
 CFLAGS?=-g -O2 -Wall
-VULKAN_INCLUDE?=$(HOME)/VulkanSDK/1.2.198.1/MoltenVK/include
-VULKAN_LIB?=$(HOME)/VulkanSDK/1.2.198.1/MoltenVK/dylib/macOS
+VULKAN_INCLUDE?=$(HOME)/VulkanSDK/1.2.198.1/macOS/include
+VULKAN_LIB?=$(HOME)/VulkanSDK/1.2.198.1/macOS/lib
 CFLAGS +=\
 	-DGL_SILENCE_DEPRECATION\
 	-I$(VULKAN_INCLUDE)\
@@ -17,7 +17,7 @@ ifeq ($(UNAME_S),Darwin)
 endif
 LDFLAGS+=`pkg-config --static --libs glfw3,freetype2`
 LDFLAGS+=$(LIBGL)
-LDFLAGS+=-L$(VULKAN_LIB) -lMoltenVK
+LDFLAGS+=-L$(VULKAN_LIB) -lvulkan
 
 SOURCES=main.c\
 	triangle.c\
