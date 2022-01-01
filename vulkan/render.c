@@ -12,7 +12,20 @@ struct RenderImpl {
     struct Render base;
     VkInstance instance;
     VkSurfaceKHR surface;
+    // Physical Device
     VkPhysicalDevice phy_dev;
+    VkSurfaceCapabilitiesKHR caps;
+    VkSurfaceFormatKHR* formats;
+    int n_formats;
+    VkPresentModeKHR* modes;
+    int n_modes;
+    int graphics_family;
+    int present_family;
+    // Logical Device
+    VkDevice log_dev;
+    VkQueue g_queue;
+    VkQueue p_queue;
+    // GLFW specific
     GLFWwindow* window;
 };
 
@@ -26,12 +39,48 @@ static void set_window_(struct Render* r1, void* w) {
     r->window = w;
 }
 
+static void find_queue_families(struct RenderImpl* r) {
+    uint32_t count = 0;
+    VkQueueFamilyProperties* families;
+    int i;
+    vkGetPhysicalDeviceQueueFamilyProperties(r->phy_dev, &count, NULL);
+
+    families = malloc(count*sizeof(VkQueueFamilyProperties));
+    vkGetPhysicalDeviceQueueFamilyProperties(r->phy_dev, &count, families);
+
+    r->graphics_family = r->present_family = -1;
+
+    for (i = 0; i < count; i++) {
+        VkBool32 flag = 0;
+        if (families[i].queueCount > 0 && (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+            r->graphics_family = i;
+        }
+
+        vkGetPhysicalDeviceSurfaceSupportKHR(r->phy_dev, i, r->surface, &flag);
+
+        if (families[i].queueCount > 0 && flag) {
+            r->present_family = i;
+        }
+
+        if (r->present_family >= 0 && r->graphics_family >= 0) {
+            break;
+        }
+    }
+    free(families);
+}
+
 static void init_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
     uint32_t deviceCount = 0;
+    const char* deviceExtensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    uint32_t nDeviceExtensions = 1;
     VkPhysicalDevice devices[100];
+    VkDeviceQueueCreateInfo queueCreateInfo[2];
+    uint32_t nQueueCreateInfo = 2;
+    float queuePriority = 1.0f;
     int i;
-    if (glfwCreateWindowSurface(r->instance, r->window, NULL, &r->surface) != VK_SUCCESS) {
+    if (glfwCreateWindowSurface(r->instance, r->window, NULL, &r->surface) != VK_SUCCESS)
+    {
         fprintf(stderr, "Cannot create window surface\n");
         exit(-1);
     }
@@ -55,6 +104,49 @@ static void init_(struct Render* r1) {
         r->phy_dev = devices[i];
         break;
     }
+
+    find_queue_families(r);
+    printf("graphics_family: %d, present_family: %d\n",
+           r->graphics_family,
+           r->present_family);
+
+    if (r->graphics_family == r->present_family) {
+        nQueueCreateInfo = 1;
+        queueCreateInfo[0].queueFamilyIndex = r->graphics_family;
+    } else {
+        queueCreateInfo[0].queueFamilyIndex = r->graphics_family;
+        queueCreateInfo[1].queueFamilyIndex = r->present_family;
+    }
+
+    for (i = 0; i < nQueueCreateInfo; i++) {
+        VkDeviceQueueCreateInfo info = {
+            .queueFamilyIndex = queueCreateInfo[i].queueFamilyIndex,
+            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            .queueCount = 1,
+            .pQueuePriorities = &queuePriority
+        };
+        queueCreateInfo[i] = info;
+    }
+
+    VkPhysicalDeviceFeatures deviceFeatures = {
+        .samplerAnisotropy = VK_TRUE
+    };
+
+    VkDeviceCreateInfo createInfo = {
+        .pQueueCreateInfos = queueCreateInfo,
+        .queueCreateInfoCount = nQueueCreateInfo,
+        .pEnabledFeatures = &deviceFeatures, //
+        .enabledExtensionCount = nDeviceExtensions,
+        .ppEnabledExtensionNames = deviceExtensions,
+        .enabledLayerCount = 0
+    };
+
+    if (vkCreateDevice(r->phy_dev, &createInfo, NULL, &r->log_dev) != VK_SUCCESS) {
+        fprintf(stderr, "Cannot create logical device\n");
+        exit(-1);
+    }
+
+    printf("Logical device created\n");
 }
 
 struct Render* rend_vulkan_new() {
