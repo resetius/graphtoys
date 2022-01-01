@@ -89,7 +89,8 @@ vec2 check_point(vec2 p0, out vec3 n) {
     float dist = 0;
     vec4 p1 = vec4(0,0,0,0);
     vec2 res = vec2(0,0);
-    for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-0.01) {
+    float step=0.01;
+    for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-step) {
         p1 = Rot*vec4(p0, z0, 1.0);
         flag = iterate(vec3(p1));
     }
@@ -102,19 +103,19 @@ vec2 check_point(vec2 p0, out vec3 n) {
     if (flag) {
         // x-eps, x+eps
         // y-eps, y+eps
-        float eps = 1e-2;
+        float eps = 1e-2 * dist;
         float x1, x2, dx;
         float y1, y2, dy;
         flag = false;
         vec2 p0x1 = vec2(p0.x-eps, p0.y);
-        for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-0.01) {
+        for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-step) {
             p1 = Rot*vec4(p0x1, z0, 1.0);
             flag = iterate(vec3(p1));
         }
         x1 = p1.z;
         flag = false;
         vec2 p0x2 = vec2(p0.x+eps, p0.y);
-        for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-0.01) {
+        for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-step) {
             p1 = Rot*vec4(p0x2, z0, 1.0);
             flag = iterate(vec3(p1));
         }
@@ -122,14 +123,14 @@ vec2 check_point(vec2 p0, out vec3 n) {
         dx = (x2-x1)/(2.*eps);
         flag = false;
         vec2 p0y1 = vec2(p0.x, p0.y-eps);
-        for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-0.01) {
+        for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-step) {
             p1 = Rot*vec4(p0y1, z0, 1.0);
             flag = iterate(vec3(p1));
         }
         y1 = p1.z;
         flag = false;
         vec2 p0y2 = vec2(p0.x, p0.y+eps);
-        for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-0.01) {
+        for (z0 = 1.0; z0 >= -1.0 && !flag; z0 = z0-step) {
             p1 = Rot*vec4(p0y2, z0, 1.0);
             flag = iterate(vec3(p1));
         }
