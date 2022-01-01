@@ -10,8 +10,8 @@
 #include <render/render.h>
 
 #include "font.h"
-#include "font_vs.h"
-#include "font_fs.h"
+#include "font_vs.vert.h"
+#include "font_fs.frag.h"
 #include "RobotoMono-Regular.h"
 
 struct FontImpl {

@@ -2,8 +2,8 @@
 #include <stdio.h>
 
 #include "mandelbulb.h"
-#include "mandelbulb_vs.h"
-#include "mandelbulb_fs.h"
+#include "mandelbulb_vs.vert.h"
+#include "mandelbulb_fs.frag.h"
 #include "object.h"
 #include "mesh.h"
 #include <render/program.h>

@@ -38,16 +38,27 @@ SOURCES=main.c\
 	font/font.c\
 	ref.c
 
+SHADERS=triangle_fragment_shader.frag\
+	triangle_vertex_shader.vert\
+	torus_vertex_shader.vert\
+	mandelbrot_vs.vert\
+	mandelbrot_fs.frag\
+	mandelbulb_vs.vert\
+	mandelbulb_fs.frag\
+	font/font_vs.vert\
+	font/font_fs.frag
+
 OBJECTS=$(patsubst %.c,%.o,$(SOURCES))
 DEPS=$(patsubst %.c,%.d,$(SOURCES))
-
--include $(DEPS)
+GENERATED1=$(patsubst %.frag,%.frag.h,$(SHADERS))
+GENERATED=$(patsubst %.vert,%.vert.h,$(GENERATED1))
 
 All: main.exe rcc.exe
 
 clean:
 	rm -f *.exe
 	rm -f $(OBJECTS) $(DEPS)
+	rm -f $(GENERATED)
 
 main.exe: $(OBJECTS)
 	gcc $^ $(LDFLAGS) -o $@
@@ -59,23 +70,21 @@ program.o: program.h
 
 mesh.o: mesh.h
 
-%.d: %.c
+%.d: %.c $(GENERATED)
 	gcc $(CFLAGS) -MM -MT '$(patsubst %.c,%.o,$<)' $< -MF $@
 
 %.o: %.c Makefile
 	gcc $(CFLAGS) -c $< -o $@
 
-%.h: %.ttf rcc.exe
+%.ttf.h: %.ttf rcc.exe
 	./rcc.exe $< -o $@
 
-%.h: %.vs rcc.exe
+%.vert.h: %.vert rcc.exe
 	./rcc.exe $< -o $@
 
-%.h: %.fs rcc.exe
+%.frag.h: %.frag rcc.exe
 	./rcc.exe $< -o $@
 
-%.h: %.vert rcc.exe
-	./rcc.exe $< -o $@
-
-%.h: %.frag rcc.exe
-	./rcc.exe $< -o $@
+ifneq ($(MAKECMDGOALS),clean)
+-include $(DEPS)
+endif

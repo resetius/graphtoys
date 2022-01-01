@@ -7,8 +7,8 @@
 #include "triangle.h"
 #include "linmath.h"
 
-#include "triangle_vertex_shader.h"
-#include "triangle_fragment_shader.h"
+#include "triangle_vertex_shader.vert.h"
+#include "triangle_fragment_shader.frag.h"
 
 typedef struct Vertex
 {

@@ -8,8 +8,8 @@
 #include <render/program.h>
 #include "mesh.h"
 #include "linmath.h"
-#include "triangle_fragment_shader.h"
-#include "torus_vertex_shader.h"
+#include "triangle_fragment_shader.frag.h"
+#include "torus_vertex_shader.vert.h"
 
 // x = (R+r cos(psi)) cos phi
 // y = (R+r cos(psi)) sin phi

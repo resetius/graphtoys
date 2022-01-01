@@ -170,6 +170,10 @@ static void gl_info() {
     const GLubyte* version = glGetString(GL_VERSION);
     printf("Renderer: %s\n", renderer);
     printf("OpenGL version supported %s\n", version);
+
+    //GLint count = 0;
+    //glGetIntegerv(GL_NUM_SHADER_BINARY_FORMATS, &count);
+    //printf("Binary formats: %d\n", count);
 }
 
 static void init_(struct Render* r1) {

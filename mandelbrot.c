@@ -2,8 +2,8 @@
 #include <stdio.h>
 
 #include "mandelbrot.h"
-#include "mandelbrot_vs.h"
-#include "mandelbrot_fs.h"
+#include "mandelbrot_vs.vert.h"
+#include "mandelbrot_fs.frag.h"
 #include "object.h"
 #include "mesh.h"
 #include <render/program.h>
