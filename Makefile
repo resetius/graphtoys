@@ -10,12 +10,12 @@ CFLAGS +=\
 	-DGL_SILENCE_DEPRECATION\
 	-I$(VULKAN_INCLUDE)\
 	-I.\
-	`pkg-config --cflags glfw3,freetype2`
+	$(shell pkg-config --cflags glfw3,freetype2)
 LIBGL=
 ifeq ($(UNAME_S),Darwin)
 	LIBGL=-framework OpenGl
 endif
-LDFLAGS+=`pkg-config --static --libs glfw3,freetype2`
+LDFLAGS+=$(shell pkg-config --static --libs glfw3,freetype2)
 LDFLAGS+=$(LIBGL)
 LDFLAGS+=-L$(VULKAN_LIB) -lvulkan
 
