@@ -9,33 +9,13 @@
 #include <render/render.h>
 
 #include "renderpass.h"
-
-struct RenderImpl {
-    struct Render base;
-    VkInstance instance;
-    VkSurfaceKHR surface;
-    // Physical Device
-    VkPhysicalDevice phy_dev;
-    VkSurfaceCapabilitiesKHR caps;
-    VkSurfaceFormatKHR* formats;
-    uint32_t n_formats;
-    VkPresentModeKHR* modes;
-    uint32_t n_modes;
-    int graphics_family;
-    int present_family;
-    // Logical Device
-    VkDevice log_dev;
-    VkQueue g_queue;
-    VkQueue p_queue;
-    // GLFW specific
-    GLFWwindow* window;
-
-    struct SwapChain sc;
-    struct RenderPass rp;
-};
+#include "swapchain.h"
+#include "render_impl.h"
 
 static void free_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
+    rp_destroy(&r->rp);
+    sc_destroy(&r->sc);
     free(r->modes);
     free(r->formats);
     free(r);
@@ -178,6 +158,11 @@ static void init_(struct Render* r1) {
     printf("formats: %d, modes: %d\n", r->n_formats, r->n_modes);
 
     printf("Logical device created\n");
+
+    sc_init(&r->sc, r);
+    printf("Swapchain initialized\n");
+    rp_init(&r->rp, r->log_dev, r->sc.im_format);
+    printf("Renderpass initialized\n");
 }
 
 struct Render* rend_vulkan_new() {
