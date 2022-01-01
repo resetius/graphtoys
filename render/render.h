@@ -21,6 +21,8 @@ struct Render {
 };
 
 struct Render* rend_opengl_new();
+struct Render* rend_vulkan_new();
+
 void rend_free(struct Render*);
 
 struct Program* rend_prog_new(struct Render*);

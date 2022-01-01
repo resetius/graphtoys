@@ -4,11 +4,20 @@
 UNAME_S := $(shell uname -s)
 PLATFORM=$(UNAME_S)
 CFLAGS?=-g -O2 -Wall
-CFLAGS += -DGL_SILENCE_DEPRECATION -I. `pkg-config --cflags glfw3,freetype2`
+VULKAN_INCLUDE?=$(HOME)/VulkanSDK/1.2.198.1/MoltenVK/include
+VULKAN_LIB?=$(HOME)/VulkanSDK/1.2.198.1/MoltenVK/dylib/macOS
+CFLAGS +=\
+	-DGL_SILENCE_DEPRECATION\
+	-I$(VULKAN_INCLUDE)\
+	-I.\
+	`pkg-config --cflags glfw3,freetype2`
 LIBGL=
 ifeq ($(UNAME_S),Darwin)
 	LIBGL=-framework OpenGl
 endif
+LDFLAGS+=`pkg-config --static --libs glfw3,freetype2`
+LDFLAGS+=$(LIBGL)
+LDFLAGS+=-L$(VULKAN_LIB) -lMoltenVK
 
 SOURCES=main.c\
 	triangle.c\
@@ -17,6 +26,7 @@ SOURCES=main.c\
 	opengl/render.c\
 	render/program.c\
 	render/render.c\
+	vulkan/render.c\
 	mesh.c\
 	mandelbrot.c\
 	mandelbulb.c\
@@ -36,7 +46,7 @@ clean:
 	rm -f $(OBJECTS) $(DEPS)
 
 main.exe: $(OBJECTS)
-	gcc $^ `pkg-config --static --libs glfw3,freetype2` $(LIBGL) -o $@
+	gcc $^ $(LDFLAGS) -o $@
 
 rcc.exe: rcc.o
 	gcc $^ -o $@

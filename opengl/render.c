@@ -146,6 +146,7 @@ static void rend_free_(struct Render* r1) {
 static void set_view_entity_(struct Render* r, void* data) {
     GLFWwindow* window = data;
     ((struct RenderImpl*)r)->window = window;
+    glfwMakeContextCurrent(window);
 }
 
 static void draw_begin_(struct Render* r, int* w, int* h) {

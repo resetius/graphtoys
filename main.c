@@ -103,6 +103,7 @@ int main(int argc, char** argv)
         {NULL, NULL}
     };
     int i, j;
+    const char* render_name = NULL;
     ConstructorT constr = CreateTorus;
     memset(&app, 0, sizeof(app));
     for (i = 1; i < argc; i++) {
@@ -111,11 +112,14 @@ int main(int argc, char** argv)
                 printf("%s %s\n", argv[0], constructors[j].name);
             }
             return 0;
-        }
-        for (j = 0; constructors[j].name; j++) {
-            if (!strcmp(constructors[j].name, argv[i])) {
-                constr = constructors[j].constructor;
-                break;
+        } else if (!strcmp(argv[i], "--render")) {
+            render_name = argv[++i];
+        } else {
+            for (j = 0; constructors[j].name; j++) {
+                if (!strcmp(constructors[j].name, argv[i])) {
+                    constr = constructors[j].constructor;
+                    break;
+                }
             }
         }
     }
@@ -127,7 +131,14 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    render = rend_opengl_new();
+    if (render_name == NULL || !strcmp(render_name, "opengl")) {
+        render = rend_opengl_new();
+    } else if (!strcmp(render_name, "vulkan")) {
+        render = rend_vulkan_new();
+    } else {
+        fprintf(stderr, "Unknown render: '%s'\n", render_name);
+        return -1;
+    }
 
     /* Create a windowed mode window and its OpenGL context */
     window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
@@ -140,7 +151,8 @@ int main(int argc, char** argv)
     glfwSetKeyCallback(window, key_callback);
 
     /* Make the window's context current */
-    glfwMakeContextCurrent(window);
+
+    render->set_view_entity(render, window);
 
     render->init(render);
 
@@ -160,8 +172,6 @@ int main(int argc, char** argv)
     label_set_text(text, "Проверка русских букв");
 
     t1 = glfwGetTime();
-
-    render->set_view_entity(render, window);
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
