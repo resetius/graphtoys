@@ -34,6 +34,7 @@ struct Triangle {
     VkDeviceMemory uniformBufferMemory;
 
     VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
 };
 
 static void trvk_draw(struct Object* obj, struct DrawContext* ctx) {
@@ -116,6 +117,11 @@ struct Object* trvk_new(struct Render* r1) {
         .offset = offsetof(struct Vertex, col)
     };
     attributeDescriptions[1] = colDescr;
+    VkVertexInputBindingDescription bindingDescription = {
+        .binding = 0,
+        .stride = sizeof(struct Vertex),
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+    };
 
     VkDeviceSize bufferSize = sizeof(vertices);
     VkBuffer stagingBuffer;
@@ -245,6 +251,127 @@ struct Object* trvk_new(struct Render* r1) {
 		fprintf(stderr, "Failed to create pieline layout\n");
         exit(-1);
 	}
+
+    VkPipelineShaderStageCreateInfo vertShaderStageCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .stage = VK_SHADER_STAGE_VERTEX_BIT,
+        .module = vertShader,
+        .pName = "main"
+    };
+
+    VkPipelineShaderStageCreateInfo fragShaderStageCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .module = fragShader,
+        .pName = "main"
+    };
+
+    VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageCreateInfo, fragShaderStageCreateInfo };
+
+    // Vertex input State
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .vertexBindingDescriptionCount = 1,
+        .pVertexBindingDescriptions = &bindingDescription,
+        .vertexAttributeDescriptionCount = 2,
+        .pVertexAttributeDescriptions = attributeDescriptions
+    };
+
+    // Vertex Input assembly State
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+        .topology =  VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+        .primitiveRestartEnable = VK_FALSE
+    };
+
+    // Rasterization State
+	VkPipelineRasterizationStateCreateInfo rastStateCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+        .depthClampEnable = VK_FALSE,
+        .rasterizerDiscardEnable = VK_FALSE,
+        .polygonMode = VK_POLYGON_MODE_FILL,
+        .lineWidth = 1.0f,
+        .cullMode = VK_CULL_MODE_BACK_BIT,
+        .frontFace = VK_FRONT_FACE_CLOCKWISE,
+        .depthBiasEnable = VK_FALSE,
+        .depthBiasConstantFactor = 0.0f,
+        .depthBiasClamp = 0.0f,
+        .depthBiasSlopeFactor = 0.0f
+    };
+
+    // Multisampling State
+	VkPipelineMultisampleStateCreateInfo msStateInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+        .sampleShadingEnable = VK_FALSE,
+        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+        .minSampleShading = 1.0f,
+        .pSampleMask = NULL,
+        .alphaToCoverageEnable = VK_FALSE,
+        .alphaToOneEnable = VK_FALSE,
+    };
+
+    // Color Blend State
+	VkPipelineColorBlendAttachmentState  cbAttach = {
+        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+        .blendEnable = VK_FALSE
+    };
+
+	VkPipelineColorBlendStateCreateInfo cbCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        .attachmentCount = 1,
+        .pAttachments = &cbAttach
+    };
+
+    // Viewport State Create Info
+
+	VkViewport viewport = {
+        .x = 0,
+        .y = 0,
+        .width = (float)r->sc.extent.width,
+        .height = (float)r->sc.extent.height,
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f
+    };
+
+    VkRect2D scissor = {
+        .offset = { 0,0 },
+        .extent = r->sc.extent
+    };
+
+	VkPipelineViewportStateCreateInfo vpStateInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+        .viewportCount = 1,
+        .pViewports = &viewport,
+        .scissorCount = 1,
+        .pScissors = &scissor
+    };
+
+    // Create Graphics Pipeline
+
+	VkGraphicsPipelineCreateInfo gpInfo = {
+        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+        .stageCount = 2,
+        .pStages = shaderStages,
+        .pVertexInputState = &vertexInputInfo,
+        .pInputAssemblyState = &inputAssemblyInfo,
+        .pViewportState = &vpStateInfo,
+        .pRasterizationState = &rastStateCreateInfo,
+        .pMultisampleState = &msStateInfo,
+        .pDepthStencilState = NULL,
+        .pColorBlendState = &cbCreateInfo,
+        .pDynamicState = NULL,
+        .layout = tr->pipelineLayout,
+        .renderPass = r->rp.rp,
+        .subpass = 0,
+        .basePipelineHandle = VK_NULL_HANDLE,
+        .basePipelineIndex = -1
+    };
+
+    if (vkCreateGraphicsPipelines(r->log_dev, VK_NULL_HANDLE, 1, &gpInfo, NULL, &tr->graphicsPipeline) != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create graphics pipeline\n");
+        exit(-1);
+	}
+    printf("Pipeline loaded\n");
 
     return (struct Object*)tr;
 }
