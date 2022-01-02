@@ -45,7 +45,6 @@ static void prog_free_(struct Program* p1) {
     free(shaders);
 
     glDeleteProgram(p->program);
-    free(shaders);
 }
 
 static int prog_add_(struct ProgramImpl* p, const char* shaderText, GLuint shader) {
