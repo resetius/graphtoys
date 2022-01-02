@@ -60,6 +60,23 @@ void tr_draw(struct Object* obj, struct DrawContext* ctx) {
 }
 
 void tr_free(struct Object* obj) {
+    struct Triangle* tr = (struct Triangle*)obj;
+    GLint numShaders = 0;
+    GLuint *shaders;
+    int i;
+
+    glGetProgramiv(tr->program, GL_ATTACHED_SHADERS, &numShaders);
+    shaders = malloc(numShaders*sizeof(GLint));
+    glGetAttachedShaders(tr->program, numShaders, NULL, shaders);
+
+    for (i = 0; i < numShaders; i++) {
+        glDeleteShader(shaders[i]);
+    }
+
+    glDeleteProgram(tr->program);
+
+    glDeleteBuffers(1, &tr->ubo_buffer);
+    glDeleteVertexArrays(1, &tr->vertex_array);
     free(obj);
 }
 

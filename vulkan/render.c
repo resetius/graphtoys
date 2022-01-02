@@ -89,6 +89,7 @@ static void find_queue_families(struct RenderImpl* r) {
     int i;
     vkGetPhysicalDeviceQueueFamilyProperties(r->phy_dev, &count, NULL);
 
+    printf("Found %d queue families\n", count);
     families = malloc(count*sizeof(VkQueueFamilyProperties));
     vkGetPhysicalDeviceQueueFamilyProperties(r->phy_dev, &count, families);
 
@@ -110,6 +111,9 @@ static void find_queue_families(struct RenderImpl* r) {
             break;
         }
     }
+    printf("Present: %d, graphics: %d\n",
+           r->present_family,
+           r->graphics_family);
     free(families);
 }
 

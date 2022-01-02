@@ -42,6 +42,7 @@ static void prog_free_(struct Program* p1) {
     for (i = 0; i < numShaders; i++) {
         glDeleteShader(shaders[i]);
     }
+    free(shaders);
 
     glDeleteProgram(p->program);
     free(shaders);
