@@ -7,6 +7,8 @@ PLATFORM=$(UNAME_S)
 CFLAGS?=-g -O2 -Wall
 VULKAN_INCLUDE?=$(HOME)/VulkanSDK/1.2.198.1/macOS/include
 VULKAN_LIB?=$(HOME)/VulkanSDK/1.2.198.1/macOS/lib
+VULKAN_BIN?=$(HOME)/VulkanSDK/1.2.198.1/macOS/bin
+GLSLC=$(VULKAN_BIN)/glslc
 CFLAGS +=\
 	-DGL_SILENCE_DEPRECATION\
 	-I$(VULKAN_INCLUDE)\
@@ -22,6 +24,7 @@ LDFLAGS+=-L$(VULKAN_LIB) -lvulkan
 
 SOURCES=main.c\
 	triangle.c\
+	triangle_vk.c\
 	torus.c\
 	opengl/program.c\
 	opengl/render.c\
@@ -88,6 +91,15 @@ mesh.o: mesh.h
 
 %.frag.h: %.frag rcc.exe
 	./rcc.exe $< -o $@
+
+%.spv.h: %.spv rcc.exe
+	./rcc.exe $< -o $@
+
+%.vert.spv: %.vert
+	$(GLSLC) -fauto-bind-uniforms $< -o $@
+
+%.frag.spv: %.frag
+	$(GLSLC) -fauto-bind-uniforms $< -o $@
 
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEPS)

@@ -14,6 +14,8 @@
 #include "mandelbrot.h"
 #include "mandelbulb.h"
 
+struct Object* trvk_new(struct Render* r1); // TODO
+
 struct App {
     struct DrawContext ctx;
     struct ObjectVec objs;
@@ -95,9 +97,11 @@ int main(int argc, char** argv)
     struct Render* render = NULL;
     float t1, t2;
     long long frames = 0;
+    int enable_labels = 0;
     struct ObjectAndConstructor constructors[] = {
         {"torus", CreateTorus},
         {"triangle", CreateTriangle},
+        {"trvk", trvk_new},
         {"mandelbrot", CreateMandelbrot},
         {"mandelbulb", CreateMandelbulb},
         {NULL, NULL}
@@ -162,14 +166,17 @@ int main(int argc, char** argv)
 
     ovec_add(&app.objs, obj);
 
-    font = font_new(render);
-    fps = label_new(font);
-    label_set_pos(fps, 100, 100);
-    label_set_text(fps, "FPS:");
+    if (enable_labels) {
+        font = font_new(render);
+        fps = label_new(font);
+        label_set_pos(fps, 100, 100);
+        label_set_text(fps, "FPS:");
 
-    text = label_new(font);
-    label_set_pos(text, 100, 200);
-    label_set_text(text, "Проверка русских букв");
+
+        text = label_new(font);
+        label_set_pos(text, 100, 200);
+        label_set_text(text, "Проверка русских букв");
+    }
 
     t1 = glfwGetTime();
 
@@ -184,17 +191,19 @@ int main(int argc, char** argv)
         app.ctx.time = (float)glfwGetTime();
 
         /* Render here */
-
-        label_set_screen(fps, width, height);
-        label_set_screen(text, width, height);
-
+        if (enable_labels) {
+            label_set_screen(fps, width, height);
+            label_set_screen(text, width, height);
+        }
 
         obj->draw(obj, &app.ctx);
 
         render->draw_ui(render);
 
-        label_render(fps);
-        label_render(text);
+        if (enable_labels) {
+            label_render(fps);
+            label_render(text);
+        }
 
         /* Swap front and back buffers */
         render->draw_end(render);
@@ -202,7 +211,7 @@ int main(int argc, char** argv)
         /* Poll for and process events */
         glfwPollEvents();
         t2 = glfwGetTime();
-        if (t2 - t1 > 1.0) {
+        if (t2 - t1 > 1.0 && enable_labels) {
             label_set_vtext(fps, "FPS:%.2f", frames/(t2-t1));
             frames = 0;
             t1 = t2;
