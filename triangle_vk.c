@@ -85,8 +85,8 @@ static void trvk_draw(struct Object* obj, struct DrawContext* ctx) {
 
     vkCmdDraw(
         cBuffer,
+        3, // vertices
         1, // instance count -- just the 1
-        0, // first index -- start at 0th index
         0, // vertex offet -- any offsets to add
         0);// first instance -- since no instancing, is set to 0
 }
