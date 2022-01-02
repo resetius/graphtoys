@@ -35,6 +35,7 @@ SOURCES=main.c\
 	vulkan/renderpass.c\
 	vulkan/rendertarget.c\
 	vulkan/swapchain.c\
+	vulkan/tools.c\
 	mesh.c\
 	mandelbrot.c\
 	mandelbulb.c\
