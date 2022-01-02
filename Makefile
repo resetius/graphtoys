@@ -75,7 +75,7 @@ program.o: program.h
 mesh.o: mesh.h
 
 %.d: %.c
-	$(CC) $(CFLAGS) -MM -MG -MT '$(patsubst %.c,%.o,$<)' $< -MF $@
+	$(CC) $(CFLAGS) -M -MG -MT '$(patsubst %.c,%.o,$<)' $< -MF $@
 
 %.o: %.c %.d
 	$(CC) $(CFLAGS) -c $< -o $@

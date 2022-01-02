@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ctype.h>
+#include <stddef.h>
 
 struct Program;
 struct Texture;

@@ -1,4 +1,5 @@
-#version 330
+#version 410
+#extension GL_ARB_separate_shader_objects : enable
 
 uniform mat4 ModelViewMatrix;
 uniform mat3 NormalMatrix;
@@ -8,7 +9,7 @@ uniform mat4 MVP;
 in vec3 vCol;
 in vec3 vNorm;
 in vec3 vPos;
-out vec3 color;
+layout (location = 0) out vec3 color;
 
 void main()
 {
