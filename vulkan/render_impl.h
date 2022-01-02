@@ -48,4 +48,8 @@ struct RenderImpl {
 
     VkSemaphore imageAvailableSemaphore;
     VkSemaphore renderFinishedSemaphore;
+
+    //
+    VkViewport viewport;
+    int update_viewport;
 };

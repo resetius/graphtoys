@@ -19,11 +19,21 @@ struct Object* trvk_new(struct Render* r1); // TODO
 struct App {
     struct DrawContext ctx;
     struct ObjectVec objs;
+    struct Render* r;
 };
 
 static void error_callback(int error, const char* description)
 {
     fprintf(stderr, "Error: %s\n", description);
+}
+
+static void resize_callback(GLFWwindow* window, int w, int h)
+{
+    struct App* app = glfwGetWindowUserPointer(window);
+
+    if (app->r->set_viewport) {
+        app->r->set_viewport(app->r, w, h);
+    }
 }
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -153,12 +163,15 @@ int main(int argc, char** argv)
     }
     glfwSetWindowUserPointer(window, &app);
     glfwSetKeyCallback(window, key_callback);
+    glfwSetWindowSizeCallback(window, resize_callback);
 
     /* Make the window's context current */
 
     render->set_view_entity(render, window);
 
     render->init(render);
+
+    app.r = render;
 
     setbuf(stdout, NULL);
 

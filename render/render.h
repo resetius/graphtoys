@@ -18,6 +18,7 @@ struct Render {
     void (*draw_begin)(struct Render*, int* w, int* h);
     void (*draw_ui)(struct Render*);
     void (*draw_end)(struct Render*);
+    void (*set_viewport)(struct Render*, int w, int h);
 };
 
 struct Render* rend_opengl_new();

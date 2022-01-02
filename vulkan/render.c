@@ -39,6 +39,12 @@ static void draw_begin_(struct Render* r1, int* w, int* h) {
 
     r->buffer = r->dcb.buffers[r->image_index];
     dcb_begin(&r->dcb, r->buffer);
+
+    if (r->update_viewport) {
+        r->update_viewport = 0;
+        vkCmdSetViewport(r->buffer, 0, 1, &r->viewport);
+    }
+
     VkClearColorValue color =  {
         .float32 = {0.0f, 0.0f, 0.0f, 1.0f}
     };
@@ -276,6 +282,22 @@ static void init_(struct Render* r1) {
     }
 }
 
+static void set_viewport_(struct Render* r1, int w, int h) {
+    struct RenderImpl* r = (struct RenderImpl*)r1;
+
+    VkViewport viewport = {
+        .x = 0,
+        .y = h,
+        .width = w,
+        .height = -h,
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f
+    };
+
+    r->viewport = viewport;
+    r->update_viewport = 1;
+}
+
 struct Render* rend_vulkan_new() {
     struct RenderImpl* r = calloc(1, sizeof(*r));
     struct Render base = {
@@ -284,7 +306,8 @@ struct Render* rend_vulkan_new() {
         .set_view_entity = set_window_,
         .draw_begin = draw_begin_,
         .draw_end = draw_end_,
-        .draw_ui = draw_ui_
+        .draw_ui = draw_ui_,
+        .set_viewport = set_viewport_
     };
     uint32_t extensionCount = 0;
     const char** glfwExtensionNames = glfwGetRequiredInstanceExtensions(&extensionCount);

@@ -40,8 +40,8 @@ struct Triangle {
 };
 
 static void update_uniform(struct Triangle* tr, struct DrawContext* ctx) {
-    int width = tr->r->sc.extent.width;
-    int height = tr->r->sc.extent.height;
+    int width = fabs(tr->r->viewport.width);
+    int height = fabs(tr->r->viewport.height);
     float ratio = width / (float)height;
     //float ratio = 1.0;
 //printf("ratio = %f\n", ratio);
@@ -387,7 +387,7 @@ struct Object* trvk_new(struct Render* r1) {
 
     int w = r->sc.extent.width;
     int h = r->sc.extent.height;
-	VkViewport viewport = {
+    VkViewport viewport = {
         .x = 0,
         .y = h,
         .width = w,
@@ -395,6 +395,7 @@ struct Object* trvk_new(struct Render* r1) {
         .minDepth = 0.0f,
         .maxDepth = 1.0f
     };
+    r->viewport = viewport;
 
     VkRect2D scissor = {
         .offset = { 0,0 },
