@@ -43,7 +43,7 @@ static void update_uniform(struct Triangle* tr, struct DrawContext* ctx) {
     mat4x4 m, p, mvp;
     mat4x4_identity(m);
     mat4x4_rotate_Z(m, m, ctx->time);
-    mat4x4_ortho(p, -ctx->ratio, ctx->ratio, -1.f, 1.f, 1.f, -1.f);
+    mat4x4_ortho(p, -1, 1, -1.f, 1.f, 1.f, -1.f);
     mat4x4_mul(mvp, p, m);
 
     void* data;
@@ -203,7 +203,7 @@ struct Object* trvk_new(struct Render* r1) {
     create_buffer(
         r->phy_dev, r->log_dev,
         bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         &tr->vertexBuffer,
         &tr->vertexBufferMemory);

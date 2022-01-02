@@ -75,7 +75,7 @@ static void draw_end_(struct Render* r1) {
         .pSignalSemaphores = &r->renderFinishedSemaphore
     };
 
-    vkQueueSubmit(r->g_queue, 1, &submitInfo, NULL);
+    vkQueueSubmit(r->g_queue, 1, &submitInfo, r->infl_fences[r->image_index]);
 
     VkPresentInfoKHR presentInfo = {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
