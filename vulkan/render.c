@@ -30,14 +30,17 @@ static void draw_begin_(struct Render* r1, int* w, int* h) {
         r->log_dev,
         r->sc.swapchain,
         (uint64_t)-1,
-        NULL,
+        r->imageAvailableSemaphore,
         VK_NULL_HANDLE,
         &r->image_index);
+
+    vkWaitForFences(r->log_dev, 1, &r->infl_fences[r->image_index], VK_TRUE, (uint64_t)-1);
+    vkResetFences(r->log_dev, 1, &r->infl_fences[r->image_index]);
 
     r->buffer = r->dcb.buffers[r->image_index];
     dcb_begin(&r->dcb, r->buffer);
     VkClearColorValue color =  {
-        .float32 = {1.0f, 1.0f, 1.0f, 1.0f}
+        .float32 = {0.0f, 0.0f, 0.0f, 1.0f}
     };
     VkClearValue clearval = {
         .color = color
@@ -59,16 +62,25 @@ static void draw_end_(struct Render* r1) {
     rp_end(&r->rp, r->buffer);
     dcb_end(&r->dcb, r->buffer);
 
+    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+
     VkSubmitInfo submitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .commandBufferCount = 1,
-        .pCommandBuffers = &r->buffer
+        .pCommandBuffers = &r->buffer,
+        .pWaitDstStageMask = waitStages,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &r->imageAvailableSemaphore,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores = &r->renderFinishedSemaphore
     };
 
     vkQueueSubmit(r->g_queue, 1, &submitInfo, NULL);
 
     VkPresentInfoKHR presentInfo = {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &r->renderFinishedSemaphore,
         .swapchainCount = 1,
         .pSwapchains = &r->sc.swapchain,
         .pImageIndices = &r->image_index
@@ -120,8 +132,13 @@ static void find_queue_families(struct RenderImpl* r) {
 static void init_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
     uint32_t deviceCount = 0;
-    const char* deviceExtensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-    uint32_t nDeviceExtensions = 1;
+    const char* deviceExtensions[] = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        "VK_KHR_portability_subset", // mac?
+        //"VK_KHR_get_physical_device_properties2",
+        //VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME // TODO: check device support
+    };
+    uint32_t nDeviceExtensions = 2;
     VkPhysicalDevice devices[100];
     VkDeviceQueueCreateInfo queueCreateInfo[2];
     uint32_t nQueueCreateInfo = 2;
@@ -181,6 +198,7 @@ static void init_(struct Render* r1) {
     };
 
     VkDeviceCreateInfo createInfo = {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .pQueueCreateInfos = queueCreateInfo,
         .queueCreateInfoCount = nQueueCreateInfo,
         .pEnabledFeatures = &deviceFeatures, //
@@ -222,6 +240,27 @@ static void init_(struct Render* r1) {
     printf("Rendertarget initialized\n");
     dcb_init(&r->dcb, r);
     printf("Drawcommandbuffer initialized\n");
+
+    r->n_infl_fences = sizeof(r->infl_fences)/sizeof(VkFence);
+    VkSemaphoreCreateInfo semaphoreInfo = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+    };
+
+	VkFenceCreateInfo fenceCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+        .flags = VK_FENCE_CREATE_SIGNALED_BIT
+    };
+
+	vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->imageAvailableSemaphore);
+	vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->renderFinishedSemaphore);
+
+	for (int i = 0; i < r->n_infl_fences; i++) {
+		if (vkCreateFence(r->log_dev, &fenceCreateInfo, NULL, &r->infl_fences[i]) != VK_SUCCESS) {
+
+            fprintf(stderr, "Failed to create synchronization objects per frame\n");
+            exit(-1);
+        }
+    }
 }
 
 struct Render* rend_vulkan_new() {
@@ -235,8 +274,15 @@ struct Render* rend_vulkan_new() {
         .draw_ui = draw_ui_
     };
     uint32_t extensionCount = 0;
-    const char** extensionNames = glfwGetRequiredInstanceExtensions(&extensionCount);
+    const char** glfwExtensionNames = glfwGetRequiredInstanceExtensions(&extensionCount);
 
+    const char** extensionNames = malloc((extensionCount+1)*sizeof(char*));
+    int i;
+    for (i = 0; i < extensionCount; i++) {
+        extensionNames[i] = glfwExtensionNames[i];
+    }
+    extensionNames[i] = "VK_KHR_get_physical_device_properties2"; // mac?
+    extensionCount++;
     VkApplicationInfo appInfo = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
         .pApplicationName = "Graph Toys",
@@ -269,6 +315,7 @@ struct Render* rend_vulkan_new() {
         fprintf(stderr, "Cannot initialize vulkan\n");
         exit(-1);
     }
+    free(extensionNames);
 
     return (struct Render*)r;
 }

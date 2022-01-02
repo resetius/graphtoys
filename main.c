@@ -217,6 +217,7 @@ int main(int argc, char** argv)
             t1 = t2;
         }
         frames ++;
+        break;
     }
 
     if (obj) {

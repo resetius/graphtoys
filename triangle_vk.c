@@ -35,9 +35,60 @@ struct Triangle {
 
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
+
+    VkDescriptorSet descriptorSet;
 };
 
+static void update_uniform(struct Triangle* tr, struct DrawContext* ctx) {
+    mat4x4 m, p, mvp;
+    mat4x4_identity(m);
+    mat4x4_rotate_Z(m, m, ctx->time);
+    mat4x4_ortho(p, -ctx->ratio, ctx->ratio, -1.f, 1.f, 1.f, -1.f);
+    mat4x4_mul(mvp, p, m);
+
+    void* data;
+    vkMapMemory(tr->r->log_dev, tr->uniformBufferMemory, 0, sizeof(mat4x4), 0, &data);
+
+    memcpy(data, mvp, sizeof(mat4x4));
+
+    vkUnmapMemory(tr->r->log_dev, tr->uniformBufferMemory);
+}
+
 static void trvk_draw(struct Object* obj, struct DrawContext* ctx) {
+    struct Triangle* tr = (struct Triangle*)obj;
+    struct RenderImpl* r = tr->r;
+
+    VkCommandBuffer cBuffer = r->buffer;
+
+    update_uniform(tr, ctx);
+
+    vkCmdBindPipeline(cBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, tr->graphicsPipeline);
+
+    VkBuffer vertexBuffers[] = { tr->vertexBuffer };
+    VkDeviceSize offsets[] = { 0 };
+
+    vkCmdBindVertexBuffers(
+        cBuffer,
+        0,
+        1,
+        vertexBuffers,
+        offsets);
+
+	//	Bind uniform buffer using descriptorSets
+	vkCmdBindDescriptorSets(
+        cBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        tr->pipelineLayout,
+        0,
+        1,
+        &tr->descriptorSet, 0, NULL);
+
+    vkCmdDraw(
+        cBuffer,
+        1, // instance count -- just the 1
+        0, // first index -- start at 0th index
+        0, // vertex offet -- any offsets to add
+        0);// first instance -- since no instancing, is set to 0
 }
 
 static void trvk_free(struct Object* obj) {
@@ -205,8 +256,7 @@ struct Object* trvk_new(struct Render* r1) {
         .pSetLayouts = layouts
     };
 
-    VkDescriptorSet descriptorSet;
-	if (vkAllocateDescriptorSets(r->log_dev, &allocInfo, &descriptorSet) != VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(r->log_dev, &allocInfo, &tr->descriptorSet) != VK_SUCCESS) {
 		fprintf(stderr, "failed to allocate descriptor sets\n");
         exit(-1);
 	}
@@ -222,7 +272,7 @@ struct Object* trvk_new(struct Render* r1) {
         VkWriteDescriptorSet uboDescWrites = {
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             .pNext = NULL,
-            .dstSet = descriptorSet,
+            .dstSet = tr->descriptorSet,
             .dstBinding = 0,
             .dstArrayElement = 0,
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
