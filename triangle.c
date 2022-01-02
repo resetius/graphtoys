@@ -45,10 +45,10 @@ void tr_draw(struct Object* obj, struct DrawContext* ctx) {
     struct Triangle* tr = (struct Triangle*)obj;
     mat4x4 m, p, mvp;
     mat4x4_identity(m);
-    mat4x4_rotate_Z(m, m, (float)glfwGetTime());
+    mat4x4_rotate_Z(m, m, ctx->time);
     mat4x4_ortho(p, -ctx->ratio, ctx->ratio, -1.f, 1.f, 1.f, -1.f);
     mat4x4_mul(mvp, p, m);
-
+    //printf("ratio = %f\n", ctx->ratio);
     glBindBuffer(GL_UNIFORM_BUFFER, tr->ubo_buffer);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4x4), &mvp[0][0]);
 

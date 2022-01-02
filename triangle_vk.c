@@ -40,11 +40,22 @@ struct Triangle {
 };
 
 static void update_uniform(struct Triangle* tr, struct DrawContext* ctx) {
+    int width = tr->r->sc.extent.width;
+    int height = tr->r->sc.extent.height;
+    float ratio = width / (float)height;
+    //float ratio = 1.0;
+//printf("ratio = %f\n", ratio);
     mat4x4 m, p, mvp;
     mat4x4_identity(m);
+    //m[1][1] = -1;
+    //m[3][1] = 3;
     mat4x4_rotate_Z(m, m, ctx->time);
-    mat4x4_ortho(p, -1, 1, -1.f, 1.f, 1.f, -1.f);
+    // flipped y
+    //mat4x4_ortho(p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
+    mat4x4_ortho(p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
     mat4x4_mul(mvp, p, m);
+    //mvp[1][1] *= -1;
+    //mvp[3][1] += 1;
 
     void* data;
     vkMapMemory(tr->r->log_dev, tr->uniformBufferMemory, 0, sizeof(mat4x4), 0, &data);
@@ -158,14 +169,14 @@ struct Object* trvk_new(struct Render* r1) {
         .binding = 0,
         .location = 2, // vCol
         .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(struct Vertex, pos)
+        .offset = offsetof(struct Vertex, col)
     };
     attributeDescriptions[0] = posDescr;
     VkVertexInputAttributeDescription colDescr = {
         .binding = 0,
         .location = 1, // vPos
         .format = VK_FORMAT_R32G32_SFLOAT,
-        .offset = offsetof(struct Vertex, col)
+        .offset = offsetof(struct Vertex, pos)
     };
     attributeDescriptions[1] = colDescr;
     VkVertexInputBindingDescription bindingDescription = {
@@ -341,7 +352,7 @@ struct Object* trvk_new(struct Render* r1) {
         .rasterizerDiscardEnable = VK_FALSE,
         .polygonMode = VK_POLYGON_MODE_FILL,
         .lineWidth = 1.0f,
-        .cullMode = VK_CULL_MODE_BACK_BIT,
+        .cullMode = VK_CULL_MODE_NONE, // VK_CULL_MODE_BACK_BIT,
         .frontFace = VK_FRONT_FACE_CLOCKWISE,
         .depthBiasEnable = VK_FALSE,
         .depthBiasConstantFactor = 0.0f,
@@ -374,11 +385,13 @@ struct Object* trvk_new(struct Render* r1) {
 
     // Viewport State Create Info
 
+    int w = r->sc.extent.width;
+    int h = r->sc.extent.height;
 	VkViewport viewport = {
         .x = 0,
-        .y = 0,
-        .width = (float)r->sc.extent.width,
-        .height = (float)r->sc.extent.height,
+        .y = h,
+        .width = w,
+        .height = -h,
         .minDepth = 0.0f,
         .maxDepth = 1.0f
     };

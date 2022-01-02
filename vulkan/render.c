@@ -135,6 +135,8 @@ static void init_(struct Render* r1) {
     const char* deviceExtensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         "VK_KHR_portability_subset", // mac?
+        "VK_AMD_negative_viewport_height", // check and use
+        //"VK_KHR_Maintenance1", //check and use
         //"VK_KHR_get_physical_device_properties2",
         //VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME // TODO: check device support
     };
@@ -192,6 +194,17 @@ static void init_(struct Render* r1) {
         };
         queueCreateInfo[i] = info;
     }
+
+    uint32_t allDevExts = 0;
+    vkEnumerateDeviceExtensionProperties(r->phy_dev, NULL, &allDevExts, NULL);
+    VkExtensionProperties* exts = malloc(allDevExts*sizeof(VkExtensionProperties));
+    vkEnumerateDeviceExtensionProperties(r->phy_dev, NULL, &allDevExts, exts);
+    printf("Supported device extensions:\n");
+    for (int i = 0; i < allDevExts; i++) {
+        printf("'%s'\n", exts[i].extensionName);
+    }
+    printf("\n");
+    free(exts);
 
     VkPhysicalDeviceFeatures deviceFeatures = {
         .samplerAnisotropy = VK_TRUE
@@ -276,20 +289,32 @@ struct Render* rend_vulkan_new() {
     uint32_t extensionCount = 0;
     const char** glfwExtensionNames = glfwGetRequiredInstanceExtensions(&extensionCount);
 
-    const char** extensionNames = malloc((extensionCount+1)*sizeof(char*));
+    uint32_t allExtCount = 0;
+    VkExtensionProperties* exts;
+    vkEnumerateInstanceExtensionProperties(NULL, &allExtCount, NULL);
+    exts = malloc(allExtCount*sizeof(VkExtensionProperties));
+    vkEnumerateInstanceExtensionProperties(NULL, &allExtCount, exts);
+    printf("Supported instance extensions:\n");
+    for (int i = 0; i < allExtCount; i++) {
+        printf("'%s'\n", exts[i].extensionName);
+    }
+    printf("\n");
+    free(exts);
+    const char** extensionNames = malloc((extensionCount+10)*sizeof(char*));
     int i;
     for (i = 0; i < extensionCount; i++) {
         extensionNames[i] = glfwExtensionNames[i];
     }
-    extensionNames[i] = "VK_KHR_get_physical_device_properties2"; // mac?
-    extensionCount++;
+    extensionNames[i++] = "VK_KHR_get_physical_device_properties2"; // mac?
+    //extensionNames[i++] = "VK_KHR_Maintenance1"; // flip viewport, see https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport/
+    extensionCount = i;
     VkApplicationInfo appInfo = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
         .pApplicationName = "Graph Toys",
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
         .pEngineName = "GraphToys",
         .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-        .apiVersion = VK_MAKE_VERSION(1, 0, 0)
+        .apiVersion = VK_MAKE_VERSION(1, 2, 0)
     };
 
     VkInstanceCreateInfo vkInstanceInfo = {
