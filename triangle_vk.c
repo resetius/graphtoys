@@ -29,6 +29,11 @@ struct Triangle {
 
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
+
+    VkBuffer uniformBuffer;
+    VkDeviceMemory uniformBufferMemory;
+
+    VkPipelineLayout pipelineLayout;
 };
 
 static void trvk_draw(struct Object* obj, struct DrawContext* ctx) {
@@ -152,9 +157,94 @@ struct Object* trvk_new(struct Render* r1) {
 	vkFreeMemory(r->log_dev, stagingBufferMemory, NULL);
     printf("Vertex buffer created\n");
 
-    for (int i = 0; i < r->sc.n_images; i++) {
+    VkDeviceSize uboBufferSize = sizeof(mat4x4);
+    create_buffer(
+        r->phy_dev, r->log_dev,
+        uboBufferSize,
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        &tr->uniformBuffer,
+        &tr->uniformBufferMemory);
 
+    // descriptor
+
+    VkDescriptorPoolSize poolSizes = {
+        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = r->sc.n_images
+    };
+
+	VkDescriptorPoolCreateInfo poolInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .poolSizeCount = 1,
+        .pPoolSizes = &poolSizes,
+        .maxSets = r->sc.n_images
+    };
+
+    VkDescriptorPool descriptorPool;
+	if (vkCreateDescriptorPool(r->log_dev, &poolInfo, NULL, &descriptorPool) != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create descriptor pool\n");
+        exit(-1);
+	}
+
+	// create vector of 2 decriptorSetLayout with the layouts
+    VkDescriptorSetLayout* layouts = malloc(r->sc.n_images*sizeof(VkDescriptorSetLayout));
+    for (int i = 0; i < r->sc.n_images;i++) {
+        layouts[i] = descriptorSetLayout;
     }
+
+	VkDescriptorSetAllocateInfo allocInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .descriptorPool = descriptorPool,
+        .descriptorSetCount = r->sc.n_images,
+        .pSetLayouts = layouts
+    };
+
+    VkDescriptorSet descriptorSet;
+	if (vkAllocateDescriptorSets(r->log_dev, &allocInfo, &descriptorSet) != VK_SUCCESS) {
+		fprintf(stderr, "failed to allocate descriptor sets\n");
+        exit(-1);
+	}
+    free(layouts);
+
+    for (int i = 0; i < r->sc.n_images; i++) {
+        VkDescriptorBufferInfo uboBufferDescInfo = {
+            .buffer = tr->uniformBuffer,
+            .offset = 0,
+            .range = sizeof(uboBufferSize)
+        };
+
+        VkWriteDescriptorSet uboDescWrites = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext = NULL,
+            .dstSet = descriptorSet,
+            .dstBinding = 0,
+            .dstArrayElement = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1,
+            .pBufferInfo = &uboBufferDescInfo,
+            .pImageInfo = NULL,
+            .pTexelBufferView = NULL,
+        };
+
+        VkWriteDescriptorSet descWrites[] = {uboDescWrites};
+        vkUpdateDescriptorSets(
+            r->log_dev,
+            1,
+            descWrites,
+            0,
+            NULL);
+    }
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        .setLayoutCount = 1,
+        .pSetLayouts = &descriptorSetLayout
+    };
+
+	if (vkCreatePipelineLayout(r->log_dev, &pipelineLayoutInfo, NULL, &tr->pipelineLayout) != VK_SUCCESS) {
+		fprintf(stderr, "Failed to create pieline layout\n");
+        exit(-1);
+	}
 
     return (struct Object*)tr;
 }
