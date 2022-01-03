@@ -5,9 +5,11 @@
 struct Program;
 struct Texture;
 struct Char;
+struct PipelineBuilder;
 
 struct Render {
     struct Program* (*prog_new)(struct Render*);
+    struct PipelineBuilder* (*pipeline)(struct Render*);
     struct Mesh* (*mesh_new)(struct Render*);
     struct Texture* (*tex_new)(struct Render*);
     struct Char* (*char_new)(struct Render*, wchar_t ch, void* face);

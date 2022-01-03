@@ -30,8 +30,7 @@ struct PipelineBuilder {
     struct PipelineBuilder* (*end_program)(struct PipelineBuilder*);
 
     struct PipelineBuilder* (*begin_buffer)(struct PipelineBuilder*, int n_vertices);
-    struct PipelineBuilder* (*buffer_size)(struct PipelineBuilder*, int size);
-    struct PipelineBuilder* (*buffer_data)(struct PipelineBuilder*, void* data);
+    struct PipelineBuilder* (*buffer_data)(struct PipelineBuilder*, const void* data, int size);
     struct PipelineBuilder* (*buffer_dynamic)(struct PipelineBuilder*);
     struct PipelineBuilder* (*buffer_attribute)(
         struct PipelineBuilder*,

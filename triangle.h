@@ -2,4 +2,5 @@
 
 #include "object.h"
 
-struct Object* CreateTriangle();
+struct Render;
+struct Object* CreateTriangle(struct Render* r);

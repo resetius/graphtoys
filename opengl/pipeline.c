@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <render/pipeline.h>
 #include <render/program.h>
@@ -60,7 +61,7 @@ static struct PipelineBuilder* begin_uniform(
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     // TODO: check program
-    int program = prog_handle(p->cur_program);
+    int program = prog_handle(p->programs[p->n_programs-1]);
     GLuint index = glGetUniformBlockIndex(program, name);
     GLuint buffer;
     glUniformBlockBinding(program, index, binding);
@@ -77,8 +78,8 @@ static struct PipelineBuilder* begin_uniform(
         .buffer = buffer,
         .size = size
     };
-    p->cur_uniform = &p->uniforms[p->n_uniforms];
-    p->uniforms[p->n_uniforms++] = block;
+    p->cur_uniform = &p->uniforms[p->n_uniforms++];
+    *p->cur_uniform = block;
     return p1;
 }
 
@@ -129,19 +130,14 @@ static struct PipelineBuilder* begin_buffer(struct PipelineBuilder* p1, int n_ve
     return p1;
 }
 
-static struct PipelineBuilder* buffer_size(struct PipelineBuilder* p1, int size) {
+static struct PipelineBuilder* buffer_data(struct PipelineBuilder* p1, const void* data, int size)
+{
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     // TODO: check current
-    glBufferData(GL_ARRAY_BUFFER, size, NULL, p->cur_buffer->dynamic
+    p->cur_buffer->size = size;
+    glBufferData(GL_ARRAY_BUFFER, size, data, p->cur_buffer->dynamic
                  ? GL_DYNAMIC_DRAW
                  : GL_STATIC_DRAW);
-    return p1;
-}
-
-static struct PipelineBuilder* buffer_data(struct PipelineBuilder* p1, void* data) {
-    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    // TODO: check current
-    glBufferSubData(GL_ARRAY_BUFFER, 0, p->cur_buffer->size, data);
     return p1;
 }
 
@@ -255,7 +251,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     return (struct Pipeline*)pl;
 }
 
-struct PipelineBuilder* pipeline_builder(struct Render* r) {
+struct PipelineBuilder* pipeline_builder_opengl(struct Render* r) {
     struct PipelineBuilderImpl* p = calloc(1, sizeof(*p));
     struct PipelineBuilder base = {
         .begin_program = begin_program,
@@ -267,7 +263,6 @@ struct PipelineBuilder* pipeline_builder(struct Render* r) {
         .end_uniform = end_uniform,
 
         .begin_buffer = begin_buffer,
-        .buffer_size = buffer_size,
         .buffer_data = buffer_data,
         .buffer_dynamic = buffer_dynamic,
         .buffer_attribute = buffer_attribute,

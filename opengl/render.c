@@ -193,6 +193,8 @@ static void init_(struct Render* r1) {
     glfwSwapInterval(1); // vsync
 }
 
+struct PipelineBuilder* pipeline_builder_opengl(struct Render*);
+
 struct Render* rend_opengl_new()
 {
     struct RenderImpl* r = calloc(1, sizeof(*r));
@@ -204,7 +206,8 @@ struct Render* rend_opengl_new()
         .draw_begin = draw_begin_,
         .draw_end = draw_end_,
         .draw_ui = draw_ui_,
-        .init = init_
+        .init = init_,
+        .pipeline = pipeline_builder_opengl
     };
     r->base = base;
 
