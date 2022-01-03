@@ -28,6 +28,7 @@ SOURCES=main.c\
 	torus.c\
 	opengl/program.c\
 	opengl/render.c\
+	opengl/pipeline.c\
 	render/program.c\
 	render/render.c\
 	vulkan/drawcommandbuffer.c\
