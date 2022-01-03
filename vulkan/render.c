@@ -280,6 +280,18 @@ static void init_(struct Render* r1) {
             exit(-1);
         }
     }
+
+    int w = r->sc.extent.width;
+    int h = r->sc.extent.height;
+    VkViewport viewport = {
+        .x = 0,
+        .y = h,
+        .width = w,
+        .height = -h,
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f
+    };
+    r->viewport = viewport;
 }
 
 static void set_viewport_(struct Render* r1, int w, int h) {
@@ -298,6 +310,8 @@ static void set_viewport_(struct Render* r1, int w, int h) {
     r->update_viewport = 1;
 }
 
+struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r);
+
 struct Render* rend_vulkan_new() {
     struct RenderImpl* r = calloc(1, sizeof(*r));
     struct Render base = {
@@ -307,7 +321,8 @@ struct Render* rend_vulkan_new() {
         .draw_begin = draw_begin_,
         .draw_end = draw_end_,
         .draw_ui = draw_ui_,
-        .set_viewport = set_viewport_
+        .set_viewport = set_viewport_,
+        .pipeline = pipeline_builder_vulkan
     };
     uint32_t extensionCount = 0;
     const char** glfwExtensionNames = glfwGetRequiredInstanceExtensions(&extensionCount);
