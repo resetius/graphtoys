@@ -149,8 +149,8 @@ struct Object* CreateTorus(struct Render* r) {
     t->base.free = t_free;
     vertices = init(&nvertices);
 
-    prog_add_vs(t->p, torus_vertex_shader);
-    prog_add_fs(t->p, triangle_fragment_shader);
+    prog_add_vs(t->p, torus_vertex_shader_vert);
+    prog_add_fs(t->p, triangle_fragment_shader_frag);
     prog_link(t->p);
 
     t->m = mesh_new(t->p, vertices, nvertices, "vPos", "vCol", "vNorm");

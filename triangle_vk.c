@@ -118,8 +118,8 @@ struct Object* trvk_new(struct Render* r1) {
 
     VkShaderModuleCreateInfo cInfo1 = {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        .codeSize = triangle_vertex_shader_size,
-        .pCode = (const uint32_t*)(triangle_vertex_shader)
+        .codeSize = triangle_vertex_shader_vert_spv_size,
+        .pCode = (const uint32_t*)(triangle_vertex_shader_vert_spv)
     };
 
     VkShaderModule vertShader;
@@ -131,8 +131,8 @@ struct Object* trvk_new(struct Render* r1) {
 
     VkShaderModuleCreateInfo cInfo2 = {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        .codeSize = triangle_fragment_shader_size,
-        .pCode = (const uint32_t*)(triangle_fragment_shader)
+        .codeSize = triangle_fragment_shader_frag_spv_size,
+        .pCode = (const uint32_t*)(triangle_fragment_shader_frag_spv)
     };
 
     VkShaderModule fragShader;

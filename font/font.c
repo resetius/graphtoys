@@ -52,8 +52,8 @@ struct Font* font_new(struct Render* r) {
     }
     error = FT_New_Memory_Face(
         library,
-        (const FT_Byte*)font_RobotoMono_Regular,
-        font_RobotoMono_Regular_size,
+        (const FT_Byte*)font_RobotoMono_Regular_ttf,
+        font_RobotoMono_Regular_ttf_size,
         0,
         &face);
     if (error) {
@@ -73,8 +73,8 @@ struct Font* font_new(struct Render* r) {
 
     t->p = rend_prog_new(r);
 
-    prog_add_vs(t->p, font_font_vs);
-    prog_add_fs(t->p, font_font_fs);
+    prog_add_vs(t->p, font_font_vs_vert);
+    prog_add_fs(t->p, font_font_fs_frag);
     prog_link(t->p);
 
     memset(t->chars, 0, sizeof(t->chars));

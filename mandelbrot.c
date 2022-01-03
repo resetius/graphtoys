@@ -126,8 +126,8 @@ struct Object* CreateMandelbrot(struct Render* r) {
     t->sx = 1.0;
     t->sy = -1.0;
     t->sz = 1.01;
-    prog_add_vs(t->p, mandelbrot_vs);
-    prog_add_fs(t->p, mandelbrot_fs);
+    prog_add_vs(t->p, mandelbrot_vs_vert);
+    prog_add_fs(t->p, mandelbrot_fs_frag);
     prog_link(t->p);
     return (struct Object*)t;
 }

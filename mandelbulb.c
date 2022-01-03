@@ -132,8 +132,8 @@ struct Object* CreateMandelbulb(struct Render* r) {
     t->m = mesh1_new(vertices, 6, 0);
     t->p = rend_prog_new(r);
     t->T[0] = t->T[1] = 0.0; t->T[2] = 2.0;
-    prog_add_vs(t->p, mandelbulb_vs);
-    prog_add_fs(t->p, mandelbulb_fs);
+    prog_add_vs(t->p, mandelbulb_vs_vert);
+    prog_add_fs(t->p, mandelbulb_fs_frag);
     prog_link(t->p);
 
     t->types[0] = "next_quadratic";

@@ -43,12 +43,12 @@ int main(int argc, char** argv) {
     fprintf(stderr, "generating '%s' from '%s'\n", output, input);
 
     varname = strdup(output);
-    if ((dot = strchr(output, '.'))) {
+    if ((dot = strrchr(output, '.'))) {
         varname[dot-output] = 0;
     }
     dot = varname;
     while (*dot) {
-        if (strchr("/-", *dot)) {
+        if (strchr("/-.", *dot)) {
             *dot = '_';
         }
         dot++;

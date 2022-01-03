@@ -96,17 +96,17 @@ static struct PipelineBuilder* begin_program(struct PipelineBuilder* p1) {
     return p1;
 }
 
-static struct PipelineBuilder* add_vs(struct PipelineBuilder*p1, const char* shader) {
+static struct PipelineBuilder* add_vs(struct PipelineBuilder*p1, struct ShaderCode shader) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     // TODO: check begin
-    prog_add_vs(p->cur_program, shader);
+    prog_add_vs(p->cur_program, shader.glsl);
     return p1;
 }
 
-static struct PipelineBuilder* add_fs(struct PipelineBuilder*p1, const char* shader) {
+static struct PipelineBuilder* add_fs(struct PipelineBuilder*p1, struct ShaderCode shader) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     // TODO: check begin
-    prog_add_fs(p->cur_program, shader);
+    prog_add_fs(p->cur_program, shader.glsl);
     return p1;
 }
 
