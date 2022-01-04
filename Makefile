@@ -79,10 +79,6 @@ main.exe: $(OBJECTS)
 rcc.exe: rcc.o
 	$(CC) $^ -o $@
 
-program.o: program.h
-
-mesh.o: mesh.h
-
 %.d: %.c Makefile
 	$(CC) $(CFLAGS) -M -MG -MT '$(patsubst %.c,%.o,$<)' $< -MF $@
 
