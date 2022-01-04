@@ -3,16 +3,11 @@
 uniform mat4 Rot;
 uniform vec3 T;
 
-uniform mat4 ModelViewMatrix;
-uniform mat3 NormalMatrix;
-
-subroutine vec3 next_point_type(vec3 p, vec3 p0);
-subroutine uniform next_point_type next_point;
+uniform int NextType;
 
 in vec2 coord;
 out vec4 fragColor;
 
-subroutine(next_point_type)
 vec3 next_quadratic(vec3 p, vec3 p0) {
     return vec3(
         p.x*p.x-p.y*p.y-p.z*p.z,
@@ -20,7 +15,6 @@ vec3 next_quadratic(vec3 p, vec3 p0) {
         2*p.x*p.y) + p0;
 }
 
-subroutine(next_point_type)
 vec3 next_cubic(vec3 p, vec3 p0) {
     return vec3(
         p.x*p.x*p.x-3*p.x*(p.y*p.y+p.z*p.z),
@@ -28,7 +22,6 @@ vec3 next_cubic(vec3 p, vec3 p0) {
         p.z*p.z*p.z-3*p.z*p.x*p.x+p.z*p.y*p.y) + p0;
 }
 
-subroutine(next_point_type)
 vec3 next_nine(vec3 p, vec3 p0) {
     float x = p.x; float y = p.y; float z = p.z;
     float x2 = x*x, x3 = x*x2, x5 = x3*x2, x7 = x5*x2;
@@ -45,7 +38,6 @@ vec3 next_nine(vec3 p, vec3 p0) {
     return vec3(xn, yn, zn) + p0;
 }
 
-subroutine(next_point_type)
 vec3 next_quintic(vec3 p, vec3 p0) {
     float A, B, C, D;
     A = B = C = D = 0;
@@ -67,13 +59,22 @@ vec3 next_quintic(vec3 p, vec3 p0) {
     return vec3(xn, yn, zn) + p0;
 }
 
+vec3 next_point(vec3 p, vec3 p0) {
+    if (NextType == 0) {
+        return next_quadratic(p, p0);
+    } else if (NextType == 1) {
+        return next_cubic(p, p0);
+    } else if (NextType == 2) {
+        return next_nine(p, p0);
+    } else {
+        return next_quintic(p, p0);
+    }
+}
+
 bool iterate(vec3 p0) {
     vec3 p = vec3(0,0,0);
     bool ans = true;
     for (int i = 1; i < 32; i++) {
-        //p = next_quadratic(p, p0);
-        //p = next_cubic(p, p0);
-        //p = next_nine(p, p0);
         p = next_point(p, p0);
         if (dot(p, p) > 4) {
             ans = false;
@@ -96,10 +97,9 @@ vec2 check_point(vec2 p0, out vec3 n) {
     }
     dist = length(p1);
     res = vec2(z0, dist);
-// normal?
-    //n = vec3(0, 0, 1.0);
+
     n = vec3(Rot*vec4(0,0,1,0));
-    //flag = false;
+
     if (flag) {
         // x-eps, x+eps
         // y-eps, y+eps
@@ -158,8 +158,9 @@ void main() {
         //fragColor = 0.5*(z+1.0)*vec4(r, 1.0, b, 1.0);
 
         vec4 LightPosition = vec4(0.0, 0.0, 10.0, 1.0);
-        vec3 tnorm = n; //normalize(NormalMatrix * n);
-        vec4 eyeCoords = vec4(-1.0, 0.0, 4.0, 1.0); //ModelViewMatrix * vec4(coord, 1.0, 1.0);
+        vec3 tnorm = n;
+        vec4 eyeCoords = vec4(-1.0, 0.0, 4.0, 1.0);
+
         vec3 s = normalize(vec3(LightPosition - eyeCoords));
 
         vec3 Kd = vec3(1.0, 1.0, 1.0);

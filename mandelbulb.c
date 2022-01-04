@@ -14,7 +14,6 @@ struct Mandelbulb {
     struct Mesh* m;
     vec3 T;
 
-    const char* types[10];
     int cur_type;
     int n_types;
 };
@@ -84,14 +83,11 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_rotate_Y(rot, rot, ctx->time);
     mat4x4_rotate_Z(rot, rot, ctx->time);
     prog_set_mat4x4(t->p, "Rot", &rot);
+    prog_set_int(t->p, "NextType", &t->cur_type, 1);
 
 
     mat3x3 norm;
     mat3x3_from_mat4x4(norm, rot);
-    // prog_set_mat4x4(t->p, "ModelViewMatrix", &rot);
-    // prog_set_mat3x3(t->p, "NormalMatrix", &norm);
-
-    prog_set_sub_fs(t->p, t->types[t->cur_type]);
 
     mesh_render(t->m);
 }
@@ -136,10 +132,6 @@ struct Object* CreateMandelbulb(struct Render* r) {
     prog_add_fs(t->p, mandelbulb_fs_frag);
     prog_link(t->p);
 
-    t->types[0] = "next_quadratic";
-    t->types[1] = "next_cubic";
-    t->types[2] = "next_nine";
-    t->types[3] = "next_quintic";
     t->n_types = 4;
     t->cur_type = 0;
     return (struct Object*)t;
