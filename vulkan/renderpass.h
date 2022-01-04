@@ -7,7 +7,7 @@ struct RenderPass {
     VkDevice dev;
 };
 
-void rp_init(struct RenderPass* r, VkDevice logDev, VkFormat swapChainImageFormat);
+void rp_init(struct RenderPass* r, VkDevice logDev, VkFormat swapChainImageFormat, VkFormat depthFormat);
 void rp_destroy(struct RenderPass* r);
 
 void rp_begin(

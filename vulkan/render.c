@@ -43,6 +43,7 @@ static void draw_begin_(struct Render* r1, int* w, int* h) {
     vkResetFences(r->log_dev, 1, &r->infl_fences[r->image_index]);
 
     r->buffer = r->dcb.buffers[r->image_index];
+
     dcb_begin(&r->dcb, r->buffer);
 
     if (r->update_viewport) {
@@ -60,6 +61,7 @@ static void draw_begin_(struct Render* r1, int* w, int* h) {
         .depthStencil = {1.0f, 0}
     };
     VkClearValue values[] = { clear_color, clear_depth };
+
     rp_begin(
         &r->rp,
         values, 2,
@@ -261,7 +263,7 @@ static void init_(struct Render* r1) {
 
     sc_init(&r->sc, r);
     printf("Swapchain initialized\n");
-    rp_init(&r->rp, r->log_dev, r->sc.im_format);
+    rp_init(&r->rp, r->log_dev, r->sc.im_format, r->sc.depth_format);
     printf("Renderpass initialized\n");
     rt_init(&r->rt, r);
     printf("Rendertarget initialized\n");

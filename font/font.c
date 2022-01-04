@@ -36,6 +36,27 @@ static void char_load(struct Render* r, struct Char* chars[], FT_Face face, wcha
     *out = rend_char_new(r, ch, face);
 }
 
+static int max(int a, int b) {
+    return a>b?a:b;
+}
+
+static void char_dim(FT_Face face, wchar_t ch, int* w, int* h) {
+    int error;
+    error = FT_Load_Char(face, ch, FT_LOAD_RENDER);
+    if (error) {
+        printf("Cannot load char: %d\n", error);
+        exit(1);
+    }
+    error = FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
+    if (error) {
+        printf("Cannot render glyph: %d\n", error);
+        exit(1);
+    }
+    FT_Bitmap bitmap = face->glyph->bitmap;
+    *w = max(*w, bitmap.width);
+    *h = max(*h, bitmap.rows);
+}
+
 struct Font* font_new(struct Render* r) {
     struct FontImpl* t = calloc(1, sizeof(*t));
     int i;

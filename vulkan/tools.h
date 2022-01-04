@@ -29,3 +29,18 @@ void create_image(
     VkMemoryPropertyFlags properties,
     VkImage* image,
     VkDeviceMemory* imageMemory);
+
+VkImageView create_image_view(
+    VkDevice logDev, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+
+void transition_image_layout(
+    int graphics_family,
+    VkQueue g_queue,
+    VkDevice logicalDevice,
+    VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+
+void copy_buffer_to_image(
+    int graphics_family,
+    VkQueue g_queue,
+    VkDevice logicalDevice,
+    VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);

@@ -49,6 +49,7 @@ static VkPresentModeKHR choose_mode(VkPresentModeKHR* modes, int n_modes) {
 			bestMode = *mode;
 		}
 	}
+
     return bestMode;
 }
 
@@ -71,6 +72,8 @@ static VkExtent2D choose_extent(const VkSurfaceCapabilitiesKHR* caps) {
 }
 
 void sc_init(struct SwapChain* sc, struct RenderImpl* r) {
+    sc->depth_format = VK_FORMAT_D24_UNORM_S8_UINT; // TODO: detect format
+    //sc->depth_format = VK_FORMAT_D32_SFLOAT;
     VkSurfaceFormatKHR surfaceFormat = choose_format(r->formats, r->n_formats);
 
     VkPresentModeKHR presentMode = choose_mode(r->modes, r->n_modes);
@@ -139,7 +142,7 @@ void sc_init(struct SwapChain* sc, struct RenderImpl* r) {
         r->log_dev,
         sc->extent.width,
         sc->extent.height,
-        VK_FORMAT_D32_SFLOAT, // TODO: depth format
+        sc->depth_format,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,

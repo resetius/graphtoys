@@ -3,33 +3,7 @@
 
 #include "rendertarget.h"
 #include "render_impl.h"
-
-static VkImageView image_view_create(
-    VkDevice logDev, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
-{
-    VkImageViewCreateInfo viewInfo = {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        .image = image,
-        .viewType = VK_IMAGE_VIEW_TYPE_2D,
-        .format = format,
-
-        .subresourceRange.aspectMask = aspectFlags,
-	    .subresourceRange.baseMipLevel = 0,
-	    .subresourceRange.levelCount = 1,
-
-        .subresourceRange.baseArrayLayer = 0,
-        .subresourceRange.layerCount = 1
-    };
-
-    VkImageView imageView;
-    if (vkCreateImageView(logDev, &viewInfo, NULL, &imageView) != VK_SUCCESS)
-    {
-        fprintf(stderr, "Failed to create texture image view\n");
-        exit(-1);
-    }
-
-    return imageView;
-}
+#include "tools.h"
 
 void rt_init(struct RenderTarget* rt, struct RenderImpl* r) {
     int i;
@@ -37,15 +11,15 @@ void rt_init(struct RenderTarget* rt, struct RenderImpl* r) {
     rt->imageviews = malloc(rt->n_imageviews*sizeof(VkImageView));
 
     for (i = 0; i < rt->n_imageviews; i++) {
-        rt->imageviews[i] = image_view_create(
+        rt->imageviews[i] = create_image_view(
             r->log_dev,
             r->sc.images[i],
             r->sc.im_format,
             VK_IMAGE_ASPECT_COLOR_BIT);
     }
 
-    rt->depth_imageview = image_view_create(r->log_dev, r->sc.depth_image,
-                      VK_FORMAT_D32_SFLOAT, // TODO detect depth format
+    rt->depth_imageview = create_image_view(r->log_dev, r->sc.depth_image,
+                      r->sc.depth_format,
                       VK_IMAGE_ASPECT_DEPTH_BIT);
 
     rt->n_framebuffers = rt->n_imageviews;

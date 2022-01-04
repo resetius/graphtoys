@@ -3,7 +3,7 @@
 
 #include "renderpass.h"
 
-void rp_init(struct RenderPass* r, VkDevice logDev, VkFormat swapChainImageFormat) {
+void rp_init(struct RenderPass* r, VkDevice logDev, VkFormat swapChainImageFormat, VkFormat depthFormat) {
 	VkAttachmentDescription colorAttachment = {
         .format = swapChainImageFormat,
         .samples = VK_SAMPLE_COUNT_1_BIT,
@@ -18,7 +18,7 @@ void rp_init(struct RenderPass* r, VkDevice logDev, VkFormat swapChainImageForma
     };
 
     VkAttachmentDescription depthAttachment = {
-        .format = VK_FORMAT_D32_SFLOAT, // TODO: detect format
+        .format = depthFormat,
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,

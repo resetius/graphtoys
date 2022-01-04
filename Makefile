@@ -51,6 +51,7 @@ SOURCES=main.c\
 	opengl/pipeline.c\
 	render/program.c\
 	render/render.c\
+	vulkan/char.c\
 	vulkan/drawcommandbuffer.c\
 	vulkan/pipeline.c\
 	vulkan/render.c\
