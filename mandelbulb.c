@@ -4,18 +4,29 @@
 #include "mandelbulb.h"
 #include "mandelbulb_vs.vert.h"
 #include "mandelbulb_fs.frag.h"
+#include "mandelbulb_vs.vert.spv.h"
+#include "mandelbulb_fs.frag.spv.h"
 #include "object.h"
-#include "mesh.h"
-#include <render/program.h>
+#include "linmath.h"
+
+#include <render/pipeline.h>
+
+struct UniformBlock {
+    mat4x4 mvp;
+    mat4x4 rot;
+    vec4 T;
+    int next;
+};
 
 struct Mandelbulb {
     struct Object base;
-    struct Program* p;
-    struct Mesh* m;
     vec3 T;
 
     int cur_type;
     int n_types;
+
+    struct UniformBlock uniform;
+    struct Pipeline* pl;
 };
 
 static void t_left(struct Object* obj) {
@@ -73,35 +84,37 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 100.f);
     mat4x4_mul(mvp, p, mv);
 
-    prog_use(t->p);
-    prog_set_mat4x4(t->p, "MVP", &mvp);
-    prog_set_vec3(t->p, "T", &t->T);
-
     mat4x4 rot;
     mat4x4_identity(rot);
     mat4x4_rotate_X(rot, rot, ctx->time);
     mat4x4_rotate_Y(rot, rot, ctx->time);
     mat4x4_rotate_Z(rot, rot, ctx->time);
-    prog_set_mat4x4(t->p, "Rot", &rot);
-    prog_set_int(t->p, "NextType", &t->cur_type, 1);
 
+    //mat3x3 norm;
+    //mat3x3_from_mat4x4(norm, rot);
 
-    mat3x3 norm;
-    mat3x3_from_mat4x4(norm, rot);
+    memcpy(t->uniform.mvp, mvp, sizeof(mvp));
+    memcpy(t->uniform.rot, rot, sizeof(rot));
+    memcpy(t->uniform.T, t->T, sizeof(t->T));
+    memcpy(&t->uniform.next, &t->cur_type, 4);
 
-    mesh_render(t->m);
+    t->pl->uniform_update(t->pl, 0, &t->uniform, 0, sizeof(t->uniform));
+    t->pl->run(t->pl);
 }
 
 static void t_free(struct Object* obj) {
     struct Mandelbulb* t = (struct Mandelbulb*)obj;
-    prog_free(t->p);
-    mesh_free(t->m);
+    t->pl->free(t->pl);
     free(t);
 }
 
+struct Vertex {
+    vec3 pos;
+};
+
 struct Object* CreateMandelbulb(struct Render* r) {
     struct Mandelbulb* t = calloc(1, sizeof(struct Mandelbulb));
-    struct Vertex1 vertices[] = {
+    struct Vertex vertices[] = {
         {{-1.0f, 1.0f,0.0f}},
         {{-1.0f,-1.0f,0.0f}},
         {{ 1.0f,-1.0f,0.0f}},
@@ -110,6 +123,7 @@ struct Object* CreateMandelbulb(struct Render* r) {
         {{ 1.0f,-1.0f,0.0f}},
         {{ 1.0f, 1.0f,0.0f}}
     };
+    int n_vertices = 6;
 
     struct Object base = {
         .draw = t_draw,
@@ -123,14 +137,35 @@ struct Object* CreateMandelbulb(struct Render* r) {
         .mode = t_mode
     };
 
-    t->base = base;
+    struct ShaderCode vertex_shader = {
+        .glsl = mandelbulb_vs_vert,
+        .spir_v = mandelbulb_vs_vert_spv,
+        .size = mandelbulb_vs_vert_spv_size,
+    };
+    struct ShaderCode fragment_shader = {
+        .glsl = mandelbulb_fs_frag,
+        .spir_v = mandelbulb_fs_frag_spv,
+        .size = mandelbulb_fs_frag_spv_size,
+    };
 
-    t->m = mesh1_new(vertices, 6, 0);
-    t->p = rend_prog_new(r);
+    t->base = base;
     t->T[0] = t->T[1] = 0.0; t->T[2] = 2.0;
-    prog_add_vs(t->p, mandelbulb_vs_vert);
-    prog_add_fs(t->p, mandelbulb_fs_frag);
-    prog_link(t->p);
+
+    struct PipelineBuilder* p = r->pipeline(r);
+    t->pl = p->begin_program(p)
+        ->add_vs(p, vertex_shader)
+        ->add_fs(p, fragment_shader)
+        ->end_program(p)
+
+        ->begin_uniform(p, 0, "MatrixBlock", sizeof(struct UniformBlock))
+        ->end_uniform(p)
+
+        ->begin_buffer(p, n_vertices, sizeof(struct Vertex))
+        ->buffer_data(p, vertices, n_vertices*sizeof(struct Vertex))
+        ->buffer_attribute(p, 1, 3, 4, offsetof(struct Vertex, pos))
+        ->end_buffer(p)
+
+        ->build(p);
 
     t->n_types = 4;
     t->cur_type = 0;

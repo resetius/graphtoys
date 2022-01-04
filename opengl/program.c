@@ -146,6 +146,18 @@ static int prog_set_vec3_(struct Program* p1, const char* name, const vec3* vec)
     return 1;
 }
 
+static int prog_set_int_(struct Program*p1, const char* name, int* values, int n_values) {
+    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+    GLint location = glGetUniformLocation(p->program, name);
+    if (location < 0) {
+        prog_log(p, "Unknown location: '%s'", name);
+        return 0;
+    }
+    glUniform1iv(location, n_values, values);
+    return 1;
+}
+
+
 static int prog_set_sub_fs_(struct Program* p1, const char* name) {
     struct ProgramImpl* p = (struct ProgramImpl*)p1;
     GLuint location = glGetSubroutineIndex(p->program, GL_FRAGMENT_SHADER, name);
@@ -175,6 +187,7 @@ struct Program* prog_opengl_new() {
         .set_mat3x3 = prog_set_mat3x3_,
         .set_mat4x4 = prog_set_mat4x4_,
         .set_vec3 = prog_set_vec3_,
+        .set_int = prog_set_int_,
         .set_sub_fs = prog_set_sub_fs_,
         .attrib_location = prog_attrib_location_,
         .handle = prog_handle_

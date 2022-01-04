@@ -36,6 +36,10 @@ int prog_set_vec3(struct Program* p, const char* name, const vec3* vec) {
     return p->set_vec3(p, name, vec);
 }
 
+int prog_set_int(struct Program* p, const char* name, int* values, int n_values) {
+    return p->set_int(p, name, values, n_values);
+}
+
 int prog_set_sub_fs(struct Program* p, const char* name) {
     return p->set_sub_fs(p, name);
 }

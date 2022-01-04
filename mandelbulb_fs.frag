@@ -1,12 +1,15 @@
 #version 410
 // precision highp float;
-uniform mat4 Rot;
-uniform vec3 T;
 
-uniform int NextType;
+layout (std140) uniform MatrixBlock {
+    uniform mat4 MVP;
+    uniform mat4 Rot;
+    uniform vec4 T;
+    uniform int NextType;
+};
 
-in vec2 coord;
-out vec4 fragColor;
+layout (location = 0) in vec2 coord;
+layout (location = 0) out vec4 fragColor;
 
 vec3 next_quadratic(vec3 p, vec3 p0) {
     return vec3(
