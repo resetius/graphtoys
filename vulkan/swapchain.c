@@ -149,5 +149,7 @@ void sc_init(struct SwapChain* sc, struct RenderImpl* r) {
 
 void sc_destroy(struct SwapChain* sc) {
     free(sc->images);
+    vkDestroyImage(sc->r->log_dev, sc->depth_image, NULL);
+    vkFreeMemory(sc->r->log_dev, sc->depth_image_memory, NULL);
     vkDestroySwapchainKHR(sc->r->log_dev, sc->swapchain, NULL);
 }
