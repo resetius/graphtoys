@@ -625,23 +625,18 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         exit(-1);
 	}
 
-    VkPipelineDepthStencilStateCreateInfo depthStencil;
-    if (p->enable_depth) {
-        printf("Enable depth test\n");
-        VkPipelineDepthStencilStateCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-            .depthTestEnable = VK_TRUE,
-            .depthWriteEnable = VK_TRUE,
-            .depthCompareOp = VK_COMPARE_OP_LESS,
-            .depthBoundsTestEnable = VK_FALSE,
-            .minDepthBounds = 0.0f, // Optional
-            .maxDepthBounds = 1.0f, // Optional
-            .stencilTestEnable = VK_FALSE,
-            .front = {},
-            .back = {}
-        };
-        depthStencil = info;
-    }
+    VkPipelineDepthStencilStateCreateInfo depthStencil = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+        .depthTestEnable = p->enable_depth,
+        .depthWriteEnable = p->enable_depth,
+        .depthCompareOp = VK_COMPARE_OP_LESS,
+        .depthBoundsTestEnable = VK_FALSE,
+        .minDepthBounds = 0.0f, // Optional
+        .maxDepthBounds = 1.0f, // Optional
+        .stencilTestEnable = VK_FALSE,
+        .front = {},
+        .back = {}
+    };
 
     // Create Graphics Pipeline
 
@@ -654,7 +649,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .pViewportState = &vpStateInfo,
         .pRasterizationState = &rastStateCreateInfo,
         .pMultisampleState = &msStateInfo,
-        .pDepthStencilState = p->enable_depth ? &depthStencil : NULL,
+        .pDepthStencilState = &depthStencil,
         .pColorBlendState = &cbCreateInfo,
         .pDynamicState = NULL,
         .layout = pl->pipelineLayout,
