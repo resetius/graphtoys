@@ -7,7 +7,6 @@
 #include "torus.h"
 #include <render/program.h>
 #include <render/pipeline.h>
-#include "mesh.h"
 #include "linmath.h"
 #include "triangle_fragment_shader.frag.h"
 #include "torus_vertex_shader.vert.h"
@@ -19,6 +18,12 @@
 // z = r sin phi
 // psi in [0,2pi)
 // phi in [-pi,pi)
+
+struct Vertex {
+    vec3 col;
+    vec3 norm;
+    vec3 pos;
+};
 
 struct UniformBlock {
     mat4x4 mv;
