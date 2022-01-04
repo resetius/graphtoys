@@ -124,7 +124,7 @@ static void run(struct Pipeline* p1) {
         p->pipelineLayout,
         0,
         1,
-        p->descriptorSets, 0, NULL);
+        &p->descriptorSets[r->image_index], 0, NULL);
 
     vkCmdDraw(
         buffer,
@@ -570,8 +570,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     };
 
     pl->n_descriptor_sets = allocInfo.descriptorSetCount;
-    pl->descriptorSets= malloc(pl->n_descriptor_sets*sizeof(VkDescriptorSet)); // TODO: fr
-    //pl->n_descriptor_sets = 1;
+    pl->descriptorSets= malloc(pl->n_descriptor_sets*sizeof(VkDescriptorSet));
 	if (vkAllocateDescriptorSets(r->log_dev, &allocInfo, pl->descriptorSets) != VK_SUCCESS) {
 		fprintf(stderr, "failed to allocate descriptor sets\n");
         exit(-1);
@@ -594,7 +593,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         VkWriteDescriptorSet uboDescWrites = {
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             .pNext = NULL,
-            .dstSet = pl->descriptorSets[0], // WTF?
+            .dstSet = pl->descriptorSets[i],
             .dstBinding = 0,
             .dstArrayElement = 0,
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,

@@ -224,8 +224,11 @@ int main(int argc, char** argv)
         /* Poll for and process events */
         glfwPollEvents();
         t2 = glfwGetTime();
-        if (t2 - t1 > 1.0 && enable_labels) {
-            label_set_vtext(fps, "FPS:%.2f", frames/(t2-t1));
+        if (t2 - t1 > 1.0) {
+            if (enable_labels) {
+                label_set_vtext(fps, "FPS:%.2f", frames/(t2-t1));
+            }
+            printf("FPS:%.2f\n", frames/(t2-t1));
             frames = 0;
             t1 = t2;
         }
