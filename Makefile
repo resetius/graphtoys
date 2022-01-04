@@ -80,10 +80,10 @@ program.o: program.h
 
 mesh.o: mesh.h
 
-%.d: %.c
+%.d: %.c Makefile
 	$(CC) $(CFLAGS) -M -MG -MT '$(patsubst %.c,%.o,$<)' $< -MF $@
 
-%.o: %.c %.d
+%.o: %.c %.d Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %.ttf.h: %.ttf rcc.exe

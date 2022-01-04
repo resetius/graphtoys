@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include <vulkan/vulkan.h>
 
@@ -25,6 +26,9 @@ static void free_(struct Render* r1) {
 
 static void draw_begin_(struct Render* r1, int* w, int* h) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
+
+    *w = fabs(r->viewport.width);
+    *h = fabs(r->viewport.height);
 
     vkAcquireNextImageKHR(
         r->log_dev,

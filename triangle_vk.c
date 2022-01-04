@@ -125,6 +125,7 @@ struct Object* trvk_new(struct Render* r1) {
     VkShaderModule vertShader;
 	if (vkCreateShaderModule(tr->r->log_dev, &cInfo1, NULL, &vertShader) != VK_SUCCESS) {
 		fprintf(stderr, "Failed to create shader module\n");
+        exit(-1);
 	}
     printf("Vertex shader loaded\n");
 
@@ -138,6 +139,7 @@ struct Object* trvk_new(struct Render* r1) {
     VkShaderModule fragShader;
 	if (vkCreateShaderModule(tr->r->log_dev, &cInfo2, NULL, &fragShader) != VK_SUCCESS) {
 		fprintf(stderr, "Failed to create shader module\n");
+        exit(-1);
 	}
     printf("Fragment shader loaded\n");
 

@@ -35,14 +35,14 @@ struct PipelineBuilder {
     struct PipelineBuilder* (*add_fs)(struct PipelineBuilder*, struct ShaderCode shader);
     struct PipelineBuilder* (*end_program)(struct PipelineBuilder*);
 
-    struct PipelineBuilder* (*begin_buffer)(struct PipelineBuilder*, int n_vertices);
+    struct PipelineBuilder* (*begin_buffer)(struct PipelineBuilder*, int n_vertices, int stride);
     struct PipelineBuilder* (*buffer_data)(struct PipelineBuilder*, const void* data, int size);
     struct PipelineBuilder* (*buffer_dynamic)(struct PipelineBuilder*);
     struct PipelineBuilder* (*buffer_attribute)(
         struct PipelineBuilder*,
         int location,
         int channels, int bytes_per_channel,
-        int stride, uint64_t offset);
+        uint64_t offset);
     struct PipelineBuilder* (*end_buffer)(struct PipelineBuilder*);
 
     struct PipelineBuilder* (*begin_uniform)(

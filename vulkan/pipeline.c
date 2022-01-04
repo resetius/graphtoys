@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 #include <vulkan/vulkan.h>
 
 #include <render/pipeline.h>
@@ -45,7 +46,8 @@ struct PipelineImpl {
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
 
-    VkDescriptorSet descriptorSet;
+    VkDescriptorSet* descriptorSets;
+    int n_descriptor_sets;
 
     int n_vertices;
 };
@@ -120,7 +122,7 @@ static void run(struct Pipeline* p1) {
         p->pipelineLayout,
         0,
         1,
-        &p->descriptorSet, 0, NULL);
+        p->descriptorSets, 0, NULL);
 
     vkCmdDraw(
         buffer,
@@ -144,7 +146,7 @@ static struct PipelineBuilder* begin_uniform(
     p->cur_uniform = &p->uniforms[p->n_uniforms++];
 
     VkDescriptorSetLayoutBinding uboLayoutBinding = {
-        .binding = 0,
+        .binding = binding,
         .descriptorCount = 1,
         .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .pImmutableSamplers = NULL,
@@ -411,6 +413,29 @@ static void builder_free(struct PipelineBuilderImpl* p) {
     free(p);
 }
 
+static void pipeline_free(struct Pipeline* p1) {
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    struct RenderImpl* r = p->r;
+    int i;
+    for (i = 0; i < p->n_uniforms; i++) {
+        vkDestroyBuffer(r->log_dev, p->uniforms[i].buffer, NULL);
+        vkFreeMemory(r->log_dev, p->uniforms[i].memory, NULL);
+    }
+    free(p->uniforms); p->uniforms = NULL; p->n_uniforms = 0;
+
+    for (i = 0; i < p->n_buffers; i++) {
+        vkDestroyBuffer(r->log_dev, p->buffers[i], NULL);
+        vkFreeMemory(r->log_dev, p->memories[i], NULL);
+    }
+    free(p->buffers); free(p->memories); p->n_buffers = 0;
+    p->buffers = NULL; p->memories = NULL;
+
+    vkDestroyPipeline(r->log_dev, p->graphicsPipeline, NULL);
+    vkDestroyPipelineLayout(r->log_dev, p->pipelineLayout, NULL);
+    free(p->descriptorSets); p->descriptorSets = NULL; p->n_descriptor_sets = 0;
+    free(p);
+}
+
 static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     struct PipelineImpl* pl = calloc(1, sizeof(*pl));
@@ -419,9 +444,11 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .run = run,
         .uniform_update = uniform_update,
         .buffer_update = buffer_update,
+        .free = pipeline_free
     };
     pl->base = base;
     pl->r = r;
+    pl->n_vertices = p->n_vertices;
 
     // TODO: check end state
 
@@ -533,19 +560,24 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .pSetLayouts = layouts
     };
 
-	if (vkAllocateDescriptorSets(r->log_dev, &allocInfo, &pl->descriptorSet) != VK_SUCCESS) {
+    pl->n_descriptor_sets = allocInfo.descriptorSetCount;
+    pl->descriptorSets= malloc(pl->n_descriptor_sets*sizeof(VkDescriptorSet)); // TODO: fr
+    //pl->n_descriptor_sets = 1;
+	if (vkAllocateDescriptorSets(r->log_dev, &allocInfo, pl->descriptorSets) != VK_SUCCESS) {
 		fprintf(stderr, "failed to allocate descriptor sets\n");
         exit(-1);
 	}
+
     free(layouts);
 
     for (int i = 0; i < r->sc.n_images; i++) {
         VkDescriptorBufferInfo* uboBufferDescInfo = malloc(p->n_uniforms*sizeof(VkDescriptorBufferInfo));
+        assert(p->n_uniforms == 1);
         for (int j = 0; j < p->n_uniforms; j++) {
             VkDescriptorBufferInfo info = {
                 .buffer = p->uniforms[j].buffer,
                 .offset = 0,
-                .range = p->uniforms[j].size
+                .range = sizeof(p->uniforms[j].size) // WTF?
             };
             uboBufferDescInfo[j] = info;
         }
@@ -553,7 +585,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         VkWriteDescriptorSet uboDescWrites = {
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             .pNext = NULL,
-            .dstSet = pl->descriptorSet,
+            .dstSet = pl->descriptorSets[0], // WTF?
             .dstBinding = 0,
             .dstArrayElement = 0,
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -589,7 +621,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 
 	VkGraphicsPipelineCreateInfo gpInfo = {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-        .stageCount = 2,
+        .stageCount = p->n_frag_shaders+p->n_vert_shaders,
         .pStages = get_shader_stages(p),
         .pVertexInputState = &vertexInputInfo,
         .pInputAssemblyState = &inputAssemblyInfo,
@@ -618,6 +650,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     pl->buffers = malloc(p->n_buffers*sizeof(VkBuffer));
     pl->memories = malloc(p->n_buffers*sizeof(VkDeviceMemory));
     pl->offsets = malloc(p->n_buffers*sizeof(VkDeviceSize));
+
     for (int i = 0; i < p->n_buffers; i++) {
         pl->buffers[i] = p->buffers[i].buffer;
         pl->memories[i] = p->buffers[i].memory;

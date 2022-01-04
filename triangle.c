@@ -75,10 +75,10 @@ struct Object* CreateTriangle(struct Render* r) {
         ->begin_uniform(pl, 0, "MatrixBlock", sizeof(mat4x4))
         ->end_uniform(pl)
 
-        ->begin_buffer(pl, 3)
+        ->begin_buffer(pl, 3, sizeof(Vertex))
         ->buffer_data(pl, (void*)vertices, sizeof(vertices))
-        ->buffer_attribute(pl, 2, 3, 4, sizeof(Vertex), offsetof(Vertex, col)) // vCol
-        ->buffer_attribute(pl, 1, 2, 4, sizeof(Vertex), offsetof(Vertex, pos)) // vPos
+        ->buffer_attribute(pl, 2, 3, 4, offsetof(Vertex, col)) // vCol
+        ->buffer_attribute(pl, 1, 2, 4, offsetof(Vertex, pos)) // vPos
         ->end_buffer(pl)
 
         ->build(pl);

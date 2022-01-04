@@ -20,6 +20,7 @@ struct Buffer {
     GLuint vao;
     int size;
     int dynamic;
+    int stride;
 };
 
 struct PipelineImpl {
@@ -118,11 +119,12 @@ static struct PipelineBuilder* end_program(struct PipelineBuilder*p1) {
     return p1;
 }
 
-static struct PipelineBuilder* begin_buffer(struct PipelineBuilder* p1, int n_vertices) {
+static struct PipelineBuilder* begin_buffer(struct PipelineBuilder* p1, int n_vertices, int stride) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     // TODO: check current
     p->cur_buffer = &p->buffers[p->n_buffers++];
     p->cur_buffer->n_vertices = n_vertices;
+    p->cur_buffer->stride = stride;
 
     glGenBuffers(1, &p->cur_buffer->vbo);
     glBindBuffer(GL_ARRAY_BUFFER, p->cur_buffer->vbo);
@@ -152,7 +154,7 @@ static struct PipelineBuilder* buffer_attribute(
     struct PipelineBuilder* p1,
     int location,
     int channels, int bytes_per_channel,
-    int stride, uint64_t offset)
+    uint64_t offset)
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     if (!p->cur_buffer->vao) {
@@ -161,7 +163,7 @@ static struct PipelineBuilder* buffer_attribute(
     }
     glEnableVertexAttribArray(location);
     glVertexAttribPointer(location, channels, GL_FLOAT, GL_FALSE,
-                          stride, (const void*)offset);
+                          p->cur_buffer->stride, (const void*)offset);
 
     return p1;
 }
