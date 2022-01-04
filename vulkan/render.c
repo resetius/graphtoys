@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 
 #include <vulkan/vulkan.h>
@@ -144,13 +145,9 @@ static void init_(struct Render* r1) {
     uint32_t deviceCount = 0;
     const char* deviceExtensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        "VK_KHR_portability_subset", // mac?
-        "VK_AMD_negative_viewport_height", // check and use
-        //"VK_KHR_Maintenance1", //check and use
-        //"VK_KHR_get_physical_device_properties2",
-        //VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME // TODO: check device support
+        "VK_KHR_portability_subset"
     };
-    uint32_t nDeviceExtensions = 2;
+    uint32_t nDeviceExtensions = 1;
     VkPhysicalDevice devices[100];
     VkDeviceQueueCreateInfo queueCreateInfo[2];
     uint32_t nQueueCreateInfo = 2;
@@ -211,6 +208,9 @@ static void init_(struct Render* r1) {
     vkEnumerateDeviceExtensionProperties(r->phy_dev, NULL, &allDevExts, exts);
     printf("Supported device extensions:\n");
     for (int i = 0; i < allDevExts; i++) {
+        if (!strcmp(exts[i].extensionName, "VK_KHR_portability_subset")) {
+            nDeviceExtensions = 2; // enable it
+        }
         printf("'%s'\n", exts[i].extensionName);
     }
     printf("\n");
