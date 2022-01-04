@@ -571,10 +571,10 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 
     pl->n_descriptor_sets = allocInfo.descriptorSetCount;
     pl->descriptorSets= malloc(pl->n_descriptor_sets*sizeof(VkDescriptorSet));
-	if (vkAllocateDescriptorSets(r->log_dev, &allocInfo, pl->descriptorSets) != VK_SUCCESS) {
-		fprintf(stderr, "failed to allocate descriptor sets\n");
+    if (vkAllocateDescriptorSets(r->log_dev, &allocInfo, pl->descriptorSets) != VK_SUCCESS) {
+        fprintf(stderr, "failed to allocate descriptor sets\n");
         exit(-1);
-	}
+    }
 
     free(layouts);
 
