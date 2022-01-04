@@ -11,6 +11,6 @@ void rp_init(struct RenderPass* r, VkDevice logDev, VkFormat swapChainImageForma
 void rp_destroy(struct RenderPass* r);
 
 void rp_begin(
-    struct RenderPass* r, VkClearValue value, VkCommandBuffer commands,
+    struct RenderPass* r, VkClearValue* values, int n_values, VkCommandBuffer commands,
     VkFramebuffer framebuffer, VkExtent2D extent);
 void rp_end(struct RenderPass* r, VkCommandBuffer commands);

@@ -190,6 +190,8 @@ struct Object* CreateTorus(struct Render* r) {
 
         ->end_buffer(pl)
 
+        ->enable_depth(pl)
+
         ->build(pl);
 
 

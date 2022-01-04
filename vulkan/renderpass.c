@@ -48,7 +48,7 @@ void rp_init(struct RenderPass* r, VkDevice logDev, VkFormat swapChainImageForma
 }
 
 void rp_begin(
-    struct RenderPass* r, VkClearValue value, VkCommandBuffer commands,
+    struct RenderPass* r, VkClearValue* values, int n_values, VkCommandBuffer commands,
     VkFramebuffer framebuffer, VkExtent2D extent)
 {
     VkRenderPassBeginInfo rpBeginInfo = {
@@ -58,8 +58,8 @@ void rp_begin(
         .renderArea.offset = { 0,0 },
         .renderArea.extent = extent,
 
-        .pClearValues = &value,
-        .clearValueCount = 1
+        .pClearValues = values,
+        .clearValueCount = n_values
     };
 
     vkCmdBeginRenderPass(commands, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);

@@ -53,12 +53,16 @@ static void draw_begin_(struct Render* r1, int* w, int* h) {
     VkClearColorValue color =  {
         .float32 = {0.0f, 0.0f, 0.0f, 1.0f}
     };
-    VkClearValue clearval = {
+    VkClearValue clear_color = {
         .color = color
     };
+    VkClearValue clear_depth = {
+        .depthStencil = {1.0f, 0}
+    };
+    VkClearValue values[] = { clear_color, clear_depth };
     rp_begin(
         &r->rp,
-        clearval,
+        values, 2,
         r->buffer,
         r->rt.framebuffers[r->image_index],
         r->sc.extent);

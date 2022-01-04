@@ -35,6 +35,8 @@ struct PipelineImpl {
 
     struct Buffer* buffers;
     int n_buffers;
+
+    int enable_depth;
 };
 
 struct PipelineBuilderImpl {
@@ -52,6 +54,8 @@ struct PipelineBuilderImpl {
     struct Buffer buffers[100];
     struct Buffer* cur_buffer;
     int n_buffers;
+
+    int enable_depth;
 };
 
 static struct PipelineBuilder* begin_uniform(
@@ -228,6 +232,12 @@ static void run(struct Pipeline* p1) {
     }
 }
 
+static struct PipelineBuilder* enable_depth(struct PipelineBuilder* p1) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    p->enable_depth = 1;
+    return p1;
+}
+
 static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     struct PipelineImpl* pl = calloc(1, sizeof(*pl));
@@ -269,6 +279,8 @@ struct PipelineBuilder* pipeline_builder_opengl(struct Render* r) {
         .buffer_dynamic = buffer_dynamic,
         .buffer_attribute = buffer_attribute,
         .end_buffer = end_buffer,
+
+        .enable_depth = enable_depth,
 
         .build = build
     };

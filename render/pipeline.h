@@ -53,5 +53,7 @@ struct PipelineBuilder {
         int size);
     struct PipelineBuilder* (*end_uniform)(struct PipelineBuilder*);
 
+    struct PipelineBuilder* (*enable_depth)();
+
     struct Pipeline* (*build)(struct PipelineBuilder*); // free
 };

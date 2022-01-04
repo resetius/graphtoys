@@ -76,6 +76,8 @@ struct PipelineBuilderImpl {
     VkVertexInputAttributeDescription* attr_descrs;
     int n_attrs;
     VkDescriptorSetLayoutBinding* layout_bindings;
+
+    int enable_depth;
 };
 
 static void buffer_update_(VkDevice dev, VkDeviceMemory memory, const void* data, int offset, int size) {
@@ -436,6 +438,12 @@ static void pipeline_free(struct Pipeline* p1) {
     free(p);
 }
 
+static struct PipelineBuilder* enable_depth(struct PipelineBuilder* p1) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    p->enable_depth = 1;
+    return p1;
+}
+
 static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     struct PipelineImpl* pl = calloc(1, sizeof(*pl));
@@ -617,6 +625,24 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         exit(-1);
 	}
 
+    VkPipelineDepthStencilStateCreateInfo depthStencil;
+    if (p->enable_depth) {
+        printf("Enable depth test\n");
+        VkPipelineDepthStencilStateCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+            .depthTestEnable = VK_TRUE,
+            .depthWriteEnable = VK_TRUE,
+            .depthCompareOp = VK_COMPARE_OP_LESS,
+            .depthBoundsTestEnable = VK_FALSE,
+            .minDepthBounds = 0.0f, // Optional
+            .maxDepthBounds = 1.0f, // Optional
+            .stencilTestEnable = VK_FALSE,
+            .front = {},
+            .back = {}
+        };
+        depthStencil = info;
+    }
+
     // Create Graphics Pipeline
 
 	VkGraphicsPipelineCreateInfo gpInfo = {
@@ -628,7 +654,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .pViewportState = &vpStateInfo,
         .pRasterizationState = &rastStateCreateInfo,
         .pMultisampleState = &msStateInfo,
-        .pDepthStencilState = NULL,
+        .pDepthStencilState = p->enable_depth ? &depthStencil : NULL,
         .pColorBlendState = &cbCreateInfo,
         .pDynamicState = NULL,
         .layout = pl->pipelineLayout,
@@ -677,6 +703,7 @@ struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r) {
         .buffer_dynamic = buffer_dynamic,
         .buffer_attribute = buffer_attribute,
         .end_buffer = end_buffer,
+        .enable_depth = enable_depth,
         .build = build,
     };
     p->base = base;
