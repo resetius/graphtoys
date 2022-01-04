@@ -6,10 +6,13 @@
 #include "object.h"
 #include "torus.h"
 #include <render/program.h>
+#include <render/pipeline.h>
 #include "mesh.h"
 #include "linmath.h"
 #include "triangle_fragment_shader.frag.h"
 #include "torus_vertex_shader.vert.h"
+#include "triangle_fragment_shader.frag.spv.h"
+#include "torus_vertex_shader.vert.spv.h"
 
 // x = (R+r cos(psi)) cos phi
 // y = (R+r cos(psi)) sin phi
@@ -17,12 +20,16 @@
 // psi in [0,2pi)
 // phi in [-pi,pi)
 
+struct UniformBlock {
+    mat4x4 mv;
+    mat4x4 mvp;
+    mat4x4 norm;
+};
+
 struct Torus {
     struct Object base;
-
-    struct Program* p;
-
-    struct Mesh* m;
+    struct UniformBlock uniform;
+    struct Pipeline* pl;
 };
 
 static struct Vertex* init (int* nvertices) {
@@ -116,44 +123,75 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 100.f);
     mat4x4_mul(mvp, p, mv);
 
-    //mat4x4 norm4;
+    mat4x4 norm;
     //mat4x4_invert(norm4, mv);
     //mat4x4_transpose(norm4, norm4);
-    mat3x3 norm;
+    //mat3x3 norm;
     //mat3x3_from_mat4x4(norm, norm4);
-    mat3x3_from_mat4x4(norm, mv);
+    //mat3x3_from_mat4x4(norm, mv);
+    memcpy(norm, mv, sizeof(norm));
+    norm[3][0] = norm[3][1] = norm[3][2] = 0;
+    norm[0][3] = norm[1][3] = norm[2][3] = 0;
+    norm[3][3] = 1;
 
-    prog_use(t->p);
+    memcpy(t->uniform.mvp, mvp, sizeof(mvp));
+    memcpy(t->uniform.mv, mv, sizeof(mv));
+    memcpy(t->uniform.norm, norm, sizeof(norm));
 
-    prog_set_mat4x4(t->p, "MVP", &mvp);
-    prog_set_mat4x4(t->p, "ModelViewMatrix", &mv);
-    prog_set_mat3x3(t->p, "NormalMatrix", &norm);
-
-    mesh_render(t->m);
+    t->pl->uniform_update(t->pl, 0, &t->uniform, 0, sizeof(t->uniform));
+    t->pl->run(t->pl);
 }
 
 static void t_free(struct Object* obj) {
     struct Torus* t = (struct Torus*)obj;
-    prog_free(t->p);
-    mesh_free(t->m);
+    t->pl->free(t->pl);
     free(t);
 }
 
 struct Object* CreateTorus(struct Render* r) {
     struct Torus* t = calloc(1, sizeof(struct Torus));
+    struct Object base = {
+        .draw = t_draw,
+        .free = t_free
+    };
+
     struct Vertex* vertices;
     int nvertices;
-    t->p = rend_prog_new(r);
 
-    t->base.draw = t_draw;
-    t->base.free = t_free;
+    struct ShaderCode vertex_shader = {
+        .glsl = torus_vertex_shader_vert,
+        .spir_v = torus_vertex_shader_vert_spv,
+        .size = torus_vertex_shader_vert_spv_size,
+    };
+    struct ShaderCode fragment_shader = {
+        .glsl = triangle_fragment_shader_frag,
+        .spir_v = triangle_fragment_shader_frag_spv,
+        .size = triangle_fragment_shader_frag_spv_size,
+    };
+
+    t->base = base;
+
     vertices = init(&nvertices);
 
-    prog_add_vs(t->p, torus_vertex_shader_vert);
-    prog_add_fs(t->p, triangle_fragment_shader_frag);
-    prog_link(t->p);
+    struct PipelineBuilder* pl = r->pipeline(r);
+    t->pl = pl->begin_program(pl)
+        ->add_vs(pl, vertex_shader)
+        ->add_fs(pl, fragment_shader)
+        ->end_program(pl)
 
-    t->m = mesh_new(t->p, vertices, nvertices, "vPos", "vCol", "vNorm");
+        ->begin_uniform(pl, 0, "MatrixBlock", sizeof(struct UniformBlock))
+        ->end_uniform(pl)
+
+        ->begin_buffer(pl, nvertices, sizeof(struct Vertex))
+        ->buffer_data(pl, vertices, nvertices*sizeof(struct Vertex)) //TODO: size dont need
+        ->buffer_attribute(pl, 3, 3, 4, offsetof(struct Vertex, col))
+        ->buffer_attribute(pl, 2, 3, 4, offsetof(struct Vertex, norm))
+        ->buffer_attribute(pl, 1, 3, 4, offsetof(struct Vertex, pos))
+
+        ->end_buffer(pl)
+
+        ->build(pl);
+
 
     free(vertices);
 
