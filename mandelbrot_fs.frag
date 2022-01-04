@@ -1,10 +1,15 @@
-#version 330
-// precision highp float;
-uniform mat4 MVP;
-uniform vec3 T;
+#version 410
+#extension GL_ARB_separate_shader_objects : enable
 
-in vec2 coord;
-out vec4 fragColor;
+// precision highp float;
+
+uniform MatrixBlock {
+    uniform mat4 MVP;
+    uniform vec3 T;
+};
+
+layout (location = 0) in vec2 coord;
+layout (location = 0) out vec4 fragColor;
 
 void main() {
     vec2 p = coord;

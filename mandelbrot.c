@@ -1,21 +1,31 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <render/pipeline.h>
+
 #include "mandelbrot.h"
 #include "mandelbrot_vs.vert.h"
 #include "mandelbrot_fs.frag.h"
+#include "mandelbrot_vs.vert.spv.h"
+#include "mandelbrot_fs.frag.spv.h"
+
 #include "object.h"
-#include "mesh.h"
-#include <render/program.h>
+#include "linmath.h"
+
+struct Vertex {
+    vec3 pos;
+};
+
+struct UniformBlock {
+    mat4x4 mvp;
+    vec3 T;
+};
 
 struct Mandelbrot {
     struct Object base;
-    struct Program* p;
-    struct Mesh* m;
+    struct UniformBlock uniform;
+    struct Pipeline* pl;
     vec3 T;
-    float sx;
-    float sy;
-    float sz;
 };
 
 static void t_left(struct Object* obj) {
@@ -68,36 +78,22 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 100.f);
     mat4x4_mul(mvp, p, mv);
 
-    prog_use(t->p);
-    prog_set_mat4x4(t->p, "MVP", &mvp);
-    prog_set_vec3(t->p, "T", &t->T);
-/*
-    t->T[0] += t->sx*0.01f;
-    if (t->T[0] > 1.0 || t->T[0] < -1.0) {
-        t->sx = -t->sx;
-    }
-    t->T[1] += t->sx*0.01f;
-    if (t->T[1] > 1.0 || t->T[1] < -1.0) {
-        t->sy = -t->sy;
-    }
-    t->T[2] *= t->sz;
-    if (t->T[2] > 4.0 || t->T[2] < 0.1) {
-        t->sz = 1./t->sz;
-    }
-*/
-    mesh_render(t->m);
+    memcpy(t->uniform.mvp, mvp, sizeof(mvp));
+    memcpy(t->uniform.T, t->T, sizeof(t->T));
+
+    t->pl->uniform_update(t->pl, 0, &t->uniform, 0, sizeof(t->uniform));
+    t->pl->run(t->pl);
 }
 
 static void t_free(struct Object* obj) {
     struct Mandelbrot* t = (struct Mandelbrot*)obj;
-    prog_free(t->p);
-    mesh_free(t->m);
+    t->pl->free(t->pl);
     free(t);
 }
 
 struct Object* CreateMandelbrot(struct Render* r) {
     struct Mandelbrot* t = calloc(1, sizeof(struct Mandelbrot));
-    struct Vertex1 vertices[] = {
+    struct Vertex vertices[] = {
         {{-1.0f, 1.0f,0.0f}},
         {{-1.0f,-1.0f,0.0f}},
         {{ 1.0f,-1.0f,0.0f}},
@@ -106,6 +102,7 @@ struct Object* CreateMandelbrot(struct Render* r) {
         {{ 1.0f,-1.0f,0.0f}},
         {{ 1.0f, 1.0f,0.0f}}
     };
+    int nvertices = 6;
 
     struct Object base = {
         .draw = t_draw,
@@ -118,16 +115,36 @@ struct Object* CreateMandelbrot(struct Render* r) {
         .zoom_out = t_zoom_out
     };
 
+    struct ShaderCode vertex_shader = {
+        .glsl = mandelbrot_vs_vert,
+        .spir_v = mandelbrot_vs_vert_spv,
+        .size = mandelbrot_vs_vert_spv_size,
+    };
+    struct ShaderCode fragment_shader = {
+        .glsl = mandelbrot_fs_frag,
+        .spir_v = mandelbrot_fs_frag_spv,
+        .size = mandelbrot_fs_frag_spv_size,
+    };
+
     t->base = base;
 
-    t->m = mesh1_new(vertices, 6, 0);
-    t->p = rend_prog_new(r);
+    struct PipelineBuilder* pl = r->pipeline(r);
+    t->pl = pl->begin_program(pl)
+        ->add_vs(pl, vertex_shader)
+        ->add_fs(pl, fragment_shader)
+        ->end_program(pl)
+
+        ->begin_uniform(pl, 0, "MatrixBlock", sizeof(struct UniformBlock))
+        ->end_uniform(pl)
+
+        ->begin_buffer(pl, nvertices, sizeof(struct Vertex))
+        ->buffer_data(pl, vertices, nvertices*sizeof(struct Vertex)) //TODO: size dont need
+        ->buffer_attribute(pl, 1, 3, 4, offsetof(struct Vertex, pos))
+        ->end_buffer(pl)
+
+        ->build(pl);
+
     t->T[0] = t->T[1] = 0.0; t->T[2] = 2.0;
-    t->sx = 1.0;
-    t->sy = -1.0;
-    t->sz = 1.01;
-    prog_add_vs(t->p, mandelbrot_vs_vert);
-    prog_add_fs(t->p, mandelbrot_fs_frag);
-    prog_link(t->p);
+
     return (struct Object*)t;
 }

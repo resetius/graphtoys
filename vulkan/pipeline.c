@@ -152,7 +152,7 @@ static struct PipelineBuilder* begin_uniform(
         .descriptorCount = 1,
         .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .pImmutableSamplers = NULL,
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT // TODO
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT // TODO
     };
 
     VkDeviceSize uboBufferSize = size;
