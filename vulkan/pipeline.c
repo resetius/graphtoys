@@ -24,8 +24,8 @@ struct Buffer {
 };
 
 struct UniformBlock {
-    VkBuffer buffer;
-    VkDeviceMemory memory;
+    VkBuffer buffer[10];
+    VkDeviceMemory memory[10];
 
     VkDeviceSize size;
     VkDescriptorSetLayoutBinding layoutBinding;
@@ -92,7 +92,7 @@ static void uniform_update(struct Pipeline* p1, int id, const void* data, int of
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     struct RenderImpl* r = p->r;
 
-    buffer_update_(r->log_dev, p->uniforms[id].memory, data, offset, size);
+    buffer_update_(r->log_dev, p->uniforms[id].memory[r->image_index], data, offset, size);
 }
 
 static void buffer_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
@@ -100,6 +100,7 @@ static void buffer_update(struct Pipeline* p1, int id, const void* data, int off
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     struct RenderImpl* r = p->r;
 
+    // TODO: image_index
     buffer_update_(r->log_dev, p->memories[id], data, offset, size);
 }
 
@@ -143,6 +144,7 @@ static struct PipelineBuilder* begin_uniform(
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     struct RenderImpl* r = p->r;
+    int i;
 
     // TODO: checkptr
     // TODO: uniformBuffer per image index
@@ -160,13 +162,15 @@ static struct PipelineBuilder* begin_uniform(
     p->cur_uniform->size = size;
     p->cur_uniform->layoutBinding = uboLayoutBinding;
 
-    create_buffer(
-        r->phy_dev, r->log_dev,
-        uboBufferSize,
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        &p->cur_uniform->buffer,
-        &p->cur_uniform->memory);
+    for (i = 0; i < r->sc.n_images; i++) {
+        create_buffer(
+            r->phy_dev, r->log_dev,
+            uboBufferSize,
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            &p->cur_uniform->buffer[i],
+            &p->cur_uniform->memory[i]);
+    }
 
     return p1;
 }
@@ -419,10 +423,12 @@ static void builder_free(struct PipelineBuilderImpl* p) {
 static void pipeline_free(struct Pipeline* p1) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     struct RenderImpl* r = p->r;
-    int i;
+    int i,j;
     for (i = 0; i < p->n_uniforms; i++) {
-        vkDestroyBuffer(r->log_dev, p->uniforms[i].buffer, NULL);
-        vkFreeMemory(r->log_dev, p->uniforms[i].memory, NULL);
+        for (j = 0; j < r->sc.n_images; j++) {
+            vkDestroyBuffer(r->log_dev, p->uniforms[i].buffer[j], NULL);
+            vkFreeMemory(r->log_dev, p->uniforms[i].memory[j], NULL);
+        }
     }
     free(p->uniforms); p->uniforms = NULL; p->n_uniforms = 0;
 
@@ -580,10 +586,9 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 
     for (int i = 0; i < r->sc.n_images; i++) {
         VkDescriptorBufferInfo* uboBufferDescInfo = malloc(p->n_uniforms*sizeof(VkDescriptorBufferInfo));
-        assert(p->n_uniforms == 1);
         for (int j = 0; j < p->n_uniforms; j++) {
             VkDescriptorBufferInfo info = {
-                .buffer = p->uniforms[j].buffer,
+                .buffer = p->uniforms[j].buffer[i],
                 .offset = 0,
                 .range = p->uniforms[j].size
             };
