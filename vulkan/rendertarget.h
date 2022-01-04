@@ -9,6 +9,8 @@ struct RenderTarget {
 	VkFramebuffer* framebuffers;
     int n_framebuffers;
     VkDevice dev;
+
+    VkImageView depth_imageview;
 };
 
 void rt_init(struct RenderTarget* rt, struct RenderImpl* r);

@@ -136,3 +136,55 @@ void copy_buffer(
 
     vkDestroyCommandPool(logicalDevice, commandPool, NULL);
 }
+
+
+void create_image(
+    VkPhysicalDevice physicalDevice,
+    VkDevice device,
+    uint32_t width,
+    uint32_t height,
+    VkFormat format,
+    VkImageTiling tiling,
+    VkImageUsageFlags usage,
+    VkMemoryPropertyFlags properties,
+    VkImage* image,
+    VkDeviceMemory* imageMemory)
+{
+    VkImageCreateInfo imageInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .extent.width = width,
+        .extent.height = height,
+        .extent.depth = 1,
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .format = format,
+        .tiling = tiling,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .usage = usage,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    };
+
+    if (vkCreateImage(device, &imageInfo, NULL, image) != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create image\n");
+        exit(-1);
+    }
+
+    VkMemoryRequirements memRequirements;
+    vkGetImageMemoryRequirements(device, *image, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .allocationSize = memRequirements.size,
+        .memoryTypeIndex = findMemoryTypeIndex(
+            physicalDevice, memRequirements.memoryTypeBits, properties)
+    };
+
+    if (vkAllocateMemory(device, &allocInfo, NULL, imageMemory) != VK_SUCCESS) {
+        fprintf(stderr, "Failed to allocate image memory\n");
+        exit(-1);
+    }
+
+    vkBindImageMemory(device, *image, *imageMemory, 0);
+}

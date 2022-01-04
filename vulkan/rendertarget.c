@@ -44,18 +44,24 @@ void rt_init(struct RenderTarget* rt, struct RenderImpl* r) {
             VK_IMAGE_ASPECT_COLOR_BIT);
     }
 
+    rt->depth_imageview = image_view_create(r->log_dev, r->sc.depth_image,
+                      VK_FORMAT_D32_SFLOAT, // TODO detect depth format
+                      VK_IMAGE_ASPECT_DEPTH_BIT);
+
     rt->n_framebuffers = rt->n_imageviews;
     rt->framebuffers = malloc(rt->n_framebuffers*sizeof(VkFramebuffer));
 
     for (i = 0; i < rt->n_framebuffers; i++) {
         VkImageView attachments[] = {
-            rt->imageviews[i]
+            rt->imageviews[i],
+            rt->depth_imageview
         };
+        int n_attachments = 2;
 
         VkFramebufferCreateInfo fbInfo = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
             .renderPass = r->rp.rp,
-            .attachmentCount = (uint32_t)1,
+            .attachmentCount = n_attachments,
             .pAttachments = attachments,
             .width = r->sc.extent.width,
             .height = r->sc.extent.height,
@@ -77,6 +83,7 @@ void rt_destroy(struct RenderTarget* rt) {
     for (i = 0; i < rt->n_imageviews; i++) {
         vkDestroyImageView(rt->dev, rt->imageviews[i], NULL);
     }
+    vkDestroyImageView(rt->dev, rt->depth_imageview, NULL);
     for (i = 0; i < rt->n_framebuffers; i++) {
         vkDestroyFramebuffer(rt->dev, rt->framebuffers[i], NULL);
     }

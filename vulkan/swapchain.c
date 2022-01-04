@@ -3,6 +3,7 @@
 
 #include "swapchain.h"
 #include "render_impl.h"
+#include "tools.h"
 
 // TODO
 static uint32_t max(uint32_t a, uint32_t b) {
@@ -131,6 +132,19 @@ void sc_init(struct SwapChain* sc, struct RenderImpl* r) {
     sc->im_format = surfaceFormat.format;
     sc->extent = extent;
     sc->r = r;
+
+
+    create_image(
+        r->phy_dev,
+        r->log_dev,
+        sc->extent.width,
+        sc->extent.height,
+        VK_FORMAT_D32_SFLOAT, // TODO: depth format
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        &sc->depth_image,
+        &sc->depth_image_memory);
 }
 
 void sc_destroy(struct SwapChain* sc) {

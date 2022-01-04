@@ -10,6 +10,8 @@ struct SwapChain {
     VkExtent2D extent;
     VkImage* images;
     int n_images;
+    VkImage depth_image;
+    VkDeviceMemory depth_image_memory;
 };
 
 void sc_init(struct SwapChain* sc, struct RenderImpl* r);

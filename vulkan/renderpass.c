@@ -17,19 +17,36 @@ void rp_init(struct RenderPass* r, VkDevice logDev, VkFormat swapChainImageForma
         .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
     };
 
+    VkAttachmentDescription depthAttachment = {
+        .format = VK_FORMAT_D32_SFLOAT, // TODO: detect format
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+    };
+
 	VkAttachmentReference colorAttachRef = {
         .attachment = 0,
         .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     };
 
+    VkAttachmentReference depthAttachmentRef = {
+        .attachment = 1,
+        .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+    };
+
 	VkSubpassDescription subpass = {
         .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
         .colorAttachmentCount = 1,
-        .pColorAttachments = &colorAttachRef
+        .pColorAttachments = &colorAttachRef,
+        .pDepthStencilAttachment = &depthAttachmentRef
     };
 
-	VkAttachmentDescription attachments[] = { colorAttachment };
-    uint32_t n_attachments = 1;
+	VkAttachmentDescription attachments[] = { colorAttachment, depthAttachment };
+    uint32_t n_attachments = 2;
 
 	VkRenderPassCreateInfo rpCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
