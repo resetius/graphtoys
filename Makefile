@@ -9,7 +9,8 @@ GLSLC=glslc
 CFLAGS += -I. $(shell pkg-config --cflags glfw3,freetype2)
 
 LDFLAGS+=$(shell pkg-config --static --libs glfw3,freetype2)
-LDFLAGS+=-lvulkan
+
+VULKAN_LOADER=-lvulkan
 
 ifeq ($(UNAME_S),Darwin)
     VULKAN_INCLUDE?=$(HOME)/VulkanSDK/1.2.198.1/macOS/include
@@ -24,6 +25,22 @@ ifeq ($(UNAME_S),Darwin)
 
     GLSLC=$(VULKAN_BIN)/glslc
 endif
+
+ifneq (,$(findstring MINGW,$(UNAME_S)))
+    VULKAN_SDK=c:/VulkanSDK/1.2.198.1
+    VULKAN_INCLUDE?=$(VULKAN_SDK)/include
+    VULKAN_LIB?=$(VULKAN_SDK)/lib
+    VULKAN_BIN?=$(VULKAN_SDK)/bin
+    GLSLC=$(VULKAN_BIN)/glslc
+
+    LDFLAGS+=-L$(VULKAN_LIB)
+
+    CFLAGS += -I$(VULKAN_INCLUDE)
+
+    VULKAN_LOADER=-lvulkan-1
+endif
+
+LDFLAGS+=$(VULKAN_LOADER)
 
 SOURCES=main.c\
 	triangle.c\
