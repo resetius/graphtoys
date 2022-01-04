@@ -145,6 +145,7 @@ static struct PipelineBuilder* begin_uniform(
     struct RenderImpl* r = p->r;
 
     // TODO: checkptr
+    // TODO: uniformBuffer per image index
     p->cur_uniform = &p->uniforms[p->n_uniforms++];
 
     VkDescriptorSetLayoutBinding uboLayoutBinding = {
@@ -585,7 +586,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
             VkDescriptorBufferInfo info = {
                 .buffer = p->uniforms[j].buffer,
                 .offset = 0,
-                .range = sizeof(p->uniforms[j].size) // WTF?
+                .range = p->uniforms[j].size
             };
             uboBufferDescInfo[j] = info;
         }
