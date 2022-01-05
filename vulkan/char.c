@@ -22,7 +22,8 @@ struct CharImpl {
     VkSampler sampler;
 };
 
-static void char_render_(struct Char* ch, int x, int y) {
+static void* char_texture_(struct Char* ch) {
+    return NULL;
 }
 
 static void char_free_(struct Char* ch) {
@@ -43,7 +44,8 @@ struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm) {
     FT_Face face = (FT_Face)bm;
     FT_Bitmap bitmap = face->glyph->bitmap;
     struct Char base = {
-        .free = char_free_
+        .free = char_free_,
+        .texture = char_texture_,
     };
     c->base = base;
     c->base.ch = ch;
@@ -57,6 +59,11 @@ struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm) {
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     VkDeviceSize imageSize = bitmap.width*bitmap.rows;
+
+    if (imageSize == 0) {
+        free(c);
+        return NULL;
+    }
 
     create_buffer(
         r->phy_dev, r->log_dev,

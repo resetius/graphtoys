@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include <vulkan/vulkan.h>
 
@@ -39,6 +40,8 @@ void create_buffer(
         .usage = usage,
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE
     };
+
+    assert(size);
 
     if (vkCreateBuffer(logicalDevice, &bufferInfo, NULL, buffer) != VK_SUCCESS) {
         fprintf(stderr, "Failed to create vertex buffer\n");

@@ -321,6 +321,7 @@ static void set_viewport_(struct Render* r1, int w, int h) {
 }
 
 struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r);
+struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm);
 
 struct Render* rend_vulkan_new() {
     struct RenderImpl* r = calloc(1, sizeof(*r));
@@ -332,7 +333,8 @@ struct Render* rend_vulkan_new() {
         .draw_end = draw_end_,
         .draw_ui = draw_ui_,
         .set_viewport = set_viewport_,
-        .pipeline = pipeline_builder_vulkan
+        .pipeline = pipeline_builder_vulkan,
+        .char_new =  rend_vulkan_char_new,
     };
     uint32_t extensionCount = 0;
     const char** glfwExtensionNames = glfwGetRequiredInstanceExtensions(&extensionCount);

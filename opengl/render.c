@@ -50,13 +50,19 @@ static struct Char* rend_char_new_(struct Render* r, wchar_t ch, void* bm) {
         .free = char_free_
     };
     c->base = base;
-    glGenTextures(1, &c->tex_id);
     c->base.ch = ch;
     c->base.w = bitmap.width;
     c->base.h = bitmap.rows;
     c->base.left = face->glyph->bitmap_left;
     c->base.top = face->glyph->bitmap_top;
     c->base.advance = face->glyph->advance.x;
+
+    if (bitmap.width*bitmap.rows == 0) {
+        free(c);
+        return NULL;
+    }
+
+    glGenTextures(1, &c->tex_id);
 
     glBindTexture(GL_TEXTURE_2D, c->tex_id);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, bitmap.pitch);

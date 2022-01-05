@@ -105,7 +105,7 @@ int main(int argc, char** argv)
     struct Render* render = NULL;
     float t1, t2;
     long long frames = 0;
-    int enable_labels = 0;
+    int enable_labels = 1;
     struct ObjectAndConstructor constructors[] = {
         {"torus", CreateTorus},
         {"triangle", CreateTriangle},
@@ -144,7 +144,6 @@ int main(int argc, char** argv)
 
     if (render_name == NULL || !strcmp(render_name, "opengl")) {
         render = rend_opengl_new();
-        enable_labels = 1;
     } else if (!strcmp(render_name, "vulkan")) {
         render = rend_vulkan_new();
     } else {
