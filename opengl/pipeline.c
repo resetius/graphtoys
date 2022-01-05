@@ -65,6 +65,7 @@ struct PipelineImpl {
     int n_samplers;
 
     int enable_depth;
+    int enable_blend;
 };
 
 struct PipelineBuilderImpl {
@@ -90,6 +91,7 @@ struct PipelineBuilderImpl {
     int n_samplers;
 
     int enable_depth;
+    int enable_blend;
 };
 
 static struct PipelineBuilder* begin_uniform(
@@ -286,9 +288,30 @@ static void buffer_update(struct Pipeline* p1, int id, int i, const void* data, 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+static void before(struct PipelineImpl* p) {
+    if (p->enable_blend) {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    }
+    if (p->enable_depth) {
+        glEnable(GL_DEPTH_TEST);
+    }
+}
+
+static void after(struct PipelineImpl* p) {
+    if (p->enable_blend) {
+        glDisable(GL_BLEND);
+    }
+    if (p->enable_depth) {
+        glDisable(GL_DEPTH_TEST);
+    }
+}
+
 static void run(struct Pipeline* p1) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     int i;
+
+    before(p);
 
     for (i = 0; i < p->n_programs; i++) {
         prog_use(p->programs[i]);
@@ -311,6 +334,8 @@ static void run(struct Pipeline* p1) {
             glDrawArrays(GL_TRIANGLES, 0, p->buffers[i].n_vertices);
         }
     }
+
+    after(p);
 }
 
 static void start(struct Pipeline* p1) {
@@ -342,13 +367,21 @@ static void use_texture(struct Pipeline* p1, void* tex) {
 
 static void draw(struct Pipeline* p1, int id) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    before(p);
     glBindVertexArray(p->buffers[id].vao);
     glDrawArrays(GL_TRIANGLES, 0, p->buffers[id].n_vertices);
+    after(p);
 }
 
 static struct PipelineBuilder* enable_depth(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     p->enable_depth = 1;
+    return p1;
+}
+
+static struct PipelineBuilder* enable_blend(struct PipelineBuilder* p1) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    p->enable_blend = 1;
     return p1;
 }
 
@@ -439,6 +472,9 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     pl->samplers = malloc(pl->n_samplers*sizeof(struct Sampler));
     memcpy(pl->samplers, p->samplers, pl->n_samplers*sizeof(struct Sampler));
 
+    pl->enable_depth = p->enable_depth;
+    pl->enable_blend = p->enable_blend;
+
     free(p);
     return (struct Pipeline*)pl;
 }
@@ -464,6 +500,7 @@ struct PipelineBuilder* pipeline_builder_opengl(struct Render* r) {
         .end_sampler = end_sampler,
 
         .enable_depth = enable_depth,
+        .enable_blend = enable_blend,
 
         .build = build
     };

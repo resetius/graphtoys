@@ -97,7 +97,6 @@ struct ObjectAndConstructor {
 int main(int argc, char** argv)
 {
     GLFWwindow* window = NULL;
-    struct Object* obj = NULL, *ooo;
     struct App app;
     struct Font* font = NULL;
     struct Label* fps = NULL;
@@ -111,6 +110,7 @@ int main(int argc, char** argv)
         {"triangle", CreateTriangle},
         {"mandelbrot", CreateMandelbrot},
         {"mandelbulb", CreateMandelbulb},
+        {"test", NULL},
         {NULL, NULL}
     };
     int i, j;
@@ -172,10 +172,12 @@ int main(int argc, char** argv)
 
     setbuf(stdout, NULL);
 
-    obj = CreateTriangle(render); //constr(render);
-    ooo = CreateTorus(render);
-
-    ovec_add(&app.objs, obj);
+    if (constr == NULL) {
+        ovec_add(&app.objs, CreateTriangle(render));
+        ovec_add(&app.objs, CreateTorus(render));
+    } else {
+        ovec_add(&app.objs, constr(render));
+    }
 
     if (enable_labels) {
         font = font_new(render);
@@ -207,8 +209,9 @@ int main(int argc, char** argv)
             label_set_screen(text, width, height);
         }
 
-        obj->draw(obj, &app.ctx);
-        ooo->draw(ooo, &app.ctx);
+        for (i = 0; i < app.objs.size; i++) {
+            app.objs.objs[i]->draw(app.objs.objs[i], &app.ctx);
+        }
 
         render->draw_ui(render);
 
@@ -235,9 +238,10 @@ int main(int argc, char** argv)
         //break;
     }
 
-    if (obj) {
-        obj->free(obj);
+    for (i = 0; i < app.objs.size; i++) {
+        app.objs.objs[i]->free(app.objs.objs[i]);
     }
+
     label_free(fps);
     label_free(text);
     font_free(font);

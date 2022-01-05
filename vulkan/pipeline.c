@@ -58,7 +58,8 @@ struct PipelineImpl {
     int n_samplers;
 
     VkDescriptorPool descriptorPool;
-    VkDescriptorSetLayout* layouts;
+    VkDescriptorSetLayout layout;
+    VkDescriptorSetLayout texLayout;
 };
 
 struct Sampler {
@@ -96,8 +97,10 @@ struct PipelineBuilderImpl {
     VkVertexInputAttributeDescription* attr_descrs;
     int n_attrs;
     VkDescriptorSetLayoutBinding* layout_bindings;
+    VkDescriptorSetLayoutBinding* texture_layout_bindings;
 
     int enable_depth;
+    int enable_blend;
 };
 
 static void buffer_update_(VkDevice dev, VkDeviceMemory memory, const void* data, int offset, int size) {
@@ -159,27 +162,44 @@ static void use_texture(struct Pipeline* p1, void* texture) {
     struct PipelineImpl* pl = (struct PipelineImpl*)p1;
     struct RenderImpl* r = pl->r;
     struct Texture* tex = (struct Texture*)texture;
-    static int ii = 1;
 
-#if 0
-    if (ii) {
+    pl->currentDescriptorSet = &tex->set;
+
+    if (tex->has_set) {
         return;
     }
+
+    tex->has_set = 1;
 
     VkDescriptorSetAllocateInfo allocInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
         .descriptorPool = pl->descriptorPool,
-        .descriptorSetCount = r->sc.n_images,
-        .pSetLayouts = pl->layouts
+        .descriptorSetCount = 1,
+        .pSetLayouts = &pl->texLayout,
     };
 
-    VkDescriptorSet sets[2];
-    ii = 1;
-    if (vkAllocateDescriptorSets(r->log_dev, &allocInfo, sets) != VK_SUCCESS) {
-        fprintf(stderr, "failed to allocate descriptor sets\n");
+    if (vkAllocateDescriptorSets(r->log_dev, &allocInfo, &tex->set) != VK_SUCCESS) {
+        fprintf(stderr, "failed to allocate texture descriptor set\n");
         exit(-1);
     }
-#endif
+
+    VkDescriptorImageInfo imageInfo = {
+        .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        .imageView = tex->view,
+        .sampler = pl->samplers[0] // TODO
+    };
+
+    VkWriteDescriptorSet descriptorWrites = {
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .dstSet = tex->set,
+        .dstBinding = 0, // TODO
+        .dstArrayElement = 0,
+        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .descriptorCount = 1,
+        .pImageInfo = &imageInfo,
+    };
+
+    vkUpdateDescriptorSets(r->log_dev, 1, &descriptorWrites, 0, NULL);
 }
 
 static void start(struct Pipeline* p1) {
@@ -190,7 +210,7 @@ static void start(struct Pipeline* p1) {
 
     vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, p->graphicsPipeline);
 
-    p->currentDescriptorSet = &p->descriptorSets[r->image_index];
+    // p->currentDescriptorSet = &p->descriptorSets[r->image_index];
 
     //printf("Start %p\n", p->currentDescriptorSet);
 }
@@ -207,13 +227,15 @@ static void draw(struct Pipeline* p1, int id) {
 
         //printf("Draw %d %d\n", id, buf->n_vertices);
 
+        VkDescriptorSet use [] = { p->descriptorSets[r->image_index], *p->currentDescriptorSet };
+
         vkCmdBindDescriptorSets(
             buffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             p->pipelineLayout,
             0,
-            1,
-            p->currentDescriptorSet, 0, NULL);
+            2,
+            use /*p->currentDescriptorSet*/, 0, NULL);
 
 
         vkCmdBindVertexBuffers(
@@ -294,7 +316,7 @@ static struct PipelineBuilder* begin_sampler(struct PipelineBuilder*p1, int bind
     };
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding = {
-        .binding = 1,
+        .binding = 0, // TODO
         .descriptorCount = 1,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .pImmutableSamplers = NULL,
@@ -568,15 +590,22 @@ static VkVertexInputAttributeDescription* get_attr_descrs(struct PipelineBuilder
 
 struct VkDescriptorSetLayoutBinding* get_layout_bindings(struct PipelineBuilderImpl*p)
 {
-    VkDescriptorSetLayoutBinding* infos = malloc((p->n_uniforms+p->n_samplers)*sizeof(VkDescriptorSetLayoutBinding));
+    VkDescriptorSetLayoutBinding* infos = malloc(p->n_uniforms*sizeof(VkDescriptorSetLayoutBinding));
     int k = 0, i;
     for (i = 0; i < p->n_uniforms; i++) {
         infos[k++] = p->uniforms[i].layoutBinding;
     }
+    return (p->layout_bindings = infos);
+}
+
+struct VkDescriptorSetLayoutBinding* get_texture_layout_bindings(struct PipelineBuilderImpl*p)
+{
+    VkDescriptorSetLayoutBinding* infos = malloc(p->n_samplers*sizeof(VkDescriptorSetLayoutBinding));
+    int k = 0, i;
     for (i = 0; i < p->n_samplers; i++) {
         infos[k++] = p->samplers[i].layoutBinding;
     }
-    return (p->layout_bindings = infos);
+    return (p->texture_layout_bindings = infos);
 }
 
 static void builder_free(struct PipelineBuilderImpl* p) {
@@ -584,6 +613,7 @@ static void builder_free(struct PipelineBuilderImpl* p) {
     free(p->attr_descrs);
     free(p->binding_descrs);
     free(p->layout_bindings);
+    free(p->texture_layout_bindings);
     free(p);
 }
 
@@ -606,6 +636,12 @@ static void pipeline_free(struct Pipeline* p1) {
     free(p->buffers); p->n_buffers = 0;
     p->buffers = NULL;
 
+    vkDestroyDescriptorPool(r->log_dev, p->descriptorPool, NULL);
+    vkDestroyDescriptorSetLayout(r->log_dev, p->layout, NULL);
+    if (p->n_samplers) {
+        vkDestroyDescriptorSetLayout(r->log_dev, p->texLayout, NULL);
+    }
+
     for (i = 0; i < p->n_samplers; i++) {
         vkDestroySampler(r->log_dev, p->samplers[i], NULL);
     }
@@ -616,13 +652,19 @@ static void pipeline_free(struct Pipeline* p1) {
     vkDestroyPipeline(r->log_dev, p->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(r->log_dev, p->pipelineLayout, NULL);
     free(p->descriptorSets); p->descriptorSets = NULL; p->n_descriptor_sets = 0;
-    free(p->layouts);
     free(p);
 }
 
 static struct PipelineBuilder* enable_depth(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     p->enable_depth = 1;
+    return p1;
+}
+
+
+static struct PipelineBuilder* enable_blend(struct PipelineBuilder* p1) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    p->enable_blend = 1;
     return p1;
 }
 
@@ -695,7 +737,13 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     // Color Blend State
 	VkPipelineColorBlendAttachmentState  cbAttach = {
         .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
-        .blendEnable = VK_FALSE
+        .blendEnable = p->enable_blend,
+        .colorBlendOp = VK_BLEND_OP_ADD,
+        .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .alphaBlendOp = VK_BLEND_OP_ADD,
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
     };
 
     VkPipelineColorBlendStateCreateInfo cbCreateInfo = {
@@ -718,10 +766,11 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 
     // Descriptor
     VkDescriptorSetLayout descriptorSetLayout;
+    VkDescriptorSetLayout textureDescriptorSetLayout;
 
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        .bindingCount = (p->n_uniforms+p->n_samplers),
+        .bindingCount = p->n_uniforms,
         .pBindings = get_layout_bindings(p)
     };
 
@@ -731,6 +780,24 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         exit(-1);
 	}
 
+    pl->layout = descriptorSetLayout;
+
+    if (p->n_samplers) {
+        VkDescriptorSetLayoutCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .bindingCount = p->n_samplers,
+            .pBindings = get_texture_layout_bindings(p)
+        };
+
+        if (vkCreateDescriptorSetLayout(r->log_dev, &info, NULL, &textureDescriptorSetLayout) != VK_SUCCESS)
+        {
+            fprintf(stderr, "Failed to create descriptor set layout\n");
+            exit(-1);
+        }
+
+        pl->texLayout = textureDescriptorSetLayout;
+    }
+
     VkDescriptorPoolSize uniformPool = {
         .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .descriptorCount = r->sc.n_images
@@ -738,7 +805,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 
     VkDescriptorPoolSize samplerPool = {
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        .descriptorCount = r->sc.n_images
+        .descriptorCount = 100*r->sc.n_images
     };
 
     VkDescriptorPoolSize poolSizes[] = {
@@ -749,7 +816,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         .poolSizeCount = sizeof(poolSizes)/sizeof(VkDescriptorPoolSize),
         .pPoolSizes = poolSizes,
-        .maxSets = r->sc.n_images
+        .maxSets = uniformPool.descriptorCount+samplerPool.descriptorCount
     };
 
 	if (vkCreateDescriptorPool(r->log_dev, &poolInfo, NULL, &pl->descriptorPool) != VK_SUCCESS) {
@@ -758,15 +825,15 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 	}
 
     // create vector of 2 decriptorSetLayout with the layouts
-    pl->layouts = malloc(r->sc.n_images*sizeof(VkDescriptorSetLayout));
+    VkDescriptorSetLayout* layouts = malloc(r->sc.n_images*sizeof(VkDescriptorSetLayout));
     for (int i = 0; i < r->sc.n_images;i++) {
-        pl->layouts[i] = descriptorSetLayout;
+        layouts[i] = descriptorSetLayout;
     }
     VkDescriptorSetAllocateInfo allocInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
         .descriptorPool = pl->descriptorPool,
         .descriptorSetCount = r->sc.n_images,
-        .pSetLayouts = pl->layouts
+        .pSetLayouts = layouts
     };
 
     pl->n_descriptor_sets = allocInfo.descriptorSetCount;
@@ -775,6 +842,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         fprintf(stderr, "failed to allocate descriptor sets\n");
         exit(-1);
     }
+    free(layouts);
 
     for (int i = 0; i < r->sc.n_images; i++) {
         VkDescriptorBufferInfo* uboBufferDescInfo = malloc(p->n_uniforms*sizeof(VkDescriptorBufferInfo));
@@ -811,10 +879,14 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         free(uboBufferDescInfo);
     }
 
+    VkDescriptorSetLayout activeLayouts [] = {
+        pl->layout, pl->texLayout
+    };
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .setLayoutCount = 1,
-        .pSetLayouts = &descriptorSetLayout
+        .setLayoutCount = p->n_samplers == 0 ? 1 : 2,
+        .pSetLayouts = activeLayouts
     };
 
 	if (vkCreatePipelineLayout(r->log_dev, &pipelineLayoutInfo, NULL, &pl->pipelineLayout) != VK_SUCCESS) {
@@ -894,6 +966,7 @@ struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r) {
         .buffer_attribute = buffer_attribute,
         .end_buffer = end_buffer,
         .enable_depth = enable_depth,
+        .enable_blend = enable_blend,
         .begin_sampler = begin_sampler,
         .end_sampler = end_sampler,
         .build = build,

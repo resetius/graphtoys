@@ -15,6 +15,10 @@ struct Texture {
     VkImage tex;
     VkDeviceMemory memory;
     VkImageView view;
+
+    // TODO: remove it from here
+    VkDescriptorSet set;
+    int has_set;
 };
 
 struct RenderImpl {

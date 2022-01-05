@@ -62,6 +62,7 @@ struct PipelineBuilder {
     struct PipelineBuilder* (*end_sampler)(struct PipelineBuilder* p1);
 
     struct PipelineBuilder* (*enable_depth)(struct PipelineBuilder* p1);
+    struct PipelineBuilder* (*enable_blend)(struct PipelineBuilder* p1);
 
     struct Pipeline* (*build)(struct PipelineBuilder*); // free
 };

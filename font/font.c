@@ -143,6 +143,8 @@ struct Font* font_new(struct Render* r) {
         ->begin_sampler(p, 0)
         ->end_sampler(p)
 
+        ->enable_blend(p)
+
         //->begin_descriptor(p)
 
         // for each texture
