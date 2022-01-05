@@ -58,7 +58,7 @@ struct PipelineBuilder {
         int size);
     struct PipelineBuilder* (*end_uniform)(struct PipelineBuilder*);
 
-    struct PipelineBuilder* (*begin_sampler)(struct PipelineBuilder* p1);
+    struct PipelineBuilder* (*begin_sampler)(struct PipelineBuilder* p1, int binding);
     struct PipelineBuilder* (*end_sampler)(struct PipelineBuilder* p1);
 
     struct PipelineBuilder* (*enable_depth)(struct PipelineBuilder* p1);

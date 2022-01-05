@@ -136,7 +136,7 @@ struct Font* font_new(struct Render* r) {
         ->begin_uniform(p, 10, "MatrixBlock", sizeof(t->uniform))
         ->end_uniform(p)
 
-        ->begin_sampler(p)
+        ->begin_sampler(p, 0)
         ->end_sampler(p)
 
         //->begin_descriptor(p)

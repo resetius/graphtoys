@@ -352,9 +352,10 @@ static struct PipelineBuilder* enable_depth(struct PipelineBuilder* p1) {
     return p1;
 }
 
-static struct PipelineBuilder* begin_sampler(struct PipelineBuilder* p1) {
+static struct PipelineBuilder* begin_sampler(struct PipelineBuilder* p1, int binding) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     p->cur_sampler = &p->samplers[p->n_samplers++];
+    p->cur_sampler->binding = binding;
     glGenSamplers(1, &p->cur_sampler->id);
     glSamplerParameteri(p->cur_sampler->id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glSamplerParameteri(p->cur_sampler->id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

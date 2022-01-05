@@ -49,7 +49,16 @@ struct PipelineImpl {
     VkDescriptorSet* descriptorSets;
     int n_descriptor_sets;
 
+    VkSampler* samplers;
+    int n_samplers;
+
     int n_vertices;
+};
+
+struct Sampler {
+    struct VkSamplerCreateInfo info;
+    VkDescriptorSetLayoutBinding layoutBinding;
+    int binding;
 };
 
 struct PipelineBuilderImpl {
@@ -70,6 +79,9 @@ struct PipelineBuilderImpl {
     struct Buffer* cur_buffer;
     int n_buffers;
     int n_vertices;
+
+    struct Sampler samplers[100];
+    int n_samplers;
 
     VkPipelineShaderStageCreateInfo* shader_stages;
     VkVertexInputBindingDescription* binding_descrs;
@@ -95,7 +107,7 @@ static void uniform_update(struct Pipeline* p1, int id, const void* data, int of
     buffer_update_(r->log_dev, p->uniforms[id].memory[r->image_index], data, offset, size);
 }
 
-static void buffer_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
+static void buffer_update(struct Pipeline* p1, int id, int i, const void* data, int offset, int size)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     struct RenderImpl* r = p->r;
@@ -135,6 +147,49 @@ static void run(struct Pipeline* p1) {
         0);// first instance -- since no instancing, is set to 0
 }
 
+static struct PipelineBuilder* begin_sampler(struct PipelineBuilder*p1, int binding)
+{
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    struct RenderImpl* r = p->r;
+
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(r->phy_dev, &properties);
+
+    VkSamplerCreateInfo samplerInfo = {
+        .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+        .magFilter = VK_FILTER_LINEAR,
+        .minFilter = VK_FILTER_LINEAR,
+        .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .anisotropyEnable = VK_FALSE,
+        .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
+        .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+        .unnormalizedCoordinates = VK_FALSE,
+        .compareEnable = VK_FALSE,
+        .compareOp = VK_COMPARE_OP_ALWAYS,
+        .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR
+    };
+
+    VkDescriptorSetLayoutBinding samplerLayoutBinding = {
+        .binding = 1,
+        .descriptorCount = 1,
+        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .pImmutableSamplers = NULL,
+        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+    };
+
+    struct Sampler* sampler = &p->samplers[p->n_samplers++];
+    sampler->info = samplerInfo;
+    sampler->layoutBinding = samplerLayoutBinding;
+    sampler->binding = binding;
+    return p1;
+}
+
+static struct PipelineBuilder* end_sampler(struct PipelineBuilder*p1)
+{
+    return p1;
+}
 
 static struct PipelineBuilder* begin_uniform(
     struct PipelineBuilder*p1,
@@ -404,10 +459,13 @@ static VkVertexInputAttributeDescription* get_attr_descrs(struct PipelineBuilder
 
 struct VkDescriptorSetLayoutBinding* get_layout_bindings(struct PipelineBuilderImpl*p)
 {
-    VkDescriptorSetLayoutBinding* infos = malloc(p->n_uniforms*sizeof(VkDescriptorSetLayoutBinding));
-    int i;
+    VkDescriptorSetLayoutBinding* infos = malloc((p->n_uniforms+p->n_samplers)*sizeof(VkDescriptorSetLayoutBinding));
+    int k = 0, i;
     for (i = 0; i < p->n_uniforms; i++) {
-        infos[i] = p->uniforms[i].layoutBinding;
+        infos[k++] = p->uniforms[i].layoutBinding;
+    }
+    for (i = 0; i < p->n_samplers; i++) {
+        infos[k++] = p->samplers[i].layoutBinding;
     }
     return (p->layout_bindings = infos);
 }
@@ -466,6 +524,15 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     pl->n_vertices = p->n_vertices;
 
     // TODO: check end state
+    // Create samplers
+    pl->samplers = malloc(p->n_samplers*sizeof(VkSampler));
+    pl->n_samplers = p->n_samplers;
+    for (int i = 0; i < p->n_samplers; i++) {
+        if (vkCreateSampler(r->log_dev, &p->samplers[i].info, NULL, &pl->samplers[i]) != VK_SUCCESS) {
+            fprintf(stderr, "Failed to create texture sampler\n");
+            exit(-1);
+        }
+    }
 
     // Vertex input State
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
@@ -535,7 +602,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        .bindingCount = p->n_uniforms,
+        .bindingCount = (p->n_uniforms+p->n_samplers),
         .pBindings = get_layout_bindings(p)
     };
 
@@ -704,6 +771,8 @@ struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r) {
         .buffer_attribute = buffer_attribute,
         .end_buffer = end_buffer,
         .enable_depth = enable_depth,
+        .begin_sampler = begin_sampler,
+        .end_sampler = end_sampler,
         .build = build,
     };
     p->base = base;
