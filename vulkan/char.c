@@ -3,6 +3,9 @@
 
 #include <freetype/freetype.h>
 
+#include <font/font_vs.vert.spv.h>
+#include <font/font_fs.frag.spv.h>
+
 #include "render_impl.h"
 #include "tools.h"
 
@@ -120,10 +123,10 @@ struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm) {
         .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
         .magFilter = VK_FILTER_LINEAR,
         .minFilter = VK_FILTER_LINEAR,
-        .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-        .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-        .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-        .anisotropyEnable = VK_TRUE,
+        .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .anisotropyEnable = VK_FALSE,
         .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
         .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
         .unnormalizedCoordinates = VK_FALSE,
@@ -136,6 +139,8 @@ struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm) {
         fprintf(stderr, "Failed to create texture sampler\n");
         exit(-1);
     }
+
+
 
     return (struct Char*)c;
 }

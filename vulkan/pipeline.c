@@ -220,7 +220,7 @@ static struct PipelineBuilder* add_fs(struct PipelineBuilder* p1,struct ShaderCo
     return p1;
 }
 
-static struct PipelineBuilder* begin_buffer(struct PipelineBuilder* p1, int n_vertices, int stride)
+static struct PipelineBuilder* begin_buffer(struct PipelineBuilder* p1, int stride)
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     VkVertexInputBindingDescription descr = {
@@ -229,10 +229,8 @@ static struct PipelineBuilder* begin_buffer(struct PipelineBuilder* p1, int n_ve
         .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
     };
 
-    p->n_vertices += n_vertices;
     // TODO: check ptr
     p->cur_buffer = &p->buffers[p->n_buffers++];
-    p->cur_buffer->n_vertices = n_vertices;
     p->cur_buffer->stride = stride;
     p->cur_buffer->descr = descr;
 
@@ -247,6 +245,8 @@ struct PipelineBuilder* buffer_data(struct PipelineBuilder* p1,const void* data,
 
     VkDeviceSize bufferSize = size;
     p->cur_buffer->size = size;
+    p->cur_buffer->n_vertices = size / p->cur_buffer->stride;
+    p->n_vertices += p->cur_buffer->n_vertices;
 
     if (p->cur_buffer->dynamic) {
         create_buffer(

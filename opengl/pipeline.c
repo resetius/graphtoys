@@ -123,15 +123,11 @@ static struct PipelineBuilder* end_program(struct PipelineBuilder*p1) {
     return p1;
 }
 
-static struct PipelineBuilder* begin_buffer(struct PipelineBuilder* p1, int n_vertices, int stride) {
+static struct PipelineBuilder* begin_buffer(struct PipelineBuilder* p1, int stride) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     // TODO: check current
     p->cur_buffer = &p->buffers[p->n_buffers++];
-    p->cur_buffer->n_vertices = n_vertices;
     p->cur_buffer->stride = stride;
-
-    glGenBuffers(1, &p->cur_buffer->vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, p->cur_buffer->vbo);
 
     return p1;
 }
@@ -141,6 +137,10 @@ static struct PipelineBuilder* buffer_data(struct PipelineBuilder* p1, const voi
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     // TODO: check current
     p->cur_buffer->size = size;
+    p->cur_buffer->n_vertices = size / p->cur_buffer->stride;
+
+    glGenBuffers(1, &p->cur_buffer->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, p->cur_buffer->vbo);
     glBufferData(GL_ARRAY_BUFFER, size, data, p->cur_buffer->dynamic
                  ? GL_DYNAMIC_DRAW
                  : GL_STATIC_DRAW);

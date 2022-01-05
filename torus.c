@@ -187,8 +187,8 @@ struct Object* CreateTorus(struct Render* r) {
         ->begin_uniform(pl, 0, "MatrixBlock", sizeof(struct UniformBlock))
         ->end_uniform(pl)
 
-        ->begin_buffer(pl, nvertices, sizeof(struct Vertex))
-        ->buffer_data(pl, vertices, nvertices*sizeof(struct Vertex)) //TODO: size dont need
+        ->begin_buffer(pl, sizeof(struct Vertex))
+        ->buffer_data(pl, vertices, nvertices*sizeof(struct Vertex))
         ->buffer_attribute(pl, 3, 3, 4, offsetof(struct Vertex, col))
         ->buffer_attribute(pl, 2, 3, 4, offsetof(struct Vertex, norm))
         ->buffer_attribute(pl, 1, 3, 4, offsetof(struct Vertex, pos))

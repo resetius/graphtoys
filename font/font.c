@@ -6,18 +6,27 @@
 #include <freetype/freetype.h>
 
 #include <render/program.h>
+#include <render/pipeline.h>
 #include <render/char.h>
 #include <render/render.h>
 
 #include <font/font_vs.vert.h>
 #include <font/font_fs.frag.h>
+#include <font/font_vs.vert.spv.h>
+#include <font/font_fs.frag.spv.h>
 #include <font/RobotoMono-Regular.ttf.h>
 
 #include "font.h"
+#include "linmath.h"
+
+struct UniformBlock {
+    mat4x4 mvp;
+};
 
 struct FontImpl {
     struct Program* p;
     struct Char* chars[65536];
+    struct UniformBlock uniform;
 };
 
 static void char_load(struct Render* r, struct Char* chars[], FT_Face face, wchar_t ch) {
@@ -106,6 +115,43 @@ struct Font* font_new(struct Render* r) {
     while (*cyr) {
         char_load(r, t->chars, face, *cyr++);
     }
+
+    struct ShaderCode vertex_shader = {
+        .glsl = font_font_vs_vert,
+        .spir_v = font_font_vs_vert_spv,
+        .size = font_font_vs_vert_spv_size,
+    };
+    struct ShaderCode fragment_shader = {
+        .glsl = font_font_fs_frag,
+        .spir_v = font_font_fs_frag_spv,
+        .size = font_font_fs_frag_spv_size,
+    };
+
+    struct PipelineBuilder* p = r->pipeline(r);
+    struct Pipeline* pl = p->begin_program(p)
+        ->add_vs(p, vertex_shader)
+        ->add_fs(p, fragment_shader)
+        ->end_program(p)
+
+        ->begin_buffer(p, sizeof(vec4)) // {x,y,s,t}
+        // set buffer data later in char render
+        ->buffer_attribute(p, 0, 4, 4, 0)
+        ->end_buffer(p)
+
+        ->begin_uniform(p, 0, "MatrixBlock", sizeof(t->uniform))
+        ->end_uniform(p)
+
+        //->begin_descriptor(p)
+
+        // for each texture
+
+        //->end_descriptor(p)
+
+        ->build(p);
+
+    //pl->use_descriptor();
+    //pl->use_buffer();
+    //pl->submit();
 
     FT_Done_Face(face);
     FT_Done_FreeType(library);

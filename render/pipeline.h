@@ -36,7 +36,7 @@ struct PipelineBuilder {
     struct PipelineBuilder* (*add_fs)(struct PipelineBuilder*, struct ShaderCode shader);
     struct PipelineBuilder* (*end_program)(struct PipelineBuilder*);
 
-    struct PipelineBuilder* (*begin_buffer)(struct PipelineBuilder*, int n_vertices, int stride);
+    struct PipelineBuilder* (*begin_buffer)(struct PipelineBuilder*, int stride);
     struct PipelineBuilder* (*buffer_data)(struct PipelineBuilder*, const void* data, int size);
     struct PipelineBuilder* (*buffer_dynamic)(struct PipelineBuilder*);
     struct PipelineBuilder* (*buffer_attribute)(

@@ -160,7 +160,7 @@ struct Object* CreateMandelbulb(struct Render* r) {
         ->begin_uniform(p, 0, "MatrixBlock", sizeof(struct UniformBlock))
         ->end_uniform(p)
 
-        ->begin_buffer(p, n_vertices, sizeof(struct Vertex))
+        ->begin_buffer(p, sizeof(struct Vertex))
         ->buffer_data(p, vertices, n_vertices*sizeof(struct Vertex))
         ->buffer_attribute(p, 1, 3, 4, offsetof(struct Vertex, pos))
         ->end_buffer(p)
