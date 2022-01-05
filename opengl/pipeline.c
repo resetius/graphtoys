@@ -248,7 +248,7 @@ static void buffer_update(struct Pipeline* p1, int id, int i, const void* data, 
     // check id < n_buffers
     int j;
 
-    if (id < p->n_buffers) {
+    if (id >= p->n_buffers) {
         p->buffers = realloc(p->buffers, (id+1)*sizeof(struct Buffer));
         memset(p->buffers+p->n_buffers, 0, (id-p->n_buffers+1)* sizeof(struct Buffer));
         p->n_buffers = id+1;

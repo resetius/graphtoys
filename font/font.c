@@ -226,6 +226,7 @@ void label_render(struct Label* l)
     mat4x4 m, p, mvp;
     struct Char* ch;
     int symbol;
+    int id = 0;
     mat4x4_identity(m);
     mat4x4_ortho(p, 0, l->w, 0, l->h, 1.f, -1.f);
     p[3][2] = 0;
@@ -283,9 +284,10 @@ void label_render(struct Label* l)
                 { xpos + w, ypos + h, 1.0, 0.0 }
             };
 
-            f->pl->buffer_update(f->pl, 0, 0, vertices, 0, sizeof(vertices));
+            int cur_id = id++;
+            f->pl->buffer_update(f->pl, cur_id, 0, vertices, 0, sizeof(vertices));
             f->pl->use_texture(f->pl, ch->texture(ch));
-            f->pl->draw(f->pl, 0);
+            f->pl->draw(f->pl, cur_id);
         }
         if (!ch) {
             continue;
