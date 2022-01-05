@@ -23,6 +23,11 @@ struct Buffer {
     int stride;
 };
 
+struct Sampler {
+    GLuint id;
+    int binding;
+};
+
 struct PipelineImpl {
     struct Pipeline base;
 
@@ -35,6 +40,9 @@ struct PipelineImpl {
 
     struct Buffer* buffers;
     int n_buffers;
+
+    struct Sampler* samplers;
+    int n_samplers;
 
     int enable_depth;
 };
@@ -54,6 +62,10 @@ struct PipelineBuilderImpl {
     struct Buffer buffers[100];
     struct Buffer* cur_buffer;
     int n_buffers;
+
+    struct Sampler samplers[100];
+    struct Sampler* cur_sampler;
+    int n_samplers;
 
     int enable_depth;
 };
@@ -165,7 +177,7 @@ static struct PipelineBuilder* buffer_attribute(
         glGenVertexArrays(1, &p->cur_buffer->vao);
         glBindVertexArray(p->cur_buffer->vao);
     }
-    glBindBuffer(GL_ARRAY_BUFFER, p->cur_buffer->vbo);
+    //glBindBuffer(GL_ARRAY_BUFFER, p->cur_buffer->vbo);
     glEnableVertexAttribArray(location);
     glVertexAttribPointer(location, channels, GL_FLOAT, GL_FALSE,
                           p->cur_buffer->stride, (const void*)offset);
@@ -202,6 +214,10 @@ static void pipeline_free(struct Pipeline* p1) {
         glDeleteBuffers(1, &p->uniforms[i].buffer);
     }
     free(p->uniforms);
+    for (i = 0; i < p->n_samplers; i++) {
+        glDeleteSamplers(1, &p->samplers[i].id);
+    }
+    free(p->samplers);
     free(p);
 }
 
@@ -211,6 +227,7 @@ static void uniform_update(struct Pipeline* p1, int id, const void* data, int of
     // check id < n_buffers
     glBindBuffer(GL_ARRAY_BUFFER, p->uniforms[id].buffer);
     glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 static void buffer_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
@@ -219,6 +236,7 @@ static void buffer_update(struct Pipeline* p1, int id, const void* data, int off
     // check id < n_buffers
     glBindBuffer(GL_ARRAY_BUFFER, p->buffers[id].vbo);
     glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 static void run(struct Pipeline* p1) {
@@ -227,6 +245,10 @@ static void run(struct Pipeline* p1) {
 
     for (i = 0; i < p->n_programs; i++) {
         prog_use(p->programs[i]);
+    }
+
+    for (i = 0; i < p->n_samplers; i++) {
+        glBindSampler(p->samplers[i].binding, p->samplers[i].id);
     }
 
     for (i = 0; i < p->n_uniforms; i++) {
@@ -238,13 +260,35 @@ static void run(struct Pipeline* p1) {
 
     for (i = 0; i < p->n_buffers; i++) {
         glBindVertexArray(p->buffers[i].vao);
-        glDrawArrays(GL_TRIANGLES, 0, p->buffers[i].n_vertices);
+        if (p->buffers[i].n_vertices) {
+            glDrawArrays(GL_TRIANGLES, 0, p->buffers[i].n_vertices);
+        }
     }
 }
 
 static struct PipelineBuilder* enable_depth(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     p->enable_depth = 1;
+    return p1;
+}
+
+static struct PipelineBuilder* begin_sampler(struct PipelineBuilder* p1) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    p->cur_sampler = &p->samplers[p->n_samplers++];
+    glGenSamplers(1, &p->cur_sampler->id);
+    glSamplerParameteri(p->cur_sampler->id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glSamplerParameteri(p->cur_sampler->id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glSamplerParameteri(p->cur_sampler->id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glSamplerParameteri(p->cur_sampler->id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    vec4 border = {0.0f,0.0f,0.0f,0.5f};
+    glSamplerParameterfv(p->cur_sampler->id, GL_TEXTURE_BORDER_COLOR, border);
+
+    return p1;
+}
+
+static struct PipelineBuilder* end_sampler(struct PipelineBuilder* p1) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    p->cur_sampler = NULL;
     return p1;
 }
 
@@ -269,6 +313,11 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     pl->n_buffers = p->n_buffers;
     pl->buffers = malloc(pl->n_buffers*sizeof(struct Buffer));
     memcpy(pl->buffers, p->buffers, pl->n_buffers*sizeof(struct Buffer));
+
+    pl->n_samplers = p->n_samplers;
+    pl->samplers = malloc(pl->n_samplers*sizeof(struct Sampler));
+    memcpy(pl->samplers, p->samplers, pl->n_samplers*sizeof(struct Sampler));
+
     free(p);
     return (struct Pipeline*)pl;
 }
@@ -289,6 +338,9 @@ struct PipelineBuilder* pipeline_builder_opengl(struct Render* r) {
         .buffer_dynamic = buffer_dynamic,
         .buffer_attribute = buffer_attribute,
         .end_buffer = end_buffer,
+
+        .begin_sampler = begin_sampler,
+        .end_sampler = end_sampler,
 
         .enable_depth = enable_depth,
 
