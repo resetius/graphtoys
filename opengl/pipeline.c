@@ -165,6 +165,7 @@ static struct PipelineBuilder* buffer_attribute(
         glGenVertexArrays(1, &p->cur_buffer->vao);
         glBindVertexArray(p->cur_buffer->vao);
     }
+    glBindBuffer(GL_ARRAY_BUFFER, p->cur_buffer->vbo);
     glEnableVertexAttribArray(location);
     glVertexAttribPointer(location, channels, GL_FLOAT, GL_FALSE,
                           p->cur_buffer->stride, (const void*)offset);
@@ -174,6 +175,8 @@ static struct PipelineBuilder* buffer_attribute(
 
 static struct PipelineBuilder* end_buffer(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
     p->cur_buffer = 0;
     return p1;
 }
@@ -224,6 +227,13 @@ static void run(struct Pipeline* p1) {
 
     for (i = 0; i < p->n_programs; i++) {
         prog_use(p->programs[i]);
+    }
+
+    for (i = 0; i < p->n_uniforms; i++) {
+        glBindBufferBase(
+            GL_UNIFORM_BUFFER,
+            p->uniforms[i].binding,
+            p->uniforms[i].buffer);
     }
 
     for (i = 0; i < p->n_buffers; i++) {
