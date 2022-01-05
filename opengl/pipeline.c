@@ -407,6 +407,9 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
             buf->n_vertices = p->buffers[i].size / p->buffers[i].stride;
             buf->size = p->buffers[i].size;
 
+            printf("Create buffer: %d %d %d\n", buf->size, buf->n_vertices,
+                   p->buffers[i].n_attrs);
+
             glGenBuffers(1, &buf->vbo);
             glBindBuffer(GL_ARRAY_BUFFER, buf->vbo);
             glBufferData(GL_ARRAY_BUFFER, buf->size,

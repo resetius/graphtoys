@@ -12,6 +12,7 @@ struct Label {
     int y;
     int w;
     int h;
+    int id;
 };
 
 struct Font* font_new(struct Render* r);

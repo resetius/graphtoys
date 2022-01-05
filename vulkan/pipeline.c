@@ -10,17 +10,20 @@
 #include "render_impl.h"
 #include "tools.h"
 
-struct Buffer {
-    int n_vertices;
+struct BufferDescriptor {
     int stride;
     VkVertexInputBindingDescription descr;
     VkVertexInputAttributeDescription attr[20];
     int n_attr;
     int dynamic;
+};
 
+struct Buffer {
     VkBuffer buffer;
     VkDeviceMemory memory;
     VkDeviceSize size;
+    int stride;
+    int n_vertices;
 };
 
 struct UniformBlock {
@@ -38,9 +41,10 @@ struct PipelineImpl {
     struct UniformBlock* uniforms;
     int n_uniforms;
 
-    VkBuffer* buffers;
-    VkDeviceMemory* memories;
-    VkDeviceSize* offsets;
+    struct BufferDescriptor* buf_descr;
+    int n_buf_descr;
+
+    struct Buffer* buffers;
     int n_buffers;
 
     VkPipelineLayout pipelineLayout;
@@ -52,8 +56,6 @@ struct PipelineImpl {
 
     VkSampler* samplers;
     int n_samplers;
-
-    int n_vertices;
 
     VkDescriptorPool descriptorPool;
     VkDescriptorSetLayout* layouts;
@@ -79,10 +81,12 @@ struct PipelineBuilderImpl {
     VkShaderModule frag_shaders[100];
     int n_frag_shaders;
 
-    struct Buffer buffers[100];
-    struct Buffer* cur_buffer;
+    struct BufferDescriptor buffers[100];
+    struct BufferDescriptor* cur_buffer;
     int n_buffers;
-    int n_vertices;
+
+    struct Buffer allocated[100];
+    int n_allocated;
 
     struct Sampler samplers[100];
     int n_samplers;
@@ -116,8 +120,39 @@ static void buffer_update(struct Pipeline* p1, int id, int i, const void* data, 
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     struct RenderImpl* r = p->r;
 
-    // TODO: image_index
-    // buffer_update_(r->log_dev, p->memories[id], data, offset, size);
+    if (id >= p->n_buffers) {
+        p->buffers = realloc(p->buffers, (id+1)*sizeof(struct Buffer));
+        memset(p->buffers+p->n_buffers, 0, (id-p->n_buffers+1)* sizeof(struct Buffer));
+        p->n_buffers = id+1;
+    }
+
+    struct Buffer* buf = &p->buffers[id];
+    if (buf->size > 0 && buf->size != size) {
+        fprintf(stderr, "Free\n");
+        vkDestroyBuffer(r->log_dev, buf->buffer, NULL);
+        vkFreeMemory(r->log_dev, buf->memory, NULL);
+    }
+    if (size != buf->size) {
+        //fprintf(stderr, "Alloc and copy %d\n", size);
+        buf->n_vertices = size / p->buf_descr[i].stride;
+        buf->size = size;
+        create_buffer(
+            r->phy_dev, r->log_dev,
+            buf->size,
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            //VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            &buf->buffer,
+            &buf->memory);
+    }
+
+    // TODO: buffer per frame
+    // TODO: barriers
+        //vkCmdUpdateBuffer(
+        //    r->buffer,
+        //    buf->buffer, 0, size, data);
+         buffer_update_(r->log_dev, buf->memory, data, offset, size);
+         //}
 }
 
 static void use_texture(struct Pipeline* p1, void* texture) {
@@ -125,6 +160,8 @@ static void use_texture(struct Pipeline* p1, void* texture) {
     struct RenderImpl* r = pl->r;
     struct Texture* tex = (struct Texture*)texture;
     static int ii = 1;
+
+#if 0
     if (ii) {
         return;
     }
@@ -142,6 +179,7 @@ static void use_texture(struct Pipeline* p1, void* texture) {
         fprintf(stderr, "failed to allocate descriptor sets\n");
         exit(-1);
     }
+#endif
 }
 
 static void start(struct Pipeline* p1) {
@@ -153,6 +191,8 @@ static void start(struct Pipeline* p1) {
     vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, p->graphicsPipeline);
 
     p->currentDescriptorSet = &p->descriptorSets[r->image_index];
+
+    //printf("Start %p\n", p->currentDescriptorSet);
 }
 
 static void draw(struct Pipeline* p1, int id) {
@@ -162,12 +202,10 @@ static void draw(struct Pipeline* p1, int id) {
     VkCommandBuffer buffer = r->buffer;
 
     if (id < p->n_buffers) {
-        vkCmdBindVertexBuffers(
-            buffer,
-            0,
-            1,
-            &p->buffers[id],
-            &p->offsets[id]);
+        VkDeviceSize offset = 0;
+        struct Buffer* buf = &p->buffers[id];
+
+        //printf("Draw %d %d\n", id, buf->n_vertices);
 
         vkCmdBindDescriptorSets(
             buffer,
@@ -177,9 +215,19 @@ static void draw(struct Pipeline* p1, int id) {
             1,
             p->currentDescriptorSet, 0, NULL);
 
+
+        vkCmdBindVertexBuffers(
+            buffer,
+            0,
+            1,
+            &buf->buffer,
+            &offset);
+
+        //printf("Use %p\n", p->currentDescriptorSet);
+
         vkCmdDraw(
             buffer,
-            p->n_vertices, // vertices
+            buf->n_vertices, // vertices
             1, // instance count -- just the 1
             0, // vertex offet -- any offsets to add
             0);// first instance -- since no instancing, is set to 0
@@ -194,13 +242,6 @@ static void run(struct Pipeline* p1) {
 
     vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, p->graphicsPipeline);
 
-    vkCmdBindVertexBuffers(
-        buffer,
-        0,
-        p->n_buffers,
-        p->buffers,
-        p->offsets);
-
     vkCmdBindDescriptorSets(
         buffer,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -209,12 +250,23 @@ static void run(struct Pipeline* p1) {
         1,
         &p->descriptorSets[r->image_index], 0, NULL);
 
-    vkCmdDraw(
-        buffer,
-        p->n_vertices, // vertices
-        1, // instance count -- just the 1
-        0, // vertex offet -- any offsets to add
-        0);// first instance -- since no instancing, is set to 0
+    for (int id = 0; id < p->n_buffers; id++) {
+        VkDeviceSize offset = 0;
+        struct Buffer* buf = &p->buffers[id];
+        vkCmdBindVertexBuffers(
+            buffer,
+            0,
+            1,
+            &buf->buffer,
+            &offset);
+
+        vkCmdDraw(
+            buffer,
+            buf->n_vertices, // vertices
+            1, // instance count -- just the 1
+            0, // vertex offet -- any offsets to add
+            0);// first instance -- since no instancing, is set to 0
+    }
 }
 
 static struct PipelineBuilder* begin_sampler(struct PipelineBuilder*p1, int binding)
@@ -368,57 +420,44 @@ struct PipelineBuilder* buffer_data(struct PipelineBuilder* p1,const void* data,
     struct RenderImpl* r = p->r;
     // TODO: check ptr
 
+    struct Buffer* buf = &p->allocated[p->n_allocated++];
+
     VkDeviceSize bufferSize = size;
-    p->cur_buffer->size = size;
-    p->cur_buffer->n_vertices = size / p->cur_buffer->stride;
-    p->n_vertices += p->cur_buffer->n_vertices;
+    buf->size = size;
+    buf->n_vertices = size / p->cur_buffer->stride;
 
-    if (p->cur_buffer->dynamic) {
-        create_buffer(
-            r->phy_dev, r->log_dev,
-            bufferSize,
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &p->cur_buffer->buffer,
-            &p->cur_buffer->memory);
-        if (data) {
-            void* dst;
-            vkMapMemory(r->log_dev, p->cur_buffer->memory, 0, bufferSize, 0, &dst);
-            memcpy(dst, data, bufferSize);
-            vkUnmapMemory(r->log_dev, p->cur_buffer->memory);
-        }
-    } else {
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
 
-        create_buffer(
-            r->phy_dev, r->log_dev,
-            bufferSize,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &stagingBuffer, &stagingBufferMemory);
+    create_buffer(
+        r->phy_dev, r->log_dev,
+        bufferSize,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        &stagingBuffer, &stagingBufferMemory);
 
-        void* dst;
-        vkMapMemory(r->log_dev, stagingBufferMemory, 0, bufferSize, 0, &dst);
-        memcpy(dst, data, bufferSize);
-        vkUnmapMemory(r->log_dev, stagingBufferMemory);
+    void* dst;
+    vkMapMemory(r->log_dev, stagingBufferMemory, 0, bufferSize, 0, &dst);
+    memcpy(dst, data, bufferSize);
+    vkUnmapMemory(r->log_dev, stagingBufferMemory);
 
-        create_buffer(
-            r->phy_dev, r->log_dev,
-            bufferSize,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            &p->cur_buffer->buffer,
-            &p->cur_buffer->memory);
+    create_buffer(
+        r->phy_dev, r->log_dev,
+        bufferSize,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        &buf->buffer,
+        &buf->memory);
 
-        copy_buffer(r->graphics_family,
-                    r->g_queue, r->log_dev,
-                    stagingBuffer,
-                    p->cur_buffer->buffer, bufferSize);
+    copy_buffer(
+        r->graphics_family,
+        r->g_queue, r->log_dev,
+        stagingBuffer,
+        buf->buffer, bufferSize);
 
-        vkDestroyBuffer(r->log_dev, stagingBuffer, NULL);
-        vkFreeMemory(r->log_dev, stagingBufferMemory, NULL);
-    }
+    vkDestroyBuffer(r->log_dev, stagingBuffer, NULL);
+    vkFreeMemory(r->log_dev, stagingBufferMemory, NULL);
+
     return p1;
 }
 
@@ -561,16 +600,18 @@ static void pipeline_free(struct Pipeline* p1) {
     free(p->uniforms); p->uniforms = NULL; p->n_uniforms = 0;
 
     for (i = 0; i < p->n_buffers; i++) {
-        vkDestroyBuffer(r->log_dev, p->buffers[i], NULL);
-        vkFreeMemory(r->log_dev, p->memories[i], NULL);
+        vkDestroyBuffer(r->log_dev, p->buffers[i].buffer, NULL);
+        vkFreeMemory(r->log_dev, p->buffers[i].memory, NULL);
     }
-    free(p->buffers); free(p->memories); p->n_buffers = 0;
-    p->buffers = NULL; p->memories = NULL;
+    free(p->buffers); p->n_buffers = 0;
+    p->buffers = NULL;
 
     for (i = 0; i < p->n_samplers; i++) {
         vkDestroySampler(r->log_dev, p->samplers[i], NULL);
     }
     free(p->samplers); p->samplers = NULL; p->n_samplers = 0;
+
+    free(p->buf_descr); p->n_buf_descr = 0; p->buf_descr = NULL;
 
     vkDestroyPipeline(r->log_dev, p->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(r->log_dev, p->pipelineLayout, NULL);
@@ -600,7 +641,6 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     };
     pl->base = base;
     pl->r = r;
-    pl->n_vertices = p->n_vertices;
 
     // TODO: check end state
     // Create samplers
@@ -693,7 +733,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 
     VkDescriptorPoolSize uniformPool = {
         .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .descriptorCount = 10*r->sc.n_images
+        .descriptorCount = r->sc.n_images
     };
 
     VkDescriptorPoolSize samplerPool = {
@@ -709,7 +749,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         .poolSizeCount = sizeof(poolSizes)/sizeof(VkDescriptorPoolSize),
         .pPoolSizes = poolSizes,
-        .maxSets = 10*r->sc.n_images
+        .maxSets = r->sc.n_images
     };
 
 	if (vkCreateDescriptorPool(r->log_dev, &poolInfo, NULL, &pl->descriptorPool) != VK_SUCCESS) {
@@ -730,7 +770,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     };
 
     pl->n_descriptor_sets = allocInfo.descriptorSetCount;
-    pl->descriptorSets= malloc(pl->n_descriptor_sets*sizeof(VkDescriptorSet));
+    pl->descriptorSets = malloc(pl->n_descriptor_sets*sizeof(VkDescriptorSet));
     if (vkAllocateDescriptorSets(r->log_dev, &allocInfo, pl->descriptorSets) != VK_SUCCESS) {
         fprintf(stderr, "failed to allocate descriptor sets\n");
         exit(-1);
@@ -824,20 +864,15 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     pl->n_uniforms = p->n_uniforms;
     pl->uniforms = malloc(pl->n_uniforms*sizeof(struct UniformBlock));
     memcpy(pl->uniforms, p->uniforms, p->n_uniforms*sizeof(struct UniformBlock));
-    pl->buffers = malloc(p->n_buffers*sizeof(VkBuffer));
-    pl->memories = malloc(p->n_buffers*sizeof(VkDeviceMemory));
-    pl->offsets = malloc(p->n_buffers*sizeof(VkDeviceSize));
 
-    int k = 0;
-    for (int i = 0; i < p->n_buffers; i++) {
-        if (p->buffers[i].size) {
-            pl->buffers[k] = p->buffers[i].buffer;
-            pl->memories[k] = p->buffers[i].memory;
-            pl->offsets[k] = 0;
-            k++;
-        }
-    }
-    pl->n_buffers = k;
+    pl->buffers = malloc(p->n_allocated*sizeof(struct Buffer));
+    memcpy(pl->buffers, p->allocated, p->n_allocated*sizeof(struct Buffer));
+    pl->n_buffers = p->n_allocated;
+
+    pl->buf_descr = malloc(p->n_buffers*sizeof(struct BufferDescriptor));
+    memcpy(pl->buf_descr, p->buffers, p->n_buffers*sizeof(struct BufferDescriptor));
+    pl->n_buf_descr = p->n_buffers;
+
     builder_free(p);
 
     return (struct Pipeline*)pl;

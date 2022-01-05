@@ -28,6 +28,8 @@ struct FontImpl {
     struct Char* chars[65536];
     struct UniformBlock uniform;
     struct Pipeline* pl;
+    int current_id;
+    int max_letters;
 };
 
 static void char_load(struct Render* r, struct Char* chars[], FT_Face face, wchar_t ch) {
@@ -102,6 +104,8 @@ struct Font* font_new(struct Render* r) {
         exit(1);
     }
 
+    t->max_letters = 100;
+
     memset(t->chars, 0, sizeof(t->chars));
     // load ascii
     for (i = 1; i < 128; i++) {
@@ -133,7 +137,7 @@ struct Font* font_new(struct Render* r) {
         ->buffer_attribute(p, 1, 4, 4, 0)
         ->end_buffer(p)
 
-        ->begin_uniform(p, 10, "MatrixBlock", sizeof(t->uniform))
+        ->begin_uniform(p, 0, "MatrixBlock", sizeof(t->uniform))
         ->end_uniform(p)
 
         ->begin_sampler(p, 0)
@@ -174,8 +178,10 @@ void font_free(struct Font* o) {
 }
 
 struct Label* label_new(struct Font* f) {
+    struct FontImpl* f1 = (struct FontImpl*)f;
     struct Label* l = calloc(1, sizeof(*l));
     l->f = f;
+    l->id = f1->current_id ++;
     return l;
 }
 
@@ -285,6 +291,7 @@ void label_render(struct Label* l)
             };
 
             int cur_id = id++;
+            cur_id += f->max_letters*l->id; // TODO: buffers manager
             f->pl->buffer_update(f->pl, cur_id, 0, vertices, 0, sizeof(vertices));
             f->pl->use_texture(f->pl, ch->texture(ch));
             f->pl->draw(f->pl, cur_id);
