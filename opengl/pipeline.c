@@ -23,6 +23,23 @@ struct Buffer {
     int stride;
 };
 
+struct BufferAttribute {
+    int location;
+    int channels;
+    int bytes_per_channel;
+    int stride;
+    uint64_t offset;
+};
+
+struct BufferDescriptor {
+    int stride;
+    int dynamic;
+    struct BufferAttribute attrs[10];
+    int n_attrs;
+    const void* data;
+    int size;
+};
+
 struct Sampler {
     GLuint id;
     int binding;
@@ -40,6 +57,9 @@ struct PipelineImpl {
 
     struct Buffer* buffers;
     int n_buffers;
+
+    struct BufferDescriptor* buf_descr;
+    int n_buf_descrs;
 
     struct Sampler* samplers;
     int n_samplers;
@@ -59,8 +79,10 @@ struct PipelineBuilderImpl {
     struct UniformBlock* cur_uniform;
     int n_uniforms;
 
-    struct Buffer buffers[100];
-    struct Buffer* cur_buffer;
+    //struct Buffer buffers[100];
+    //struct Buffer* cur_buffer;
+    struct BufferDescriptor buffers[100];
+    struct BufferDescriptor* cur_buffer;
     int n_buffers;
 
     struct Sampler samplers[100];
@@ -149,13 +171,7 @@ static struct PipelineBuilder* buffer_data(struct PipelineBuilder* p1, const voi
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     // TODO: check current
     p->cur_buffer->size = size;
-    p->cur_buffer->n_vertices = size / p->cur_buffer->stride;
-
-    glGenBuffers(1, &p->cur_buffer->vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, p->cur_buffer->vbo);
-    glBufferData(GL_ARRAY_BUFFER, size, data, p->cur_buffer->dynamic
-                 ? GL_DYNAMIC_DRAW
-                 : GL_STATIC_DRAW);
+    p->cur_buffer->data = data;
     return p1;
 }
 
@@ -173,23 +189,18 @@ static struct PipelineBuilder* buffer_attribute(
     uint64_t offset)
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    if (!p->cur_buffer->vao) {
-        glGenVertexArrays(1, &p->cur_buffer->vao);
-        glBindVertexArray(p->cur_buffer->vao);
-    }
-    //glBindBuffer(GL_ARRAY_BUFFER, p->cur_buffer->vbo);
-    glEnableVertexAttribArray(location);
-    glVertexAttribPointer(location, channels, GL_FLOAT, GL_FALSE,
-                          p->cur_buffer->stride, (const void*)offset);
-
+    struct BufferAttribute* attr = &p->cur_buffer->attrs[p->cur_buffer->n_attrs++];
+    attr->location = location;
+    attr->channels = channels;
+    attr->bytes_per_channel = bytes_per_channel;
+    attr->stride = p->cur_buffer->stride;
+    attr->offset = offset;
     return p1;
 }
 
 static struct PipelineBuilder* end_buffer(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    p->cur_buffer = 0;
+    p->cur_buffer = NULL;
     return p1;
 }
 
@@ -218,6 +229,7 @@ static void pipeline_free(struct Pipeline* p1) {
         glDeleteSamplers(1, &p->samplers[i].id);
     }
     free(p->samplers);
+    free(p->buf_descr);
     free(p);
 }
 
@@ -230,10 +242,45 @@ static void uniform_update(struct Pipeline* p1, int id, const void* data, int of
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-static void buffer_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
+static void buffer_update(struct Pipeline* p1, int id, int i, const void* data, int offset, int size)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     // check id < n_buffers
+    int j;
+
+    if (id < p->n_buffers) {
+        p->buffers = realloc(p->buffers, (id+1)*sizeof(struct Buffer));
+        memset(p->buffers+p->n_buffers, 0, (id-p->n_buffers+1)* sizeof(struct Buffer));
+        p->n_buffers = id+1;
+    }
+
+    struct Buffer* buf = &p->buffers[id];
+    if (buf->size > 0 && buf->size != size) {
+        glDeleteBuffers(1, &buf->vbo);
+    }
+    if (buf->size != size) {
+        buf->n_vertices = size / p->buf_descr[i].stride;
+        buf->size = size;
+
+        glGenBuffers(1, &buf->vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, buf->vbo);
+        glBufferData(GL_ARRAY_BUFFER, buf->size, NULL, GL_DYNAMIC_DRAW);
+
+        glGenVertexArrays(1, &buf->vao);
+        glBindVertexArray(buf->vao);
+
+        for (j = 0; j < p->buf_descr[i].n_attrs; j++) {
+            int location = p->buf_descr[i].attrs[j].location;
+            glEnableVertexAttribArray(location);
+            glVertexAttribPointer(
+                location, p->buf_descr[i].attrs[j].channels, GL_FLOAT, GL_FALSE,
+                p->buf_descr[i].stride,
+                (const void*)p->buf_descr[i].attrs[j].offset);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+
     glBindBuffer(GL_ARRAY_BUFFER, p->buffers[id].vbo);
     glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -264,6 +311,39 @@ static void run(struct Pipeline* p1) {
             glDrawArrays(GL_TRIANGLES, 0, p->buffers[i].n_vertices);
         }
     }
+}
+
+static void start(struct Pipeline* p1) {
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    int i;
+
+    for (i = 0; i < p->n_programs; i++) {
+        prog_use(p->programs[i]);
+    }
+
+    for (i = 0; i < p->n_samplers; i++) {
+        glBindSampler(p->samplers[i].binding, p->samplers[i].id);
+    }
+
+    for (i = 0; i < p->n_uniforms; i++) {
+        glBindBufferBase(
+            GL_UNIFORM_BUFFER,
+            p->uniforms[i].binding,
+            p->uniforms[i].buffer);
+    }
+}
+
+static void use_texture(struct Pipeline* p1, void* tex) {
+    //struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    int tex_id = *(int*)tex;
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex_id);
+}
+
+static void draw(struct Pipeline* p1, int id) {
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    glBindVertexArray(p->buffers[id].vao);
+    glDrawArrays(GL_TRIANGLES, 0, p->buffers[id].n_vertices);
 }
 
 static struct PipelineBuilder* enable_depth(struct PipelineBuilder* p1) {
@@ -299,8 +379,12 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .free = pipeline_free,
         .uniform_update = uniform_update,
         .buffer_update = buffer_update,
-        .run = run
+        .run = run,
+        .start = start,
+        .draw = draw,
+        .use_texture = use_texture
     };
+    int i, j, k;
     pl->base = base;
     pl->n_programs = p->n_programs;
     pl->programs = malloc(pl->n_programs*sizeof(struct Program*));
@@ -310,9 +394,42 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     pl->uniforms = malloc(pl->n_uniforms*sizeof(struct UniformBlock));
     memcpy(pl->uniforms, p->uniforms, pl->n_uniforms*sizeof(struct UniformBlock));
 
-    pl->n_buffers = p->n_buffers;
+    for (i = 0; i < p->n_buffers; i++) {
+        if (p->buffers[i].data) {
+            pl->n_buffers ++;
+        }
+    }
     pl->buffers = malloc(pl->n_buffers*sizeof(struct Buffer));
-    memcpy(pl->buffers, p->buffers, pl->n_buffers*sizeof(struct Buffer));
+    for (k = 0, i = 0; i < p->n_buffers; i++) {
+        if (p->buffers[i].data) {
+            struct Buffer* buf = &pl->buffers[k++];
+            buf->n_vertices = p->buffers[i].size / p->buffers[i].stride;
+            buf->size = p->buffers[i].size;
+
+            glGenBuffers(1, &buf->vbo);
+            glBindBuffer(GL_ARRAY_BUFFER, buf->vbo);
+            glBufferData(GL_ARRAY_BUFFER, buf->size,
+                         p->buffers[i].data, GL_STATIC_DRAW);
+
+            glGenVertexArrays(1, &buf->vao);
+            glBindVertexArray(buf->vao);
+
+            for (j = 0; j < p->buffers[i].n_attrs; j++) {
+                int location = p->buffers[i].attrs[j].location;
+                glEnableVertexAttribArray(location);
+                glVertexAttribPointer(
+                    location, p->buffers[i].attrs[j].channels, GL_FLOAT, GL_FALSE,
+                    p->buffers[i].stride,
+                    (const void*)p->buffers[i].attrs[j].offset);
+            }
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
+        }
+    }
+
+    pl->n_buf_descrs = p->n_buffers;
+    pl->buf_descr = malloc(pl->n_buf_descrs*sizeof(struct BufferDescriptor));
+    memcpy(pl->buf_descr, p->buffers, pl->n_buf_descrs*sizeof(struct BufferDescriptor));
 
     pl->n_samplers = p->n_samplers;
     pl->samplers = malloc(pl->n_samplers*sizeof(struct Sampler));

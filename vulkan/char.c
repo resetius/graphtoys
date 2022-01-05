@@ -43,7 +43,6 @@ struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm) {
     FT_Face face = (FT_Face)bm;
     FT_Bitmap bitmap = face->glyph->bitmap;
     struct Char base = {
-        .render = char_render_,
         .free = char_free_
     };
     c->base = base;

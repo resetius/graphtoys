@@ -8,6 +8,6 @@ struct Char {
     int top;
     int advance;
 
-    void (*render)(struct Char* ch, int x, int y);
+    void* (*texture)(struct Char* ch);
     void (*free)(struct Char* ch);
 };

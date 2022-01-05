@@ -16,11 +16,16 @@ struct Pipeline {
     void (*buffer_update)(
         struct Pipeline*,
         int id,
+        int descr_id,
         const void* data,
         int offset,
         int size);
 
     void (*run)(struct Pipeline*);
+
+    void (*use_texture)(struct Pipeline* p1, void* texture);
+    void (*start)(struct Pipeline* p1);
+    void (*draw)(struct Pipeline* p1, int buffer_id);
 };
 
 struct ShaderCode {
@@ -38,7 +43,7 @@ struct PipelineBuilder {
 
     struct PipelineBuilder* (*begin_buffer)(struct PipelineBuilder*, int stride);
     struct PipelineBuilder* (*buffer_data)(struct PipelineBuilder*, const void* data, int size);
-    struct PipelineBuilder* (*buffer_dynamic)(struct PipelineBuilder*);
+    struct PipelineBuilder* (*buffer_dynamic)(struct PipelineBuilder*); // TODO: remove
     struct PipelineBuilder* (*buffer_attribute)(
         struct PipelineBuilder*,
         int location,

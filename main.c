@@ -97,7 +97,7 @@ struct ObjectAndConstructor {
 int main(int argc, char** argv)
 {
     GLFWwindow* window = NULL;
-    struct Object* obj = NULL;
+    struct Object* obj = NULL, *ooo;
     struct App app;
     struct Font* font = NULL;
     struct Label* fps = NULL;
@@ -144,6 +144,7 @@ int main(int argc, char** argv)
 
     if (render_name == NULL || !strcmp(render_name, "opengl")) {
         render = rend_opengl_new();
+        enable_labels = 1;
     } else if (!strcmp(render_name, "vulkan")) {
         render = rend_vulkan_new();
     } else {
@@ -172,7 +173,8 @@ int main(int argc, char** argv)
 
     setbuf(stdout, NULL);
 
-    obj = constr(render);
+    obj = CreateTriangle(render); //constr(render);
+    ooo = CreateTorus(render);
 
     ovec_add(&app.objs, obj);
 
@@ -207,6 +209,7 @@ int main(int argc, char** argv)
         }
 
         obj->draw(obj, &app.ctx);
+        ooo->draw(ooo, &app.ctx);
 
         render->draw_ui(render);
 

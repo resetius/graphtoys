@@ -24,9 +24,10 @@ struct UniformBlock {
 };
 
 struct FontImpl {
-    struct Program* p;
+    //struct Program* p;
     struct Char* chars[65536];
     struct UniformBlock uniform;
+    struct Pipeline* pl;
 };
 
 static void char_load(struct Render* r, struct Char* chars[], FT_Face face, wchar_t ch) {
@@ -101,12 +102,6 @@ struct Font* font_new(struct Render* r) {
         exit(1);
     }
 
-    t->p = rend_prog_new(r);
-
-    prog_add_vs(t->p, font_font_vs_vert);
-    prog_add_fs(t->p, font_font_fs_frag);
-    prog_link(t->p);
-
     memset(t->chars, 0, sizeof(t->chars));
     // load ascii
     for (i = 1; i < 128; i++) {
@@ -135,11 +130,14 @@ struct Font* font_new(struct Render* r) {
 
         ->begin_buffer(p, sizeof(vec4)) // {x,y,s,t}
         // set buffer data later in char render
-        ->buffer_attribute(p, 0, 4, 4, 0)
+        ->buffer_attribute(p, 1, 4, 4, 0)
         ->end_buffer(p)
 
-        ->begin_uniform(p, 0, "MatrixBlock", sizeof(t->uniform))
+        ->begin_uniform(p, 10, "MatrixBlock", sizeof(t->uniform))
         ->end_uniform(p)
+
+        ->begin_sampler(p)
+        ->end_sampler(p)
 
         //->begin_descriptor(p)
 
@@ -148,6 +146,8 @@ struct Font* font_new(struct Render* r) {
         //->end_descriptor(p)
 
         ->build(p);
+
+    t->pl = pl;
 
     //pl->use_descriptor();
     //pl->use_buffer();
@@ -168,7 +168,7 @@ void font_free(struct Font* o) {
                 f->chars[i]->free(f->chars[i]);
             }
         }
-        prog_free(f->p);
+        f->pl->free(f->pl);
         free(f);
     }
 }
@@ -231,8 +231,11 @@ void label_render(struct Label* l)
     p[3][2] = 0;
     mat4x4_mul(mvp, p, m);
 
-    prog_use(f->p);
-    prog_set_mat4x4(f->p, "MVP", &mvp);
+    //prog_use(f->p);
+    //prog_set_mat4x4(f->p, "MVP", &mvp);
+
+    f->pl->uniform_update(f->pl, 0, mvp, 0, sizeof(mvp));
+    f->pl->start(f->pl);
 
     jmp_buf buf;
     int except = setjmp(buf);
@@ -263,7 +266,26 @@ void label_render(struct Label* l)
             if (!ch) {
                 continue;
             }
-            ch->render(ch, x, y);
+
+            float xpos, ypos, w, h;
+            xpos = x + ch->left;
+            ypos = y - (ch->h - ch->top);
+            w = ch->w;
+            h = ch->h;
+
+            float vertices[6][4] = {
+                { xpos, ypos + h,     0.0, 0.0 },
+                { xpos, ypos,         0.0, 1.0 },
+                { xpos + w, ypos,     1.0, 1.0 },
+
+                { xpos, ypos + h,     0.0, 0.0 },
+                { xpos + w, ypos,     1.0, 1.0 },
+                { xpos + w, ypos + h, 1.0, 0.0 }
+            };
+
+            f->pl->buffer_update(f->pl, 0, 0, vertices, 0, sizeof(vertices));
+            f->pl->use_texture(f->pl, ch->texture(ch));
+            f->pl->draw(f->pl, 0);
         }
         if (!ch) {
             continue;
