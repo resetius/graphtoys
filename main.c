@@ -14,8 +14,6 @@
 #include "mandelbrot.h"
 #include "mandelbulb.h"
 
-struct Object* trvk_new(struct Render* r1); // TODO
-
 struct App {
     struct DrawContext ctx;
     struct ObjectVec objs;
@@ -111,7 +109,6 @@ int main(int argc, char** argv)
     struct ObjectAndConstructor constructors[] = {
         {"torus", CreateTorus},
         {"triangle", CreateTriangle},
-        {"trvk", trvk_new},
         {"mandelbrot", CreateMandelbrot},
         {"mandelbulb", CreateMandelbulb},
         {NULL, NULL}

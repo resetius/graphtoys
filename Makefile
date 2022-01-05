@@ -44,7 +44,6 @@ LDFLAGS+=$(VULKAN_LOADER)
 
 SOURCES=main.c\
 	triangle.c\
-	triangle_vk.c\
 	torus.c\
 	opengl/program.c\
 	opengl/render.c\
