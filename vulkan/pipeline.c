@@ -398,10 +398,10 @@ static VkShaderModule add_shader(VkDevice device, struct ShaderCode shader) {
     };
 
     VkShaderModule result;
-	if (vkCreateShaderModule(device, &info, NULL, &result) != VK_SUCCESS) {
-		fprintf(stderr, "Failed to create shader module\n");
+    if (vkCreateShaderModule(device, &info, NULL, &result) != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create shader module\n");
         exit(-1);
-	}
+    }
     return result;
 }
 
@@ -710,7 +710,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .primitiveRestartEnable = VK_FALSE
     };
     // Rasterization State
-	VkPipelineRasterizationStateCreateInfo rastStateCreateInfo = {
+    VkPipelineRasterizationStateCreateInfo rastStateCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
         .depthClampEnable = VK_FALSE,
         .rasterizerDiscardEnable = VK_FALSE,
@@ -724,7 +724,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .depthBiasSlopeFactor = 0.0f
     };
     // Multisampling State
-	VkPipelineMultisampleStateCreateInfo msStateInfo = {
+    VkPipelineMultisampleStateCreateInfo msStateInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .sampleShadingEnable = VK_FALSE,
         .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
@@ -735,7 +735,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     };
 
     // Color Blend State
-	VkPipelineColorBlendAttachmentState  cbAttach = {
+    VkPipelineColorBlendAttachmentState  cbAttach = {
         .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
         .blendEnable = p->enable_blend,
         .colorBlendOp = VK_BLEND_OP_ADD,
@@ -756,7 +756,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .extent = r->sc.extent
     };
 
-	VkPipelineViewportStateCreateInfo vpStateInfo = {
+    VkPipelineViewportStateCreateInfo vpStateInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         .viewportCount = 1,
         .pViewports = &r->viewport,
@@ -778,7 +778,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     {
         fprintf(stderr, "Failed to create descriptor set layout\n");
         exit(-1);
-	}
+    }
 
     pl->layout = descriptorSetLayout;
 
@@ -812,17 +812,17 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         uniformPool, samplerPool
     };
 
-	VkDescriptorPoolCreateInfo poolInfo = {
+    VkDescriptorPoolCreateInfo poolInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         .poolSizeCount = sizeof(poolSizes)/sizeof(VkDescriptorPoolSize),
         .pPoolSizes = poolSizes,
         .maxSets = uniformPool.descriptorCount+samplerPool.descriptorCount
     };
 
-	if (vkCreateDescriptorPool(r->log_dev, &poolInfo, NULL, &pl->descriptorPool) != VK_SUCCESS) {
+    if (vkCreateDescriptorPool(r->log_dev, &poolInfo, NULL, &pl->descriptorPool) != VK_SUCCESS) {
         fprintf(stderr, "Failed to create descriptor pool\n");
         exit(-1);
-	}
+    }
 
     // create vector of 2 decriptorSetLayout with the layouts
     VkDescriptorSetLayout* layouts = malloc(r->sc.n_images*sizeof(VkDescriptorSetLayout));
@@ -889,10 +889,10 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .pSetLayouts = activeLayouts
     };
 
-	if (vkCreatePipelineLayout(r->log_dev, &pipelineLayoutInfo, NULL, &pl->pipelineLayout) != VK_SUCCESS) {
-		fprintf(stderr, "Failed to create pieline layout\n");
+    if (vkCreatePipelineLayout(r->log_dev, &pipelineLayoutInfo, NULL, &pl->pipelineLayout) != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create pieline layout\n");
         exit(-1);
-	}
+    }
 
     VkPipelineDepthStencilStateCreateInfo depthStencil = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
@@ -909,7 +909,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 
     // Create Graphics Pipeline
 
-	VkGraphicsPipelineCreateInfo gpInfo = {
+    VkGraphicsPipelineCreateInfo gpInfo = {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .stageCount = p->n_frag_shaders+p->n_vert_shaders,
         .pStages = get_shader_stages(p),
@@ -931,7 +931,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     if (vkCreateGraphicsPipelines(r->log_dev, VK_NULL_HANDLE, 1, &gpInfo, NULL, &pl->graphicsPipeline) != VK_SUCCESS) {
         fprintf(stderr, "Failed to create graphics pipeline\n");
         exit(-1);
-	}
+    }
 
     pl->n_uniforms = p->n_uniforms;
     pl->uniforms = malloc(pl->n_uniforms*sizeof(struct UniformBlock));
