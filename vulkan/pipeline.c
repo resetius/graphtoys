@@ -54,6 +54,9 @@ struct PipelineImpl {
     int n_samplers;
 
     int n_vertices;
+
+    VkDescriptorPool descriptorPool;
+    VkDescriptorSetLayout* layouts;
 };
 
 struct Sampler {
@@ -118,6 +121,27 @@ static void buffer_update(struct Pipeline* p1, int id, int i, const void* data, 
 }
 
 static void use_texture(struct Pipeline* p1, void* texture) {
+    struct PipelineImpl* pl = (struct PipelineImpl*)p1;
+    struct RenderImpl* r = pl->r;
+    struct Texture* tex = (struct Texture*)texture;
+    static int ii = 1;
+    if (ii) {
+        return;
+    }
+
+    VkDescriptorSetAllocateInfo allocInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .descriptorPool = pl->descriptorPool,
+        .descriptorSetCount = r->sc.n_images,
+        .pSetLayouts = pl->layouts
+    };
+
+    VkDescriptorSet sets[2];
+    ii = 1;
+    if (vkAllocateDescriptorSets(r->log_dev, &allocInfo, sets) != VK_SUCCESS) {
+        fprintf(stderr, "failed to allocate descriptor sets\n");
+        exit(-1);
+    }
 }
 
 static void start(struct Pipeline* p1) {
@@ -543,9 +567,15 @@ static void pipeline_free(struct Pipeline* p1) {
     free(p->buffers); free(p->memories); p->n_buffers = 0;
     p->buffers = NULL; p->memories = NULL;
 
+    for (i = 0; i < p->n_samplers; i++) {
+        vkDestroySampler(r->log_dev, p->samplers[i], NULL);
+    }
+    free(p->samplers); p->samplers = NULL; p->n_samplers = 0;
+
     vkDestroyPipeline(r->log_dev, p->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(r->log_dev, p->pipelineLayout, NULL);
     free(p->descriptorSets); p->descriptorSets = NULL; p->n_descriptor_sets = 0;
+    free(p->layouts);
     free(p);
 }
 
@@ -663,7 +693,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 
     VkDescriptorPoolSize uniformPool = {
         .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .descriptorCount = r->sc.n_images
+        .descriptorCount = 10*r->sc.n_images
     };
 
     VkDescriptorPoolSize samplerPool = {
@@ -679,25 +709,24 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         .poolSizeCount = sizeof(poolSizes)/sizeof(VkDescriptorPoolSize),
         .pPoolSizes = poolSizes,
-        .maxSets = r->sc.n_images
+        .maxSets = 10*r->sc.n_images
     };
 
-    VkDescriptorPool descriptorPool;
-	if (vkCreateDescriptorPool(r->log_dev, &poolInfo, NULL, &descriptorPool) != VK_SUCCESS) {
+	if (vkCreateDescriptorPool(r->log_dev, &poolInfo, NULL, &pl->descriptorPool) != VK_SUCCESS) {
         fprintf(stderr, "Failed to create descriptor pool\n");
         exit(-1);
 	}
 
     // create vector of 2 decriptorSetLayout with the layouts
-    VkDescriptorSetLayout* layouts = malloc(r->sc.n_images*sizeof(VkDescriptorSetLayout));
+    pl->layouts = malloc(r->sc.n_images*sizeof(VkDescriptorSetLayout));
     for (int i = 0; i < r->sc.n_images;i++) {
-        layouts[i] = descriptorSetLayout;
+        pl->layouts[i] = descriptorSetLayout;
     }
     VkDescriptorSetAllocateInfo allocInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-        .descriptorPool = descriptorPool,
+        .descriptorPool = pl->descriptorPool,
         .descriptorSetCount = r->sc.n_images,
-        .pSetLayouts = layouts
+        .pSetLayouts = pl->layouts
     };
 
     pl->n_descriptor_sets = allocInfo.descriptorSetCount;
@@ -706,8 +735,6 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         fprintf(stderr, "failed to allocate descriptor sets\n");
         exit(-1);
     }
-
-    free(layouts);
 
     for (int i = 0; i < r->sc.n_images; i++) {
         VkDescriptorBufferInfo* uboBufferDescInfo = malloc(p->n_uniforms*sizeof(VkDescriptorBufferInfo));

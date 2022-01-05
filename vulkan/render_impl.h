@@ -11,6 +11,12 @@
 #include "rendertarget.h"
 #include "drawcommandbuffer.h"
 
+struct Texture {
+    VkImage tex;
+    VkDeviceMemory memory;
+    VkImageView view;
+};
+
 struct RenderImpl {
     struct Render base;
     VkInstance instance;

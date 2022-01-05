@@ -13,28 +13,23 @@ struct CharImpl {
     struct Char base;
     struct RenderImpl* r;
 
-    // vertices
-
     // texture
-    VkImage tex;
-    VkDeviceMemory tex_memory;
-    VkImageView imageview;
-    VkSampler sampler;
+    struct Texture tex;
 };
 
 static void* char_texture_(struct Char* ch) {
-    return NULL;
+    struct CharImpl* c = (struct CharImpl*)ch;
+    return &c->tex;
 }
 
 static void char_free_(struct Char* ch) {
     if (ch) {
         struct CharImpl* c = (struct CharImpl*)ch;
 
-        vkDestroySampler(c->r->log_dev, c->sampler, NULL);
-        vkDestroyImageView(c->r->log_dev, c->imageview, NULL);
+        vkDestroyImageView(c->r->log_dev, c->tex.view, NULL);
 
-        vkDestroyImage(c->r->log_dev, c->tex, NULL);
-        vkFreeMemory(c->r->log_dev, c->tex_memory, NULL);
+        vkDestroyImage(c->r->log_dev, c->tex.tex, NULL);
+        vkFreeMemory(c->r->log_dev, c->tex.memory, NULL);
     }
 }
 
@@ -90,13 +85,13 @@ struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm) {
         VK_FORMAT_R8_UNORM,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        &c->tex, &c->tex_memory);
+        &c->tex.tex, &c->tex.memory);
 
     transition_image_layout(
         r->graphics_family,
         r->g_queue,
         r->log_dev,
-        c->tex,
+        c->tex.tex,
         VK_FORMAT_R8_UNORM,
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
@@ -105,48 +100,22 @@ struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm) {
         r->graphics_family,
         r->g_queue,
         r->log_dev,
-        stagingBuffer, c->tex, bitmap.width, bitmap.rows);
+        stagingBuffer, c->tex.tex, bitmap.width, bitmap.rows);
 
     transition_image_layout(
         r->graphics_family,
         r->g_queue,
         r->log_dev,
-        c->tex,
+        c->tex.tex,
         VK_FORMAT_R8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     vkDestroyBuffer(r->log_dev, stagingBuffer, NULL);
     vkFreeMemory(r->log_dev, stagingBufferMemory, NULL);
 
-    c->imageview = create_image_view(
+    c->tex.view = create_image_view(
         r->log_dev,
-        c->tex, VK_FORMAT_R8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    VkPhysicalDeviceProperties properties;
-    vkGetPhysicalDeviceProperties(r->phy_dev, &properties);
-
-    VkSamplerCreateInfo samplerInfo = {
-        .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-        .magFilter = VK_FILTER_LINEAR,
-        .minFilter = VK_FILTER_LINEAR,
-        .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-        .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-        .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-        .anisotropyEnable = VK_FALSE,
-        .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
-        .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-        .unnormalizedCoordinates = VK_FALSE,
-        .compareEnable = VK_FALSE,
-        .compareOp = VK_COMPARE_OP_ALWAYS,
-        .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR
-    };
-
-    if (vkCreateSampler(r->log_dev, &samplerInfo, NULL, &c->sampler) != VK_SUCCESS) {
-        fprintf(stderr, "Failed to create texture sampler\n");
-        exit(-1);
-    }
-
-
+        c->tex.tex, VK_FORMAT_R8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
 
     return (struct Char*)c;
 }
