@@ -47,6 +47,7 @@ SOURCES=main.c\
 	models/torus.c\
 	models/mandelbrot.c\
 	models/mandelbulb.c\
+	models/stl.c\
 	opengl/program.c\
 	opengl/render.c\
 	opengl/pipeline.c\

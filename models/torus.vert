@@ -16,15 +16,15 @@ layout (location = 0) out vec3 color;
 
 void main()
 {
-    vec3 Ld = vec3(1.0, 1.0, 1.0);
-    vec3 Kd = vec3(0.9, 0.5, 0.3);
+    vec3 Ld = vec3(1.0, 1.0, 1.0); // TODO: tune it
+    vec3 Kd = vec3(0.9, 0.5, 0.3); // TODO: tune it
     vec3 tnorm = normalize(vec3(NormalMatrix*vec4(vNorm,1.0)));
     vec4 eyeCoords = ModelViewMatrix * vec4(vPos, 1.0);
 
-    vec4 LightPosition = vec4(5.0, 5.0, 2.0, 1.0);
+    vec4 LightPosition = vec4(50.0, 50.0, 20.0, 1.0); // TODO: tune it
     vec3 s = normalize(vec3(LightPosition - eyeCoords));
 
-    color = Ld*Kd*max(dot(s, tnorm), 0.0);
+    color = Ld*Kd*0.15+Ld*Kd*max(dot(s, tnorm), 0.0);
 
     //vec4 LightPosition1 = vec4(15.0, -5.0, -2.0, -1.0);
     //vec3 s1 = normalize(vec3(LightPosition1 - eyeCoords));

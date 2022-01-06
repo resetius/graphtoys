@@ -13,6 +13,7 @@
 #include <models/torus.h>
 #include <models/mandelbrot.h>
 #include <models/mandelbulb.h>
+#include <models/stl.h>
 
 struct App {
     struct DrawContext ctx;
@@ -110,6 +111,7 @@ int main(int argc, char** argv)
         {"triangle", CreateTriangle},
         {"mandelbrot", CreateMandelbrot},
         {"mandelbulb", CreateMandelbulb},
+        {"stl", CreateStl},
         {"test", NULL},
         {NULL, NULL}
     };
