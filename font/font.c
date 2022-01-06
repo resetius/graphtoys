@@ -17,7 +17,7 @@
 #include <font/RobotoMono-Regular.ttf.h>
 
 #include "font.h"
-#include "linmath.h"
+#include <lib/linmath.h>
 
 struct UniformBlock {
     mat4x4 mvp;

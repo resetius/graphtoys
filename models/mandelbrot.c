@@ -9,8 +9,8 @@
 #include <models/mandelbrot_vs.vert.spv.h>
 #include <models/mandelbrot_fs.frag.spv.h>
 
-#include "object.h"
-#include "linmath.h"
+#include <lib/object.h>
+#include <lib/linmath.h>
 
 struct Vertex {
     vec3 pos;

@@ -6,8 +6,8 @@
 #include <models/mandelbulb_fs.frag.h>
 #include <models/mandelbulb_vs.vert.spv.h>
 #include <models/mandelbulb_fs.frag.spv.h>
-#include "object.h"
-#include "linmath.h"
+#include <lib/object.h>
+#include <lib/linmath.h>
 
 #include <render/pipeline.h>
 

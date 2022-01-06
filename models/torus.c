@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "object.h"
+#include <lib/object.h>
 #include "torus.h"
 #include <render/program.h>
 #include <render/pipeline.h>
-#include "linmath.h"
+#include <lib/linmath.h>
 #include <models/triangle_fragment_shader.frag.h>
 #include <models/torus_vertex_shader.vert.h>
 #include <models/triangle_fragment_shader.frag.spv.h>

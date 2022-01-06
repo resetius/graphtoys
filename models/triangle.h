@@ -1,6 +1,6 @@
 #pragma once
 
-#include "object.h"
+#include <lib/object.h>
 
 struct Render;
 struct Object* CreateTriangle(struct Render* r);

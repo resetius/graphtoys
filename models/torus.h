@@ -2,6 +2,6 @@
 
 #include <render/render.h>
 
-#include "object.h"
+#include <lib/object.h>
 
 struct Object* CreateTorus(struct Render* r);

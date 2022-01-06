@@ -60,9 +60,9 @@ SOURCES=main.c\
 	vulkan/rendertarget.c\
 	vulkan/swapchain.c\
 	vulkan/tools.c\
-	object.c\
-	font/font.c\
-	ref.c
+	lib/object.c\
+	lib/ref.c\
+	font/font.c
 
 SHADERS=models/triangle_fragment_shader.frag\
 	models/triangle_vertex_shader.vert\

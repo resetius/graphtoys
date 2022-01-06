@@ -6,9 +6,9 @@
 
 #include <render/render.h>
 
-#include "font/font.h"
+#include <font/font.h>
 
-#include "object.h"
+#include <lib/object.h>
 #include <models/triangle.h>
 #include <models/torus.h>
 #include <models/mandelbrot.h>

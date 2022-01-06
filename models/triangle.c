@@ -5,7 +5,7 @@
 #include <render/pipeline.h>
 
 #include "triangle.h"
-#include "linmath.h"
+#include <lib/linmath.h>
 
 #include <models/triangle_vertex_shader.vert.h>
 #include <models/triangle_fragment_shader.frag.h>
