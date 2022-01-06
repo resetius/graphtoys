@@ -64,15 +64,15 @@ SOURCES=main.c\
 	lib/ref.c\
 	font/font.c
 
-SHADERS=models/triangle_fragment_shader.frag\
-	models/triangle_vertex_shader.vert\
-	models/torus_vertex_shader.vert\
-	models/mandelbrot_vs.vert\
-	models/mandelbrot_fs.frag\
-	models/mandelbulb_vs.vert\
-	models/mandelbulb_fs.frag\
-	font/font_vs.vert\
-	font/font_fs.frag
+SHADERS=models/triangle.frag\
+	models/triangle.vert\
+	models/torus.vert\
+	models/mandelbrot.vert\
+	models/mandelbrot.frag\
+	models/mandelbulb.vert\
+	models/mandelbulb.frag\
+	font/font.vert\
+	font/font.frag
 
 FONTS=font/RobotoMono-Regular.ttf
 

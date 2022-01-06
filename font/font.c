@@ -10,10 +10,10 @@
 #include <render/char.h>
 #include <render/render.h>
 
-#include <font/font_vs.vert.h>
-#include <font/font_fs.frag.h>
-#include <font/font_vs.vert.spv.h>
-#include <font/font_fs.frag.spv.h>
+#include <font/font.vert.h>
+#include <font/font.frag.h>
+#include <font/font.vert.spv.h>
+#include <font/font.frag.spv.h>
 #include <font/RobotoMono-Regular.ttf.h>
 
 #include "font.h"
@@ -116,14 +116,14 @@ struct Font* font_new(struct Render* r) {
     }
 
     struct ShaderCode vertex_shader = {
-        .glsl = font_font_vs_vert,
-        .spir_v = font_font_vs_vert_spv,
-        .size = font_font_vs_vert_spv_size,
+        .glsl = font_font_vert,
+        .spir_v = font_font_vert_spv,
+        .size = font_font_vert_spv_size,
     };
     struct ShaderCode fragment_shader = {
-        .glsl = font_font_fs_frag,
-        .spir_v = font_font_fs_frag_spv,
-        .size = font_font_fs_frag_spv_size,
+        .glsl = font_font_frag,
+        .spir_v = font_font_frag_spv,
+        .size = font_font_frag_spv_size,
     };
 
     struct PipelineBuilder* p = r->pipeline(r);

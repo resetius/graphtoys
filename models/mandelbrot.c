@@ -4,10 +4,10 @@
 #include <render/pipeline.h>
 
 #include "mandelbrot.h"
-#include <models/mandelbrot_vs.vert.h>
-#include <models/mandelbrot_fs.frag.h>
-#include <models/mandelbrot_vs.vert.spv.h>
-#include <models/mandelbrot_fs.frag.spv.h>
+#include <models/mandelbrot.vert.h>
+#include <models/mandelbrot.frag.h>
+#include <models/mandelbrot.vert.spv.h>
+#include <models/mandelbrot.frag.spv.h>
 
 #include <lib/object.h>
 #include <lib/linmath.h>
@@ -116,14 +116,14 @@ struct Object* CreateMandelbrot(struct Render* r) {
     };
 
     struct ShaderCode vertex_shader = {
-        .glsl = models_mandelbrot_vs_vert,
-        .spir_v = models_mandelbrot_vs_vert_spv,
-        .size = models_mandelbrot_vs_vert_spv_size,
+        .glsl = models_mandelbrot_vert,
+        .spir_v = models_mandelbrot_vert_spv,
+        .size = models_mandelbrot_vert_spv_size,
     };
     struct ShaderCode fragment_shader = {
-        .glsl = models_mandelbrot_fs_frag,
-        .spir_v = models_mandelbrot_fs_frag_spv,
-        .size = models_mandelbrot_fs_frag_spv_size,
+        .glsl = models_mandelbrot_frag,
+        .spir_v = models_mandelbrot_frag_spv,
+        .size = models_mandelbrot_frag_spv_size,
     };
 
     t->base = base;
