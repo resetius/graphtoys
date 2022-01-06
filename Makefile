@@ -82,7 +82,7 @@ GENERATED1=$(patsubst %.frag,%.frag.h,$(SHADERS))
 GENERATED=$(patsubst %.vert,%.vert.h,$(GENERATED1))
 GENERATED+=$(patsubst %.ttf,%.ttf.h,$(FONTS))
 
-All: main.exe
+All: main.exe tools/stlprint.exe
 
 clean:
 	rm -f *.exe
@@ -93,6 +93,9 @@ main.exe: $(OBJECTS)
 	$(CC) $^ $(LDFLAGS) -o $@
 
 tools/rcc.exe: tools/rcc.o
+	$(CC) $^ -o $@
+
+tools/stlprint.exe: tools/stlprint.o
 	$(CC) $^ -o $@
 
 %.d: %.c Makefile
