@@ -215,8 +215,6 @@ int main(int argc, char** argv)
             app.objs.objs[i]->draw(app.objs.objs[i], &app.ctx);
         }
 
-        render->draw_ui(render);
-
         if (enable_labels) {
             label_render(fps);
             label_render(text);

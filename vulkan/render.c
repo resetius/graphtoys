@@ -70,9 +70,6 @@ static void draw_begin_(struct Render* r1, int* w, int* h) {
         r->sc.extent);
 }
 
-static void draw_ui_(struct Render* r) {
-}
-
 static void draw_end_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
 
@@ -331,7 +328,6 @@ struct Render* rend_vulkan_new() {
         .set_view_entity = set_window_,
         .draw_begin = draw_begin_,
         .draw_end = draw_end_,
-        .draw_ui = draw_ui_,
         .set_viewport = set_viewport_,
         .pipeline = pipeline_builder_vulkan,
         .char_new =  rend_vulkan_char_new,

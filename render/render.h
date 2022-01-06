@@ -18,7 +18,6 @@ struct Render {
     void (*init)(struct Render*);
     void (*set_view_entity)(struct Render*, void* );
     void (*draw_begin)(struct Render*, int* w, int* h);
-    void (*draw_ui)(struct Render*);
     void (*draw_end)(struct Render*);
     void (*set_viewport)(struct Render*, int w, int h);
 };

@@ -98,10 +98,6 @@ static void draw_begin_(struct Render* r, int* w, int* h) {
 
 }
 
-static void draw_ui_(struct Render* r) {
-//    glDisable(GL_DEPTH_TEST);
-}
-
 static void draw_end_(struct Render* r) {
     glfwSwapBuffers(((struct RenderImpl*)r)->window);
 }
@@ -144,7 +140,6 @@ struct Render* rend_opengl_new()
         .set_view_entity = set_view_entity_,
         .draw_begin = draw_begin_,
         .draw_end = draw_end_,
-        .draw_ui = draw_ui_,
         .init = init_,
         .pipeline = pipeline_builder_opengl
     };
