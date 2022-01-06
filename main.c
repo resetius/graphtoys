@@ -9,10 +9,10 @@
 #include "font/font.h"
 
 #include "object.h"
-#include "triangle.h"
-#include "torus.h"
-#include "mandelbrot.h"
-#include "mandelbulb.h"
+#include <models/triangle.h>
+#include <models/torus.h>
+#include <models/mandelbrot.h>
+#include <models/mandelbulb.h>
 
 struct App {
     struct DrawContext ctx;

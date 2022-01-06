@@ -7,10 +7,10 @@
 #include "triangle.h"
 #include "linmath.h"
 
-#include "triangle_vertex_shader.vert.h"
-#include "triangle_fragment_shader.frag.h"
-#include "triangle_vertex_shader.vert.spv.h"
-#include "triangle_fragment_shader.frag.spv.h"
+#include <models/triangle_vertex_shader.vert.h>
+#include <models/triangle_fragment_shader.frag.h>
+#include <models/triangle_vertex_shader.vert.spv.h>
+#include <models/triangle_fragment_shader.frag.spv.h>
 
 typedef struct Vertex
 {
@@ -58,14 +58,14 @@ struct Object* CreateTriangle(struct Render* r) {
 
     struct PipelineBuilder* pl = r->pipeline(r);
     struct ShaderCode vertex_shader = {
-        .glsl = triangle_vertex_shader_vert,
-        .spir_v = triangle_vertex_shader_vert_spv,
-        .size = triangle_vertex_shader_vert_spv_size,
+        .glsl = models_triangle_vertex_shader_vert,
+        .spir_v = models_triangle_vertex_shader_vert_spv,
+        .size = models_triangle_vertex_shader_vert_spv_size,
     };
     struct ShaderCode fragment_shader = {
-        .glsl = triangle_fragment_shader_frag,
-        .spir_v = triangle_fragment_shader_frag_spv,
-        .size = triangle_fragment_shader_frag_spv_size,
+        .glsl = models_triangle_fragment_shader_frag,
+        .spir_v = models_triangle_fragment_shader_frag_spv,
+        .size = models_triangle_fragment_shader_frag_spv_size,
     };
     tr->pl = pl->begin_program(pl)
         ->add_vs(pl, vertex_shader)

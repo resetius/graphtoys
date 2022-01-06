@@ -43,8 +43,10 @@ endif
 LDFLAGS+=$(VULKAN_LOADER)
 
 SOURCES=main.c\
-	triangle.c\
-	torus.c\
+	models/triangle.c\
+	models/torus.c\
+	models/mandelbrot.c\
+	models/mandelbulb.c\
 	opengl/program.c\
 	opengl/render.c\
 	opengl/pipeline.c\
@@ -58,19 +60,17 @@ SOURCES=main.c\
 	vulkan/rendertarget.c\
 	vulkan/swapchain.c\
 	vulkan/tools.c\
-	mandelbrot.c\
-	mandelbulb.c\
 	object.c\
 	font/font.c\
 	ref.c
 
-SHADERS=triangle_fragment_shader.frag\
-	triangle_vertex_shader.vert\
-	torus_vertex_shader.vert\
-	mandelbrot_vs.vert\
-	mandelbrot_fs.frag\
-	mandelbulb_vs.vert\
-	mandelbulb_fs.frag\
+SHADERS=models/triangle_fragment_shader.frag\
+	models/triangle_vertex_shader.vert\
+	models/torus_vertex_shader.vert\
+	models/mandelbrot_vs.vert\
+	models/mandelbrot_fs.frag\
+	models/mandelbulb_vs.vert\
+	models/mandelbulb_fs.frag\
 	font/font_vs.vert\
 	font/font_fs.frag
 

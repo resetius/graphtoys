@@ -2,10 +2,10 @@
 #include <stdio.h>
 
 #include "mandelbulb.h"
-#include "mandelbulb_vs.vert.h"
-#include "mandelbulb_fs.frag.h"
-#include "mandelbulb_vs.vert.spv.h"
-#include "mandelbulb_fs.frag.spv.h"
+#include <models/mandelbulb_vs.vert.h>
+#include <models/mandelbulb_fs.frag.h>
+#include <models/mandelbulb_vs.vert.spv.h>
+#include <models/mandelbulb_fs.frag.spv.h>
 #include "object.h"
 #include "linmath.h"
 
@@ -138,14 +138,14 @@ struct Object* CreateMandelbulb(struct Render* r) {
     };
 
     struct ShaderCode vertex_shader = {
-        .glsl = mandelbulb_vs_vert,
-        .spir_v = mandelbulb_vs_vert_spv,
-        .size = mandelbulb_vs_vert_spv_size,
+        .glsl =models_mandelbulb_vs_vert,
+        .spir_v =models_mandelbulb_vs_vert_spv,
+        .size = models_mandelbulb_vs_vert_spv_size,
     };
     struct ShaderCode fragment_shader = {
-        .glsl = mandelbulb_fs_frag,
-        .spir_v = mandelbulb_fs_frag_spv,
-        .size = mandelbulb_fs_frag_spv_size,
+        .glsl = models_mandelbulb_fs_frag,
+        .spir_v = models_mandelbulb_fs_frag_spv,
+        .size = models_mandelbulb_fs_frag_spv_size,
     };
 
     t->base = base;

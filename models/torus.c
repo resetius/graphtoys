@@ -8,10 +8,10 @@
 #include <render/program.h>
 #include <render/pipeline.h>
 #include "linmath.h"
-#include "triangle_fragment_shader.frag.h"
-#include "torus_vertex_shader.vert.h"
-#include "triangle_fragment_shader.frag.spv.h"
-#include "torus_vertex_shader.vert.spv.h"
+#include <models/triangle_fragment_shader.frag.h>
+#include <models/torus_vertex_shader.vert.h>
+#include <models/triangle_fragment_shader.frag.spv.h>
+#include <models/torus_vertex_shader.vert.spv.h>
 
 // x = (R+r cos(psi)) cos phi
 // y = (R+r cos(psi)) sin phi
@@ -164,14 +164,14 @@ struct Object* CreateTorus(struct Render* r) {
     int nvertices;
 
     struct ShaderCode vertex_shader = {
-        .glsl = torus_vertex_shader_vert,
-        .spir_v = torus_vertex_shader_vert_spv,
-        .size = torus_vertex_shader_vert_spv_size,
+        .glsl = models_torus_vertex_shader_vert,
+        .spir_v = models_torus_vertex_shader_vert_spv,
+        .size = models_torus_vertex_shader_vert_spv_size,
     };
     struct ShaderCode fragment_shader = {
-        .glsl = triangle_fragment_shader_frag,
-        .spir_v = triangle_fragment_shader_frag_spv,
-        .size = triangle_fragment_shader_frag_spv_size,
+        .glsl = models_triangle_fragment_shader_frag,
+        .spir_v = models_triangle_fragment_shader_frag_spv,
+        .size = models_triangle_fragment_shader_frag_spv_size,
     };
 
     t->base = base;
