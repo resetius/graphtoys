@@ -3,9 +3,6 @@
 
 #include <freetype/freetype.h>
 
-#include <font/font_vs.vert.spv.h>
-#include <font/font_fs.frag.spv.h>
-
 #include "render_impl.h"
 #include "tools.h"
 
