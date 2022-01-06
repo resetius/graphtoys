@@ -82,7 +82,7 @@ GENERATED1=$(patsubst %.frag,%.frag.h,$(SHADERS))
 GENERATED=$(patsubst %.vert,%.vert.h,$(GENERATED1))
 GENERATED+=$(patsubst %.ttf,%.ttf.h,$(FONTS))
 
-All: main.exe rcc.exe
+All: main.exe
 
 clean:
 	rm -f *.exe
@@ -92,7 +92,7 @@ clean:
 main.exe: $(OBJECTS)
 	$(CC) $^ $(LDFLAGS) -o $@
 
-rcc.exe: rcc.o
+tools/rcc.exe: tools/rcc.o
 	$(CC) $^ -o $@
 
 %.d: %.c Makefile
@@ -101,17 +101,17 @@ rcc.exe: rcc.o
 %.o: %.c %.d Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
-%.ttf.h: %.ttf rcc.exe
-	./rcc.exe $< -o $@
+%.ttf.h: %.ttf tools/rcc.exe
+	./tools/rcc.exe $< -o $@
 
-%.vert.h: %.vert rcc.exe
-	./rcc.exe $< -o $@
+%.vert.h: %.vert tools/rcc.exe
+	./tools/rcc.exe $< -o $@
 
-%.frag.h: %.frag rcc.exe
-	./rcc.exe $< -o $@
+%.frag.h: %.frag tools/rcc.exe
+	./tools/rcc.exe $< -o $@
 
-%.spv.h: %.spv rcc.exe
-	./rcc.exe $< -o $@
+%.spv.h: %.spv tools/rcc.exe
+	./tools/rcc.exe $< -o $@
 
 %.vert.spv: %.vert
 	$(GLSLC) -fauto-bind-uniforms $< -o $@
