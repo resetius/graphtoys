@@ -81,9 +81,9 @@ static struct Vertex* init (int* nvertices) {
             {i+1,j},{i+1,j+1}
             */
 
-            memcpy(&vertices[k++], &A[i][j], sizeof(struct Vertex));
-            memcpy(&vertices[k++], &A[i][(j+1)%m], sizeof(struct Vertex));
             memcpy(&vertices[k++], &A[(i+1)%n][j], sizeof(struct Vertex));
+            memcpy(&vertices[k++], &A[i][(j+1)%m], sizeof(struct Vertex));
+            memcpy(&vertices[k++], &A[i][j], sizeof(struct Vertex));
 
             memcpy(&vertices[k++], &A[i][(j+1)%m], sizeof(struct Vertex));
             memcpy(&vertices[k++], &A[(i+1)%n][j], sizeof(struct Vertex));

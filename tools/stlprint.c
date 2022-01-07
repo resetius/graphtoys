@@ -34,7 +34,12 @@ int main(int argc, char** argv) {
             fread(&z, 4, 1, f);
             printf("  v[%d]: %f %f %f\n", j, x, y, z);
         }
-        fread(&attrs, 2, 1, f); attrs = 0;
+        fread(&attrs, 2, 1, f);
+        int r = attrs & 0x1f;
+        int g = (attrs>>5) & 0x1f;
+        int b = (attrs>>10) & 0x1f;
+        printf("  %d, %d, %d, %d\n", attrs, r, g, b);
+        attrs = 0;
         printf("  attrs size: %d\n", attrs);
         fseek(f, attrs, SEEK_CUR);
         printf("}\n");

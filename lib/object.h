@@ -8,12 +8,12 @@ struct DrawContext {
 struct Object {
     void (*draw)(struct Object*, struct DrawContext* );
     void (*free)(struct Object*);
-    void (*move_left)(struct Object*);
-    void (*move_right)(struct Object*);
-    void (*move_up)(struct Object*);
-    void (*move_down)(struct Object*);
-    void (*zoom_in)(struct Object*);
-    void (*zoom_out)(struct Object*);
+    void (*move_left)(struct Object*, int mods);
+    void (*move_right)(struct Object*, int mods);
+    void (*move_up)(struct Object*, int mods);
+    void (*move_down)(struct Object*, int mods);
+    void (*zoom_in)(struct Object*, int mods);
+    void (*zoom_out)(struct Object*, int mods);
     void (*mode)(struct Object*);
 };
 

@@ -45,37 +45,37 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     if (key == GLFW_KEY_LEFT && action != GLFW_RELEASE) {
         for (i = 0; i < app->objs.size; i++) {
             if (app->objs.objs[i]->move_left) {
-                app->objs.objs[i]->move_left(app->objs.objs[i]);
+                app->objs.objs[i]->move_left(app->objs.objs[i], mods);
             }
         }
     } else if (key == GLFW_KEY_RIGHT && action != GLFW_RELEASE) {
         for (i = 0; i < app->objs.size; i++) {
             if (app->objs.objs[i]->move_right) {
-                app->objs.objs[i]->move_right(app->objs.objs[i]);
+                app->objs.objs[i]->move_right(app->objs.objs[i], mods);
             }
         }
     } else if (key == GLFW_KEY_UP && action != GLFW_RELEASE) {
         for (i = 0; i < app->objs.size; i++) {
             if (app->objs.objs[i]->move_up) {
-                app->objs.objs[i]->move_up(app->objs.objs[i]);
+                app->objs.objs[i]->move_up(app->objs.objs[i], mods);
             }
         }
     } else if (key == GLFW_KEY_DOWN && action != GLFW_RELEASE) {
         for (i = 0; i < app->objs.size; i++) {
             if (app->objs.objs[i]->move_down) {
-                app->objs.objs[i]->move_down(app->objs.objs[i]);
+                app->objs.objs[i]->move_down(app->objs.objs[i], mods);
             }
         }
     } else if (key == GLFW_KEY_A && action != GLFW_RELEASE) {
         for (i = 0; i < app->objs.size; i++) {
             if (app->objs.objs[i]->zoom_in) {
-                app->objs.objs[i]->zoom_in(app->objs.objs[i]);
+                app->objs.objs[i]->zoom_in(app->objs.objs[i], mods);
             }
         }
     } else if (key == GLFW_KEY_Z && action != GLFW_RELEASE) {
         for (i = 0; i < app->objs.size; i++) {
             if (app->objs.objs[i]->zoom_out) {
-                app->objs.objs[i]->zoom_out(app->objs.objs[i]);
+                app->objs.objs[i]->zoom_out(app->objs.objs[i], mods);
             }
         }
     } else if (key == GLFW_KEY_TAB && action == GLFW_PRESS) {
@@ -217,7 +217,7 @@ int main(int argc, char** argv)
 
         if (enable_labels) {
             label_render(fps);
-            label_render(text);
+            //label_render(text);
         }
 
         /* Swap front and back buffers */
