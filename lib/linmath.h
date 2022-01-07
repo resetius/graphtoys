@@ -190,11 +190,24 @@ LINMATH_H_FUNC void mat4x4_mul(mat4x4 M, mat4x4 const a, mat4x4 const b)
 LINMATH_H_FUNC void mat4x4_mul_vec4(vec4 r, mat4x4 const M, vec4 const v)
 {
 	int i, j;
+    vec4 r1;
 	for(j=0; j<4; ++j) {
-		r[j] = 0.f;
+		r1[j] = 0.f;
 		for(i=0; i<4; ++i)
-			r[j] += M[i][j] * v[i];
+			r1[j] += M[i][j] * v[i];
 	}
+    vec4_dup(r, r1);
+}
+LINMATH_H_FUNC void mat3x3_mul_vec3(vec3 r, mat3x3 const M, vec3 const v)
+{
+	int i, j;
+    vec3 r1;
+	for(j=0; j<3; ++j) {
+		r1[j] = 0.f;
+		for(i=0; i<3; ++i)
+			r1[j] += M[i][j] * v[i];
+	}
+    vec3_dup(r, r1);
 }
 LINMATH_H_FUNC void mat4x4_translate(mat4x4 T, float x, float y, float z)
 {

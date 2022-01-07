@@ -43,9 +43,10 @@ struct Stl {
     struct UniformBlock uniform;
     struct Pipeline* pl;
     struct Pipeline* plt;
-    mat4x4 m;
+    //mat4x4 m;
     float ax, ay, az;
     vec4 light;
+    quat q;
 };
 
 static struct Vertex* init (int* nvertices) {
@@ -134,7 +135,8 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     //mat4x4_rotate_X(m, m, ctx->time);
     //mat4x4_rotate_Y(m, m, ctx->time);
     //mat4x4_rotate_Z(m, m, ctx->time);
-    memcpy(m, t->m, sizeof(m));
+    //memcpy(m, t->m, sizeof(m));
+    mat4x4_from_quat(m, t->q);
 
     vec3 eye = {0.0f, -10.0f, 0.f};
     vec3 center = {.0f, .0f, .0f};
@@ -199,15 +201,37 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
 }
 
 static void transform(struct Stl* t) {
-    mat4x4_identity(t->m);
-    mat4x4_rotate_X(t->m, t->m, t->ax);
-    mat4x4_rotate_Y(t->m, t->m, t->ay);
-    mat4x4_rotate_Z(t->m, t->m, t->az);
+    vec3 ox = {1,0,0};
+    vec3 oy = {0,1,0};
+    vec3 oz = {0,0,1};
+    quat ox1 = {1,0,0,0};
+    quat oy1 = {0,1,0,0};
+    quat oz1 = {0,0,1,0};
+    quat qx, qy, qz, q;
 
-    printf("light: %f %f %f\n",
-           t->light[0],
-           t->light[1],
-           t->light[2]);
+    quat_conj(q, t->q);
+
+    quat_mul(ox1, ox1, t->q);
+    quat_mul(ox1,  q, ox1);
+    memcpy(ox, ox1, sizeof(vec3));
+
+    quat_mul(oy1, oy1, t->q);
+    quat_mul(oy1,  q, oy1);
+    memcpy(oy, oy1, sizeof(vec3));
+
+    quat_mul(oz1, oz1, t->q);
+    quat_mul(oz1,  q, oz1);
+    memcpy(oz, oz1, sizeof(vec3));
+
+    quat_rotate(qx, t->ax, ox);
+    quat_rotate(qy, t->ay, oy);
+    quat_rotate(qz, t->az, oz);
+
+    quat_mul(t->q, t->q, qx);
+    quat_mul(t->q, t->q, qy);
+    quat_mul(t->q, t->q, qz);
+
+    t->ax = t->ay = t->az = 0;
 }
 
 static void move_left(struct Object* obj, int mods) {
@@ -245,12 +269,11 @@ static void move_up(struct Object* obj, int mods) {
 
 static void move_down(struct Object* obj, int mods) {
     struct Stl* t = (struct Stl*)obj;
-    mat4x4_rotate_Y(t->m, t->m,  5*M_PI/360);
 
     if (mods & 1) {
         t->light[2] -= 0.1;
     } else {
-        t->ax +=  5*M_PI/360;
+        t->ax += 5*M_PI/360;
     }
     transform(t);
 }
@@ -272,7 +295,7 @@ static void zoom_out(struct Object* obj, int mods) {
     if (mods & 1) {
         t->light[1] -= 0.1;
     } else {
-        t->ay -= 5*M_PI/360;
+        t->ay += -5*M_PI/360;
     }
     transform(t);
 }
@@ -321,7 +344,8 @@ struct Object* CreateStl(struct Render* r) {
         .size = models_dot_frag_spv_size,
     };
 
-    mat4x4_identity(t->m);
+    //mat4x4_identity(t->m);
+    quat_identity(t->q);
 
     t->base = base;
     vec4 light = {0, 0, 0, 1};
