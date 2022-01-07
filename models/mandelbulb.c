@@ -29,32 +29,32 @@ struct Mandelbulb {
     struct Pipeline* pl;
 };
 
-static void t_left(struct Object* obj) {
+static void t_left(struct Object* obj, int mods) {
     struct Mandelbulb* t = (struct Mandelbulb*)obj;
     t->T[0] += t->T[2]*0.01;
 }
 
-static void t_right(struct Object* obj) {
+static void t_right(struct Object* obj, int mods) {
     struct Mandelbulb* t = (struct Mandelbulb*)obj;
     t->T[0] -= t->T[2]*0.01;
 }
 
-static void t_up(struct Object* obj) {
+static void t_up(struct Object* obj, int mods) {
     struct Mandelbulb* t = (struct Mandelbulb*)obj;
     t->T[1] += t->T[2]*0.01;
 }
 
-static void t_down(struct Object* obj) {
+static void t_down(struct Object* obj, int mods) {
     struct Mandelbulb* t = (struct Mandelbulb*)obj;
     t->T[1] -= t->T[2]*0.01;
 }
 
-static void t_zoom_in(struct Object* obj) {
+static void t_zoom_in(struct Object* obj, int mods) {
     struct Mandelbulb* t = (struct Mandelbulb*)obj;
     t->T[2] /= 1.01;
 }
 
-static void t_zoom_out(struct Object* obj) {
+static void t_zoom_out(struct Object* obj, int mods) {
     struct Mandelbulb* t = (struct Mandelbulb*)obj;
     t->T[2] *= 1.01;
 }
