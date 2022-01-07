@@ -2,3 +2,7 @@
 *~
 *.exe
 *.d
+*.spv.h
+*.frag.h
+*.vert.h
+*.ttf.h
