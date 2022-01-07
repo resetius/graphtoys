@@ -467,13 +467,14 @@ LINMATH_H_FUNC void quat_identity(quat q)
 }
 LINMATH_H_FUNC void quat_mul(quat r, quat const p, quat const q)
 {
-	vec3 w;
-	vec3_mul_cross(r, p, q);
+	vec3 w; quat r1;
+	vec3_mul_cross(r1, p, q);
 	vec3_scale(w, p, q[3]);
-	vec3_add(r, r, w);
+	vec3_add(r1, r1, w);
 	vec3_scale(w, q, p[3]);
-	vec3_add(r, r, w);
-	r[3] = p[3]*q[3] - vec3_mul_inner(p, q);
+	vec3_add(r1, r1, w);
+	r1[3] = p[3]*q[3] - vec3_mul_inner(p, q);
+    vec4_dup(r, r1);
 }
 LINMATH_H_FUNC void quat_conj(quat r, quat const q)
 {
