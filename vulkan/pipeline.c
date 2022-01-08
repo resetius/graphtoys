@@ -119,37 +119,13 @@ static void uniform_update(struct Pipeline* p1, int id, const void* data, int of
     buffer_update_(r->log_dev, p->uniforms[id].memory[r->image_index], data, offset, size);
 }
 
-static void buffer_update(struct Pipeline* p1, int id, int i, const void* data, int offset, int size)
+static void buffer_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     struct RenderImpl* r = p->r;
-
-    if (id >= p->n_buffers) {
-        p->buffers = realloc(p->buffers, (id+1)*sizeof(struct Buffer));
-        memset(p->buffers+p->n_buffers, 0, (id-p->n_buffers+1)* sizeof(struct Buffer));
-        p->n_buffers = id+1;
-    }
+    assert(id < p->n_buffers);
 
     struct Buffer* buf = &p->buffers[id];
-    if (buf->size > 0 && buf->size != size) {
-        fprintf(stderr, "Free\n");
-        vkDestroyBuffer(r->log_dev, buf->buffer, NULL);
-        vkFreeMemory(r->log_dev, buf->memory, NULL);
-    }
-    if (size != buf->size) {
-        //fprintf(stderr, "Alloc and copy %d\n", size);
-        buf->n_vertices = size / p->buf_descr[i].stride;
-        buf->size = size;
-        buf->binding = i;
-        create_buffer(
-            r->phy_dev, r->log_dev,
-            buf->size,
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            //VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            &buf->buffer,
-            &buf->memory);
-    }
 
     // TODO: buffer per frame
     // TODO: barriers
@@ -189,10 +165,14 @@ static int buffer_create(struct Pipeline* p1, int binding, const void* data, int
         &stagingBuffer,
         &stagingBufferMemory);
 
-    void* dst;
-    vkMapMemory(r->log_dev, stagingBufferMemory, 0, size, 0, &dst);
-    memcpy(dst, data, size);
-    vkUnmapMemory(r->log_dev, stagingBufferMemory);
+    assert(data || dynamic);
+
+    if (data) {
+        void* dst;
+        vkMapMemory(r->log_dev, stagingBufferMemory, 0, size, 0, &dst);
+        memcpy(dst, data, size);
+        vkUnmapMemory(r->log_dev, stagingBufferMemory);
+    }
 
     if (dynamic) {
         buf->buffer = stagingBuffer;

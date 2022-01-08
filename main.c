@@ -190,7 +190,7 @@ int main(int argc, char** argv)
 
         text = label_new(font);
         label_set_pos(text, 100, 200);
-        label_set_text(text, "Проверка русских букв");
+        //label_set_text(text, "Проверка русских букв");
     }
 
     t1 = glfwGetTime();

@@ -197,15 +197,19 @@ static int next_or_die(const unsigned char** p, jmp_buf* buf) {
 void label_set_text(struct Label* l, const char* s1) {
     int len = strlen(s1);
     const unsigned char* s = (const unsigned char*)s1;
+    struct FontImpl* f = (struct FontImpl*)l->f;
+
     if (l->cap < len) {
         l->cap = len+1;
         l->text = realloc(l->text, l->cap*sizeof(uint32_t));
+        l->buf = realloc(l->buf, l->cap*sizeof(int));
     }
 
     int k = 0;
     jmp_buf buf;
     int except = setjmp(buf);
     uint32_t symbol = 0;
+    int changed = 0;
 
     while (*s && !except) {
         symbol = 0;
@@ -227,8 +231,12 @@ void label_set_text(struct Label* l, const char* s1) {
             longjmp(buf, 1);
         }
 
-        if (k >= l->len || l->text[k] != symbol) {
+        changed |= k >= l->len || l->text[k] != symbol;
+        if (changed) {
             l->text[k] = symbol | 0x80000000;
+        }
+        if (k >= l->len) {
+            l->buf[k] = f->pl->buffer_create(f->pl, 0, NULL, 6*4*4, 1);
         }
 
         k++;
@@ -266,7 +274,7 @@ void label_render(struct Label* l)
     int y = l->y;
     mat4x4 m, p, mvp;
     struct Char* ch;
-    int id = 0, i;
+    int i;
     mat4x4_identity(m);
     mat4x4_ortho(p, 0, l->w, 0, l->h, 1.f, -1.f);
     p[3][2] = 0;
@@ -307,14 +315,11 @@ void label_render(struct Label* l)
                 { xpos + w, ypos,     1.0, 1.0 },
                 { xpos + w, ypos + h, 1.0, 0.0 }
             };
-
-            int cur_id = id++;
-            cur_id += f->max_letters*l->id; // TODO: buffers manager
             if (changed) {
-                f->pl->buffer_update(f->pl, cur_id, 0, vertices, 0, sizeof(vertices));
+                f->pl->buffer_update(f->pl, l->buf[i], vertices, 0, sizeof(vertices));
             }
             f->pl->use_texture(f->pl, ch->texture(ch));
-            f->pl->draw(f->pl, cur_id);
+            f->pl->draw(f->pl, l->buf[i]);
         }
         if (!ch) {
             continue;
@@ -326,6 +331,7 @@ void label_render(struct Label* l)
 void label_free(struct Label* l) {
     if (l) {
         free(l->text);
+        free(l->buf);
         free(l);
     }
 }

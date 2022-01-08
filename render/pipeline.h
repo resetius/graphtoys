@@ -15,8 +15,7 @@ struct Pipeline {
 
     void (*buffer_update)(
         struct Pipeline*,
-        int id,
-        int binding,
+        int buffer_od,
         const void* data,
         int offset,
         int size);

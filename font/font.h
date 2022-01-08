@@ -9,6 +9,7 @@ struct Font;
 struct Label {
     struct Font* f;
     uint32_t* text;
+    int* buf;
     int len;
     int cap;
 

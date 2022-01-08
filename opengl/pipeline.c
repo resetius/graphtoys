@@ -168,13 +168,6 @@ static struct PipelineBuilder* begin_buffer(struct PipelineBuilder* p1, int stri
     return p1;
 }
 
-static struct PipelineBuilder* buffer_dynamic(struct PipelineBuilder* p1) {
-    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    // TODO: check current
-    p->cur_buffer->dynamic = 1;
-    return p1;
-}
-
 static struct PipelineBuilder* buffer_attribute(
     struct PipelineBuilder* p1,
     int location,
@@ -235,45 +228,11 @@ static void uniform_update(struct Pipeline* p1, int id, const void* data, int of
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-static void buffer_update(struct Pipeline* p1, int id, int i, const void* data, int offset, int size)
+static void buffer_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    // check id < n_buffers
-    int j;
-
-    if (id >= p->n_buffers) {
-        p->buffers = realloc(p->buffers, (id+1)*sizeof(struct Buffer));
-        memset(p->buffers+p->n_buffers, 0, (id-p->n_buffers+1)* sizeof(struct Buffer));
-        p->n_buffers = id+1;
-    }
-
-    struct Buffer* buf = &p->buffers[id];
-    if (buf->size > 0 && buf->size != size) {
-        glDeleteBuffers(1, &buf->vbo);
-    }
-    if (buf->size != size) {
-        buf->n_vertices = size / p->buf_descr[i].stride;
-        buf->size = size;
-
-        glGenBuffers(1, &buf->vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, buf->vbo);
-        glBufferData(GL_ARRAY_BUFFER, buf->size, NULL, GL_DYNAMIC_DRAW);
-
-        glGenVertexArrays(1, &buf->vao);
-        glBindVertexArray(buf->vao);
-
-        for (j = 0; j < p->buf_descr[i].n_attrs; j++) {
-            int location = p->buf_descr[i].attrs[j].location;
-            glEnableVertexAttribArray(location);
-            glVertexAttribPointer(
-                location, p->buf_descr[i].attrs[j].channels, GL_FLOAT, GL_FALSE,
-                p->buf_descr[i].stride,
-                (const void*)p->buf_descr[i].attrs[j].offset);
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-    }
-
+    // TODO: check is dynamic
+    assert(id < p->n_buffers);
     glBindBuffer(GL_ARRAY_BUFFER, p->buffers[id].vbo);
     glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -293,7 +252,6 @@ static int buffer_create(struct Pipeline* p1, int binding, const void* data, int
     buf->stride = descr->stride;
     buf->n_vertices = size / descr->stride;
     buf->size = size;
-
     glGenBuffers(1, &buf->vbo);
     glBindBuffer(GL_ARRAY_BUFFER, buf->vbo);
     glBufferData(GL_ARRAY_BUFFER, buf->size, data,
