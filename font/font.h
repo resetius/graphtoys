@@ -1,13 +1,17 @@
 #pragma once
 
+#include <stdint.h>
+
 #include <render/render.h>
 
 struct Font;
 
 struct Label {
     struct Font* f;
-    char* text;
+    uint32_t* text;
+    int len;
     int cap;
+
     int x;
     int y;
     int w;

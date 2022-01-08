@@ -187,67 +187,26 @@ struct Label* label_new(struct Font* f) {
     return l;
 }
 
-void label_set_text(struct Label* l, const char* s) {
-    int len = strlen(s);
-    if (l->cap < len) {
-        l->cap = len+1;
-        l->text = realloc(l->text, l->cap);
-    }
-    strcpy(l->text, s);
-}
-
-void label_set_vtext(struct Label* l, const char* format, ...) {
-    int size = 200;
-    va_list args;
-    if (l->cap < size) {
-        l->cap = size;
-        l->text = realloc(l->text, size);
-    }
-    va_start(args, format);
-    vsnprintf(l->text, l->cap, format, args);
-    va_end(args);
-}
-
-void label_set_pos(struct Label* l, int x, int y) {
-    l->x = x;
-    l->y = y;
-}
-
-void label_set_screen(struct Label* l, int w, int h) {
-    l->w = w;
-    l->h = h;
-}
-
-static int next_or_die(unsigned char** p, jmp_buf* buf) {
+static int next_or_die(const unsigned char** p, jmp_buf* buf) {
     if (((**p) >> 6) != 0x2) {
         longjmp(*buf, 1);
     }
     return (*((*p)++)) & 0x3f;
 }
 
-void label_render(struct Label* l)
-{
-    struct FontImpl* f = (struct FontImpl*)l->f;
-    unsigned char* s = (unsigned char*)l->text;
-    int x = l->x;
-    int y = l->y;
-    mat4x4 m, p, mvp;
-    struct Char* ch;
-    int symbol;
-    int id = 0;
-    mat4x4_identity(m);
-    mat4x4_ortho(p, 0, l->w, 0, l->h, 1.f, -1.f);
-    p[3][2] = 0;
-    mat4x4_mul(mvp, p, m);
+void label_set_text(struct Label* l, const char* s1) {
+    int len = strlen(s1);
+    const unsigned char* s = (const unsigned char*)s1;
+    if (l->cap < len) {
+        l->cap = len+1;
+        l->text = realloc(l->text, l->cap*sizeof(uint32_t));
+    }
 
-    //prog_use(f->p);
-    //prog_set_mat4x4(f->p, "MVP", &mvp);
-
-    f->pl->uniform_update(f->pl, 0, mvp, 0, sizeof(mvp));
-    f->pl->start(f->pl);
-
+    int k = 0;
     jmp_buf buf;
     int except = setjmp(buf);
+    uint32_t symbol = 0;
+
     while (*s && !except) {
         symbol = 0;
         if ((*s & 0x80) == 0) {
@@ -267,6 +226,63 @@ void label_render(struct Label* l)
         } else {
             longjmp(buf, 1);
         }
+
+        if (k >= l->len || l->text[k] != symbol) {
+            l->text[k] = symbol | 0x80000000;
+        }
+
+        k++;
+    }
+    if (except) {
+        printf("Bad utf-8 sequence\n");
+    }
+
+    l->len = k;
+}
+
+void label_set_vtext(struct Label* l, const char* format, ...) {
+    char buf[32768];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buf, sizeof(buf), format, args);
+    va_end(args);
+    label_set_text(l, buf);
+}
+
+void label_set_pos(struct Label* l, int x, int y) {
+    l->x = x;
+    l->y = y;
+}
+
+void label_set_screen(struct Label* l, int w, int h) {
+    l->w = w;
+    l->h = h;
+}
+
+void label_render(struct Label* l)
+{
+    struct FontImpl* f = (struct FontImpl*)l->f;
+    int x = l->x;
+    int y = l->y;
+    mat4x4 m, p, mvp;
+    struct Char* ch;
+    int id = 0, i;
+    mat4x4_identity(m);
+    mat4x4_ortho(p, 0, l->w, 0, l->h, 1.f, -1.f);
+    p[3][2] = 0;
+    mat4x4_mul(mvp, p, m);
+
+    //prog_use(f->p);
+    //prog_set_mat4x4(f->p, "MVP", &mvp);
+
+    f->pl->uniform_update(f->pl, 0, mvp, 0, sizeof(mvp));
+    f->pl->start(f->pl);
+
+    for (i = 0; i < l->len; i++) {
+        uint32_t symbol = l->text[i];
+        int changed = !! (symbol & 0x80000000);
+        symbol &= ~0x80000000;
+        l->text[i] = symbol;
 
         if (isspace(symbol)) {
             ch = f->chars['o'];
@@ -294,7 +310,9 @@ void label_render(struct Label* l)
 
             int cur_id = id++;
             cur_id += f->max_letters*l->id; // TODO: buffers manager
-            f->pl->buffer_update(f->pl, cur_id, 0, vertices, 0, sizeof(vertices));
+            if (changed) {
+                f->pl->buffer_update(f->pl, cur_id, 0, vertices, 0, sizeof(vertices));
+            }
             f->pl->use_texture(f->pl, ch->texture(ch));
             f->pl->draw(f->pl, cur_id);
         }
@@ -302,9 +320,6 @@ void label_render(struct Label* l)
             continue;
         }
         x += ch->advance>>6;
-    }
-    if (except) {
-        printf("Bad utf-8 sequence\n");
     }
 }
 
