@@ -27,6 +27,8 @@ struct Mandelbulb {
 
     struct UniformBlock uniform;
     struct Pipeline* pl;
+
+    int model;
 };
 
 static void t_left(struct Object* obj, int mods) {
@@ -98,8 +100,9 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     memcpy(t->uniform.T, t->T, sizeof(t->T));
     memcpy(&t->uniform.next, &t->cur_type, 4);
 
+    t->pl->start(t->pl);
     t->pl->uniform_update(t->pl, 0, &t->uniform, 0, sizeof(t->uniform));
-    t->pl->run(t->pl);
+    t->pl->draw(t->pl, t->model);
 }
 
 static void t_free(struct Object* obj) {
@@ -161,11 +164,12 @@ struct Object* CreateMandelbulb(struct Render* r) {
         ->end_uniform(p)
 
         ->begin_buffer(p, sizeof(struct Vertex))
-        ->buffer_data(p, vertices, n_vertices*sizeof(struct Vertex))
         ->buffer_attribute(p, 1, 3, 4, offsetof(struct Vertex, pos))
         ->end_buffer(p)
 
         ->build(p);
+
+    t->model = t->pl->buffer_create(t->pl, 0, vertices, n_vertices*sizeof(struct Vertex), 0);
 
     t->n_types = 4;
     t->cur_type = 0;

@@ -28,6 +28,7 @@ static const Vertex vertices[3] =
 struct Triangle {
     struct Object base;
     struct Pipeline* pl;
+    int model;
 };
 
 void tr_draw(struct Object* obj, struct DrawContext* ctx) {
@@ -38,8 +39,9 @@ void tr_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_ortho(p, -ctx->ratio, ctx->ratio, -1.f, 1.f, 1.f, -1.f);
     mat4x4_mul(mvp, p, m);
 
+    tr->pl->start(tr->pl);
     tr->pl->uniform_update(tr->pl, 0, &mvp[0][0], 0, sizeof(mat4x4));
-    tr->pl->run(tr->pl);
+    tr->pl->draw(tr->pl, tr->model);
 }
 
 void tr_free(struct Object* obj) {
@@ -76,12 +78,13 @@ struct Object* CreateTriangle(struct Render* r) {
         ->end_uniform(pl)
 
         ->begin_buffer(pl, sizeof(Vertex))
-        ->buffer_data(pl, (void*)vertices, sizeof(vertices))
         ->buffer_attribute(pl, 2, 3, 4, offsetof(Vertex, col)) // vCol
         ->buffer_attribute(pl, 1, 2, 4, offsetof(Vertex, pos)) // vPos
         ->end_buffer(pl)
 
         ->build(pl);
+
+    tr->model = tr->pl->buffer_create(tr->pl, 0, vertices, sizeof(vertices), 0);
 
     return (struct Object*)tr;
 }

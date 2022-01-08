@@ -35,6 +35,7 @@ struct Torus {
     struct Object base;
     struct UniformBlock uniform;
     struct Pipeline* pl;
+    int model;
 };
 
 static struct Vertex* init (int* nvertices) {
@@ -143,8 +144,9 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     memcpy(t->uniform.mv, mv, sizeof(mv));
     memcpy(t->uniform.norm, norm, sizeof(norm));
 
+    t->pl->start(t->pl);
     t->pl->uniform_update(t->pl, 0, &t->uniform, 0, sizeof(t->uniform));
-    t->pl->run(t->pl);
+    t->pl->draw(t->pl, t->model);
 }
 
 static void t_free(struct Object* obj) {
@@ -188,7 +190,6 @@ struct Object* CreateTorus(struct Render* r) {
         ->end_uniform(pl)
 
         ->begin_buffer(pl, sizeof(struct Vertex))
-        ->buffer_data(pl, vertices, nvertices*sizeof(struct Vertex))
         ->buffer_attribute(pl, 3, 3, 4, offsetof(struct Vertex, col))
         ->buffer_attribute(pl, 2, 3, 4, offsetof(struct Vertex, norm))
         ->buffer_attribute(pl, 1, 3, 4, offsetof(struct Vertex, pos))
@@ -199,6 +200,7 @@ struct Object* CreateTorus(struct Render* r) {
 
         ->build(pl);
 
+    t->model = t->pl->buffer_create(t->pl, 0, vertices, nvertices*sizeof(struct Vertex), 0);
 
     free(vertices);
 

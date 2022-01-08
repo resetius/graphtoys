@@ -26,6 +26,7 @@ struct Mandelbrot {
     struct UniformBlock uniform;
     struct Pipeline* pl;
     vec3 T;
+    int model;
 };
 
 static void t_left(struct Object* obj, int mods) {
@@ -81,8 +82,9 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     memcpy(t->uniform.mvp, mvp, sizeof(mvp));
     memcpy(t->uniform.T, t->T, sizeof(t->T));
 
+    t->pl->start(t->pl);
     t->pl->uniform_update(t->pl, 0, &t->uniform, 0, sizeof(t->uniform));
-    t->pl->run(t->pl);
+    t->pl->draw(t->pl, t->model);
 }
 
 static void t_free(struct Object* obj) {
@@ -138,11 +140,12 @@ struct Object* CreateMandelbrot(struct Render* r) {
         ->end_uniform(pl)
 
         ->begin_buffer(pl, sizeof(struct Vertex))
-        ->buffer_data(pl, vertices, nvertices*sizeof(struct Vertex))
         ->buffer_attribute(pl, 1, 3, 4, offsetof(struct Vertex, pos))
         ->end_buffer(pl)
 
         ->build(pl);
+
+    t->model = t->pl->buffer_create(t->pl, 0, vertices, nvertices*sizeof(struct Vertex), 0);
 
     t->T[0] = t->T[1] = 0.0; t->T[2] = 2.0;
 
