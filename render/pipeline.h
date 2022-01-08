@@ -48,8 +48,6 @@ struct PipelineBuilder {
     struct PipelineBuilder* (*end_program)(struct PipelineBuilder*);
 
     struct PipelineBuilder* (*begin_buffer)(struct PipelineBuilder*, int stride);
-    struct PipelineBuilder* (*buffer_data)(struct PipelineBuilder*, const void* data, int size);
-    struct PipelineBuilder* (*buffer_dynamic)(struct PipelineBuilder*); // TODO: remove
     struct PipelineBuilder* (*buffer_attribute)(
         struct PipelineBuilder*,
         int location,

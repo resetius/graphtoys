@@ -37,8 +37,6 @@ struct BufferDescriptor {
     int dynamic;
     struct BufferAttribute attrs[10];
     int n_attrs;
-    const void* data;
-    int size;
 };
 
 struct Sampler {
@@ -167,15 +165,6 @@ static struct PipelineBuilder* begin_buffer(struct PipelineBuilder* p1, int stri
     p->cur_buffer = &p->buffers[p->n_buffers++];
     p->cur_buffer->stride = stride;
 
-    return p1;
-}
-
-static struct PipelineBuilder* buffer_data(struct PipelineBuilder* p1, const void* data, int size)
-{
-    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    // TODO: check current
-    p->cur_buffer->size = size;
-    p->cur_buffer->data = data;
     return p1;
 }
 
@@ -460,7 +449,6 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .draw = draw,
         .use_texture = use_texture
     };
-    int i, j, k;
     pl->base = base;
     pl->n_programs = p->n_programs;
     pl->programs = malloc(pl->n_programs*sizeof(struct Program*));
@@ -469,43 +457,6 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     pl->n_uniforms = p->n_uniforms;
     pl->uniforms = malloc(pl->n_uniforms*sizeof(struct UniformBlock));
     memcpy(pl->uniforms, p->uniforms, pl->n_uniforms*sizeof(struct UniformBlock));
-
-    for (i = 0; i < p->n_buffers; i++) {
-        if (p->buffers[i].data) {
-            pl->n_buffers ++;
-        }
-    }
-    pl->buf_cap = pl->n_buffers;
-    pl->buffers = malloc(pl->n_buffers*sizeof(struct Buffer));
-    for (k = 0, i = 0; i < p->n_buffers; i++) {
-        if (p->buffers[i].data) {
-            struct Buffer* buf = &pl->buffers[k++];
-            buf->n_vertices = p->buffers[i].size / p->buffers[i].stride;
-            buf->size = p->buffers[i].size;
-
-            printf("Create buffer: %d %d %d\n", buf->size, buf->n_vertices,
-                   p->buffers[i].n_attrs);
-
-            glGenBuffers(1, &buf->vbo);
-            glBindBuffer(GL_ARRAY_BUFFER, buf->vbo);
-            glBufferData(GL_ARRAY_BUFFER, buf->size,
-                         p->buffers[i].data, GL_STATIC_DRAW);
-
-            glGenVertexArrays(1, &buf->vao);
-            glBindVertexArray(buf->vao);
-
-            for (j = 0; j < p->buffers[i].n_attrs; j++) {
-                int location = p->buffers[i].attrs[j].location;
-                glEnableVertexAttribArray(location);
-                glVertexAttribPointer(
-                    location, p->buffers[i].attrs[j].channels, GL_FLOAT, GL_FALSE,
-                    p->buffers[i].stride,
-                    (const void*)p->buffers[i].attrs[j].offset);
-            }
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glBindVertexArray(0);
-        }
-    }
 
     pl->n_buf_descrs = p->n_buffers;
     pl->buf_descr = malloc(pl->n_buf_descrs*sizeof(struct BufferDescriptor));
@@ -534,8 +485,6 @@ struct PipelineBuilder* pipeline_builder_opengl(struct Render* r) {
         .end_uniform = end_uniform,
 
         .begin_buffer = begin_buffer,
-        .buffer_data = buffer_data,
-        .buffer_dynamic = buffer_dynamic,
         .buffer_attribute = buffer_attribute,
         .end_buffer = end_buffer,
 

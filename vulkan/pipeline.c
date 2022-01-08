@@ -15,7 +15,6 @@ struct BufferDescriptor {
     VkVertexInputBindingDescription descr;
     VkVertexInputAttributeDescription attr[20];
     int n_attr;
-    int dynamic;
 };
 
 struct Buffer {
@@ -504,62 +503,6 @@ static struct PipelineBuilder* begin_buffer(struct PipelineBuilder* p1, int stri
     return p1;
 }
 
-struct PipelineBuilder* buffer_data(struct PipelineBuilder* p1,const void* data, int size)
-{
-    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    struct RenderImpl* r = p->r;
-    // TODO: check ptr
-
-    struct Buffer* buf = &p->allocated[p->n_allocated++];
-
-    VkDeviceSize bufferSize = size;
-    buf->size = size;
-    buf->n_vertices = size / p->cur_buffer->stride;
-    buf->binding = p->cur_buffer->descr.binding;
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-
-    create_buffer(
-        r->phy_dev, r->log_dev,
-        bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        &stagingBuffer, &stagingBufferMemory);
-
-    void* dst;
-    vkMapMemory(r->log_dev, stagingBufferMemory, 0, bufferSize, 0, &dst);
-    memcpy(dst, data, bufferSize);
-    vkUnmapMemory(r->log_dev, stagingBufferMemory);
-
-    create_buffer(
-        r->phy_dev, r->log_dev,
-        bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        &buf->buffer,
-        &buf->memory);
-
-    copy_buffer(
-        r->graphics_family,
-        r->g_queue, r->log_dev,
-        stagingBuffer,
-        buf->buffer, bufferSize);
-
-    vkDestroyBuffer(r->log_dev, stagingBuffer, NULL);
-    vkFreeMemory(r->log_dev, stagingBufferMemory, NULL);
-
-    return p1;
-}
-
-struct PipelineBuilder* buffer_dynamic(struct PipelineBuilder*p1)
-{
-    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    // TODO: check ptr
-    p->cur_buffer->dynamic = 1;
-    return p1;
-}
-
 static int get_format(int channels, int bytes_per_channel) {
     int fmt = 0;
     if (channels == 1) {
@@ -1031,8 +974,6 @@ struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r) {
         .add_vs = add_vs,
         .add_fs = add_fs,
         .begin_buffer = begin_buffer,
-        .buffer_data = buffer_data,
-        .buffer_dynamic = buffer_dynamic,
         .buffer_attribute = buffer_attribute,
         .end_buffer = end_buffer,
         .enable_depth = enable_depth,
