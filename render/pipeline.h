@@ -16,10 +16,16 @@ struct Pipeline {
     void (*buffer_update)(
         struct Pipeline*,
         int id,
-        int descr_id,
+        int binding,
         const void* data,
         int offset,
         int size);
+
+    int (*buffer_create)(
+        struct Pipeline* p1,
+        int binding,
+        const void* data,
+        int size, int dynamic); // -> buffer id
 
     void (*run)(struct Pipeline*);
 

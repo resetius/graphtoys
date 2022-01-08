@@ -47,6 +47,7 @@ struct PipelineImpl {
 
     struct Buffer* buffers;
     int n_buffers;
+    int buf_cap;
 
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
@@ -160,6 +161,64 @@ static void buffer_update(struct Pipeline* p1, int id, int i, const void* data, 
          //}
 }
 
+static int buffer_create(struct Pipeline* p1, int binding, const void* data, int size, int dynamic)
+{
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    struct RenderImpl* r = p->r;
+    assert(binding < p->n_buf_descr);
+    struct BufferDescriptor* descr = &p->buf_descr[binding];
+    if (p->n_buffers >= p->buf_cap) {
+        p->buf_cap = (p->buf_cap+1)*2;
+        p->buffers = realloc(p->buffers, p->buf_cap*sizeof(struct Buffer));
+    }
+    int buffer_id = p->n_buffers++;
+    struct Buffer* buf = &p->buffers[buffer_id];
+    buf->stride = descr->stride;
+    buf->n_vertices = size / descr->stride;
+    buf->binding = binding;
+    buf->size = size;
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+
+    create_buffer(
+        r->phy_dev, r->log_dev,
+        buf->size,
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        //VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        &stagingBuffer,
+        &stagingBufferMemory);
+
+    void* dst;
+    vkMapMemory(r->log_dev, stagingBufferMemory, 0, size, 0, &dst);
+    memcpy(dst, data, size);
+    vkUnmapMemory(r->log_dev, stagingBufferMemory);
+
+    if (dynamic) {
+        buf->buffer = stagingBuffer;
+        buf->memory = stagingBufferMemory;
+    } else {
+        create_buffer(
+            r->phy_dev, r->log_dev,
+            size,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            &buf->buffer,
+            &buf->memory);
+
+        copy_buffer(
+            r->graphics_family,
+            r->g_queue, r->log_dev,
+            stagingBuffer,
+            buf->buffer, size);
+
+        vkDestroyBuffer(r->log_dev, stagingBuffer, NULL);
+        vkFreeMemory(r->log_dev, stagingBufferMemory, NULL);
+    }
+    return buffer_id;
+}
+
 static void use_texture(struct Pipeline* p1, void* texture) {
     struct PipelineImpl* pl = (struct PipelineImpl*)p1;
     struct RenderImpl* r = pl->r;
@@ -229,15 +288,22 @@ static void draw(struct Pipeline* p1, int id) {
 
         //printf("Draw %d %d\n", id, buf->n_vertices);
 
-        VkDescriptorSet use [] = { p->descriptorSets[r->image_index], *p->currentDescriptorSet };
+        VkDescriptorSet currentDescriptorSet = p->descriptorSets[r->image_index];
+        VkDescriptorSet textureDescriptorSet = NULL;
+        int n_sets = 1;
+        if (p->currentDescriptorSet) {
+            textureDescriptorSet = *p->currentDescriptorSet;
+            n_sets = 2;
+        }
+        VkDescriptorSet use [] = { currentDescriptorSet, textureDescriptorSet };
 
         vkCmdBindDescriptorSets(
             buffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             p->pipelineLayout,
             0,
-            2,
-            use /*p->currentDescriptorSet*/, 0, NULL);
+            n_sets,
+            use, 0, NULL);
 
 
         vkCmdBindVertexBuffers(
@@ -679,6 +745,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .run = run,
         .uniform_update = uniform_update,
         .buffer_update = buffer_update,
+        .buffer_create = buffer_create,
         .free = pipeline_free,
         .start = start,
         .use_texture = use_texture,
@@ -942,7 +1009,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 
     pl->buffers = malloc(p->n_allocated*sizeof(struct Buffer));
     memcpy(pl->buffers, p->allocated, p->n_allocated*sizeof(struct Buffer));
-    pl->n_buffers = p->n_allocated;
+    pl->n_buffers = pl->buf_cap = p->n_allocated;
 
     pl->buf_descr = malloc(p->n_buffers*sizeof(struct BufferDescriptor));
     memcpy(pl->buf_descr, p->buffers, p->n_buffers*sizeof(struct BufferDescriptor));

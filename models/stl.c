@@ -47,6 +47,9 @@ struct Stl {
     float ax, ay, az;
     vec4 light;
     quat q;
+
+    int model;
+    int dot;
 };
 
 static struct Vertex* init (int* nvertices) {
@@ -185,8 +188,9 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     // light position in view coordinate
     mat4x4_mul_vec4(t->uniform.light, v, t->light);
 
+    t->pl->start(t->pl);
     t->pl->uniform_update(t->pl, 0, &t->uniform, 0, sizeof(t->uniform));
-    t->pl->run(t->pl);
+    t->pl->draw(t->pl, t->model);
 
     mat4x4 m1;
     mat4x4_identity(m1);
@@ -196,8 +200,9 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_mul(mv, v, m1);
     mat4x4_mul(mvp, p, mv);
 
+    t->plt->start(t->plt);
     t->plt->uniform_update(t->plt, 0, mvp, 0, sizeof(mvp));
-    t->plt->run(t->plt);
+    t->plt->draw(t->plt, t->dot);
 }
 
 static void transform(struct Stl* t) {
@@ -363,7 +368,6 @@ struct Object* CreateStl(struct Render* r) {
         ->end_uniform(pl)
 
         ->begin_buffer(pl, sizeof(struct Vertex))
-        ->buffer_data(pl, vertices, nvertices*sizeof(struct Vertex))
         ->buffer_attribute(pl, 3, 3, 4, offsetof(struct Vertex, col))
         ->buffer_attribute(pl, 2, 3, 4, offsetof(struct Vertex, norm))
         ->buffer_attribute(pl, 1, 3, 4, offsetof(struct Vertex, pos))
@@ -374,6 +378,7 @@ struct Object* CreateStl(struct Render* r) {
 
         ->build(pl);
 
+    t->model = t->pl->buffer_create(t->pl, 0, vertices, nvertices*sizeof(struct Vertex), 0);
 
     struct Vertex pp[] = {
         {{1.0, 0.0, 1.0}, {0.0, 0.0, 0.0}, { -1,  1, 0}},
@@ -395,7 +400,6 @@ struct Object* CreateStl(struct Render* r) {
         ->end_uniform(plt)
 
         ->begin_buffer(plt, sizeof(struct Vertex))
-        ->buffer_data(plt, pp, sizeof(pp))
         ->buffer_attribute(plt, 2, 3, 4, offsetof(struct Vertex, col))
         ->buffer_attribute(plt, 1, 3, 4, offsetof(struct Vertex, pos))
 
@@ -405,6 +409,8 @@ struct Object* CreateStl(struct Render* r) {
         ->enable_depth(plt)
 
         ->build(plt);
+
+    t->dot = t->plt->buffer_create(t->plt, 0, pp, sizeof(pp), 0);
 
     free(vertices);
 

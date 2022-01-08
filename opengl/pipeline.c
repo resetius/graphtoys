@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include <render/pipeline.h>
 #include <render/program.h>
@@ -57,6 +58,7 @@ struct PipelineImpl {
 
     struct Buffer* buffers;
     int n_buffers;
+    int buf_cap;
 
     struct BufferDescriptor* buf_descr;
     int n_buf_descrs;
@@ -288,6 +290,45 @@ static void buffer_update(struct Pipeline* p1, int id, int i, const void* data, 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+static int buffer_create(struct Pipeline* p1, int binding, const void* data, int size, int dynamic)
+{
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    assert(binding < p->n_buf_descrs);
+    struct BufferDescriptor* descr = &p->buf_descr[binding];
+    if (p->n_buffers >= p->buf_cap) {
+        p->buf_cap = (p->buf_cap+1)*2;
+        p->buffers = realloc(p->buffers, p->buf_cap*sizeof(struct Buffer));
+    }
+    int buffer_id = p->n_buffers++;
+    struct Buffer* buf = &p->buffers[buffer_id];
+    buf->stride = descr->stride;
+    buf->n_vertices = size / descr->stride;
+    buf->size = size;
+
+    glGenBuffers(1, &buf->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, buf->vbo);
+    glBufferData(GL_ARRAY_BUFFER, buf->size, data,
+                 dynamic
+                 ? GL_DYNAMIC_DRAW
+                 : GL_STATIC_DRAW);
+
+    glGenVertexArrays(1, &buf->vao);
+    glBindVertexArray(buf->vao);
+
+    for (int j = 0; j < descr->n_attrs; j++) {
+        int location = descr->attrs[j].location;
+        glEnableVertexAttribArray(location);
+        glVertexAttribPointer(
+            location, descr->attrs[j].channels, GL_FLOAT, GL_FALSE,
+            descr->stride,
+            (const void*)descr->attrs[j].offset);
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    return buffer_id;
+}
+
 static void before(struct PipelineImpl* p) {
     if (p->enable_blend) {
         glEnable(GL_BLEND);
@@ -413,6 +454,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .free = pipeline_free,
         .uniform_update = uniform_update,
         .buffer_update = buffer_update,
+        .buffer_create = buffer_create,
         .run = run,
         .start = start,
         .draw = draw,
@@ -433,6 +475,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
             pl->n_buffers ++;
         }
     }
+    pl->buf_cap = pl->n_buffers;
     pl->buffers = malloc(pl->n_buffers*sizeof(struct Buffer));
     for (k = 0, i = 0; i < p->n_buffers; i++) {
         if (p->buffers[i].data) {
