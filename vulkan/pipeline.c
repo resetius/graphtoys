@@ -24,6 +24,7 @@ struct Buffer {
     VkDeviceSize size;
     int stride;
     int n_vertices;
+    int binding;
 };
 
 struct UniformBlock {
@@ -139,6 +140,7 @@ static void buffer_update(struct Pipeline* p1, int id, int i, const void* data, 
         //fprintf(stderr, "Alloc and copy %d\n", size);
         buf->n_vertices = size / p->buf_descr[i].stride;
         buf->size = size;
+        buf->binding = i;
         create_buffer(
             r->phy_dev, r->log_dev,
             buf->size,
@@ -240,7 +242,7 @@ static void draw(struct Pipeline* p1, int id) {
 
         vkCmdBindVertexBuffers(
             buffer,
-            0,
+            buf->binding,
             1,
             &buf->buffer,
             &offset);
@@ -447,6 +449,7 @@ struct PipelineBuilder* buffer_data(struct PipelineBuilder* p1,const void* data,
     VkDeviceSize bufferSize = size;
     buf->size = size;
     buf->n_vertices = size / p->cur_buffer->stride;
+    buf->binding = p->cur_buffer->descr.binding;
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
