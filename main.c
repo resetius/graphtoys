@@ -164,6 +164,8 @@ int main(int argc, char** argv)
     glfwSetKeyCallback(window, key_callback);
     //glfwSetWindowSizeCallback(window, resize_callback);
     glfwSetFramebufferSizeCallback(window, resize_callback);
+    glfwGetFramebufferSize(window, &app.ctx.w, &app.ctx.h);
+    app.ctx.ratio = app.ctx.w/(float)app.ctx.h;
 
     /* Make the window's context current */
 
@@ -195,12 +197,6 @@ int main(int argc, char** argv)
     }
 
     t1 = glfwGetTime();
-
-    {
-        int w, h;
-        glfwGetFramebufferSize(window, &w, &h);
-        resize_callback(window, w, h);
-    }
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))

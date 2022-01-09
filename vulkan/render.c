@@ -32,6 +32,7 @@ static void draw_begin_(struct Render* r1) {
         vkDeviceWaitIdle(r->log_dev);
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(r->phy_dev, r->surface, &r->caps);
 
+        dcb_destroy(&r->dcb);
         rt_destroy(&r->rt);
         rp_destroy(&r->rp);
         sc_destroy(&r->sc);
@@ -39,6 +40,10 @@ static void draw_begin_(struct Render* r1) {
         sc_init(&r->sc, r);
         rp_init(&r->rp, r->log_dev, r->sc.im_format, r->sc.depth_format);
         rt_init(&r->rt, r);
+        dcb_init(&r->dcb, r);
+        r->update_viewport = 0;
+        VkRect2D scissor = {{0, 0}, r->sc.extent};
+        r->scissor = scissor;
     }
 
     vkAcquireNextImageKHR(
@@ -56,14 +61,8 @@ static void draw_begin_(struct Render* r1) {
 
     dcb_begin(&r->dcb, r->buffer);
 
-    if (r->update_viewport) {
-        VkRect2D scissor = {{0, 0}, r->sc.extent};
-        r->scissor = scissor;
-        r->update_viewport = 0;
-
-        vkCmdSetViewport(r->buffer, 0, 1, &r->viewport);
-        vkCmdSetScissor(r->buffer, 0, 1, &r->scissor);
-    }
+    vkCmdSetViewport(r->buffer, 0, 1, &r->viewport);
+    vkCmdSetScissor(r->buffer, 0, 1, &r->scissor);
 
     VkClearColorValue color =  {
         .float32 = {0.0f, 0.0f, 0.0f, 1.0f}
@@ -313,11 +312,12 @@ static void init_(struct Render* r1) {
         .maxDepth = 1.0f
     };
     r->viewport = viewport;
+    VkRect2D scissor = {{0, 0}, r->sc.extent};
+    r->scissor = scissor;
 }
 
 static void set_viewport_(struct Render* r1, int w, int h) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
-
     VkViewport viewport = {
         .x = 0,
         .y = h,

@@ -249,10 +249,6 @@ static void start(struct Pipeline* p1) {
     VkCommandBuffer buffer = r->buffer;
 
     vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, p->graphicsPipeline);
-
-    // p->currentDescriptorSet = &p->descriptorSets[r->image_index];
-
-    //printf("Start %p\n", p->currentDescriptorSet);
 }
 
 static void draw(struct Pipeline* p1, int id) {
@@ -744,17 +740,13 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .attachmentCount = 1,
         .pAttachments = &cbAttach
     };
-    VkRect2D scissor = {
-        .offset = { 0,0 },
-        .extent = r->sc.extent
-    };
 
     VkPipelineViewportStateCreateInfo vpStateInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         .viewportCount = 1,
-        .pViewports = &r->viewport,
+        .pViewports = NULL,
         .scissorCount = 1,
-        .pScissors = &scissor
+        .pScissors = NULL
     };
 
     // Descriptor
@@ -900,6 +892,15 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .back = {}
     };
 
+    VkDynamicState dynamicStates[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+
+    VkPipelineDynamicStateCreateInfo dynamicStateInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        .pDynamicStates = dynamicStates,
+        .dynamicStateCount = 2,
+        .flags = 0
+    };
+
     // Create Graphics Pipeline
 
     VkGraphicsPipelineCreateInfo gpInfo = {
@@ -913,7 +914,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .pMultisampleState = &msStateInfo,
         .pDepthStencilState = &depthStencil,
         .pColorBlendState = &cbCreateInfo,
-        .pDynamicState = NULL,
+        .pDynamicState = &dynamicStateInfo,
         .layout = pl->pipelineLayout,
         .renderPass = r->rp.rp,
         .subpass = 0,
