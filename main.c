@@ -162,7 +162,8 @@ int main(int argc, char** argv)
     }
     glfwSetWindowUserPointer(window, &app);
     glfwSetKeyCallback(window, key_callback);
-    glfwSetWindowSizeCallback(window, resize_callback);
+    //glfwSetWindowSizeCallback(window, resize_callback);
+    glfwSetFramebufferSizeCallback(window, resize_callback);
 
     /* Make the window's context current */
 
@@ -194,6 +195,12 @@ int main(int argc, char** argv)
     }
 
     t1 = glfwGetTime();
+
+    {
+        int w, h;
+        glfwGetFramebufferSize(window, &w, &h);
+        render->set_viewport(render, w, h);
+    }
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))

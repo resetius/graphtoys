@@ -28,6 +28,18 @@ static void free_(struct Render* r1) {
 static void draw_begin_(struct Render* r1, int* w, int* h) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
 
+    if (r->update_viewport) {
+        vkDeviceWaitIdle(r->log_dev);
+
+        rt_destroy(&r->rt);
+        rp_destroy(&r->rp);
+        sc_destroy(&r->sc);
+
+        sc_init(&r->sc, r);
+        rp_init(&r->rp, r->log_dev, r->sc.im_format, r->sc.depth_format);
+        rt_init(&r->rt, r);
+    }
+
     *w = fabs(r->viewport.width);
     *h = fabs(r->viewport.height);
 
@@ -47,8 +59,12 @@ static void draw_begin_(struct Render* r1, int* w, int* h) {
     dcb_begin(&r->dcb, r->buffer);
 
     if (r->update_viewport) {
+        VkRect2D scissor = {{0, 0}, r->sc.extent};
+        r->scissor = scissor;
         r->update_viewport = 0;
+
         vkCmdSetViewport(r->buffer, 0, 1, &r->viewport);
+        vkCmdSetScissor(r->buffer, 0, 1, &r->scissor);
     }
 
     VkClearColorValue color =  {

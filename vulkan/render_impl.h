@@ -61,5 +61,6 @@ struct RenderImpl {
 
     //
     VkViewport viewport;
+    VkRect2D scissor;
     int update_viewport;
 };
