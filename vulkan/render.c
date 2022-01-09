@@ -30,6 +30,7 @@ static void draw_begin_(struct Render* r1, int* w, int* h) {
 
     if (r->update_viewport) {
         vkDeviceWaitIdle(r->log_dev);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(r->phy_dev, r->surface, &r->caps);
 
         rt_destroy(&r->rt);
         rp_destroy(&r->rp);
