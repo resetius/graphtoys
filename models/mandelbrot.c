@@ -96,13 +96,13 @@ static void t_free(struct Object* obj) {
 struct Object* CreateMandelbrot(struct Render* r) {
     struct Mandelbrot* t = calloc(1, sizeof(struct Mandelbrot));
     struct Vertex vertices[] = {
-        {{-1.0f, 1.0f,0.0f}},
+        {{ 1.0f,-1.0f,0.0f}},
         {{-1.0f,-1.0f,0.0f}},
-        {{ 1.0f,-1.0f,0.0f}},
-
         {{-1.0f, 1.0f,0.0f}},
+
+        {{ 1.0f, 1.0f,0.0f}},
         {{ 1.0f,-1.0f,0.0f}},
-        {{ 1.0f, 1.0f,0.0f}}
+        {{-1.0f, 1.0f,0.0f}},
     };
     int nvertices = 6;
 

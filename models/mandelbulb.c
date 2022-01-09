@@ -118,13 +118,13 @@ struct Vertex {
 struct Object* CreateMandelbulb(struct Render* r) {
     struct Mandelbulb* t = calloc(1, sizeof(struct Mandelbulb));
     struct Vertex vertices[] = {
-        {{-1.0f, 1.0f,0.0f}},
+        {{ 1.0f,-1.0f,0.0f}},
         {{-1.0f,-1.0f,0.0f}},
-        {{ 1.0f,-1.0f,0.0f}},
-
         {{-1.0f, 1.0f,0.0f}},
+
+        {{ 1.0f, 1.0f,0.0f}},
         {{ 1.0f,-1.0f,0.0f}},
-        {{ 1.0f, 1.0f,0.0f}}
+        {{-1.0f, 1.0f,0.0f}}
     };
     int n_vertices = 6;
 
