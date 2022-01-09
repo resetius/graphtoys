@@ -159,7 +159,7 @@ static int buffer_create(struct Pipeline* p1, int binding, const void* data, int
     create_buffer(
         r->phy_dev, r->log_dev,
         buf->size,
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         //VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         &stagingBuffer,
