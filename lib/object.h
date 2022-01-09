@@ -3,6 +3,8 @@
 struct DrawContext {
     float ratio;
     float time;
+    int w;
+    int h;
 };
 
 struct Object {

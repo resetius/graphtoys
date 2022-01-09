@@ -90,12 +90,12 @@ static void set_view_entity_(struct Render* r, void* data) {
     glfwMakeContextCurrent(window);
 }
 
-static void draw_begin_(struct Render* r, int* w, int* h) {
-    glfwGetFramebufferSize(((struct RenderImpl*)r)->window, w, h);
-    glViewport(0, 0, *w, *h);
-    //glEnable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+static void set_viewport(struct Render* r, int w, int h) {
+    glViewport(0, 0, w, h);
+}
 
+static void draw_begin_(struct Render* r) {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 static void draw_end_(struct Render* r) {
@@ -141,7 +141,8 @@ struct Render* rend_opengl_new()
         .draw_begin = draw_begin_,
         .draw_end = draw_end_,
         .init = init_,
-        .pipeline = pipeline_builder_opengl
+        .pipeline = pipeline_builder_opengl,
+        .set_viewport = set_viewport,
     };
     r->base = base;
 

@@ -29,10 +29,10 @@ static void error_callback(int error, const char* description)
 static void resize_callback(GLFWwindow* window, int w, int h)
 {
     struct App* app = glfwGetWindowUserPointer(window);
-
-    if (app->r->set_viewport) {
-        app->r->set_viewport(app->r, w, h);
-    }
+    app->ctx.w = w;
+    app->ctx.h = h;
+    app->ctx.ratio = w/(float)h;
+    app->r->set_viewport(app->r, w, h);
 }
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -199,23 +199,20 @@ int main(int argc, char** argv)
     {
         int w, h;
         glfwGetFramebufferSize(window, &w, &h);
-        render->set_viewport(render, w, h);
+        resize_callback(window, w, h);
     }
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
-        int width, height;
+        render->draw_begin(render);
 
-        render->draw_begin(render, &width, &height);
-
-        app.ctx.ratio = width / (float) height;
         app.ctx.time = (float)glfwGetTime();
 
         /* Render here */
         if (enable_labels) {
-            label_set_screen(fps, width, height);
-            label_set_screen(text, width, height);
+            label_set_screen(fps, app.ctx.w, app.ctx.h);
+            label_set_screen(text, app.ctx.w, app.ctx.h);
         }
 
         for (i = 0; i < app.objs.size; i++) {

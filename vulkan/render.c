@@ -25,7 +25,7 @@ static void free_(struct Render* r1) {
     free(r);
 }
 
-static void draw_begin_(struct Render* r1, int* w, int* h) {
+static void draw_begin_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
 
     if (r->update_viewport) {
@@ -40,9 +40,6 @@ static void draw_begin_(struct Render* r1, int* w, int* h) {
         rp_init(&r->rp, r->log_dev, r->sc.im_format, r->sc.depth_format);
         rt_init(&r->rt, r);
     }
-
-    *w = fabs(r->viewport.width);
-    *h = fabs(r->viewport.height);
 
     vkAcquireNextImageKHR(
         r->log_dev,
