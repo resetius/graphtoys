@@ -61,6 +61,7 @@ SOURCES=main.c\
 	vulkan/rendertarget.c\
 	vulkan/swapchain.c\
 	vulkan/tools.c\
+	lib/config.c\
 	lib/object.c\
 	lib/ref.c\
 	font/font.c
@@ -83,7 +84,7 @@ GENERATED1=$(patsubst %.frag,%.frag.h,$(SHADERS))
 GENERATED=$(patsubst %.vert,%.vert.h,$(GENERATED1))
 GENERATED+=$(patsubst %.ttf,%.ttf.h,$(FONTS))
 
-All: main.exe tools/stlprint.exe
+All: main.exe tools/stlprint.exe tools/cfgprint.exe
 
 clean:
 	rm -f *.exe
@@ -97,6 +98,9 @@ tools/rcc.exe: tools/rcc.o
 	$(CC) $^ -o $@
 
 tools/stlprint.exe: tools/stlprint.o
+	$(CC) $^ -o $@
+
+tools/cfgprint.exe: tools/cfgprint.o lib/config.o
 	$(CC) $^ -o $@
 
 %.d: %.c Makefile
