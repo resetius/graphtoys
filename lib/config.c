@@ -112,10 +112,9 @@ struct Config* cfg_new(const char* file, int argc, char** argv) {
     const char* section_name;
     if (!f) {
         printf("Cannot open config '%s'\n", file);
-        exit(1);
     }
     root = calloc(1, sizeof(*root));
-    while (fgets(buf, sizeof(buf), f)) {
+    while (f && fgets(buf, sizeof(buf), f)) {
         if (is_comment(buf)) {
             continue;
         }
@@ -135,7 +134,9 @@ struct Config* cfg_new(const char* file, int argc, char** argv) {
             exit(1);
         }
     }
-    fclose(f);
+    if (f) {
+        fclose(f);
+    }
 
     cfg_rewrite(root, argc, argv);
 
@@ -233,7 +234,7 @@ const char* cfg_gets(struct Config* root, const char* name) {
     const char* key;
     char* copy;
     struct Config* section;
-    if (!root->section) {
+    if (root->section) {
         return cfg_get_key(root, name);
     }
 
@@ -253,4 +254,9 @@ const char* cfg_gets(struct Config* root, const char* name) {
 noresult:
     free(copy);
     return NULL;
+}
+
+const char* cfg_gets_def(struct Config* root, const char* name, const char* def) {
+    const char* r = cfg_gets(root, name);
+    return r ? r : def;
 }

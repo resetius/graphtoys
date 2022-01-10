@@ -22,6 +22,7 @@ struct CharImpl {
 
 struct RenderImpl {
     struct Render base;
+    struct RenderConfig cfg;
     GLFWwindow* window;
 };
 
@@ -114,7 +115,7 @@ static void gl_info() {
 }
 
 static void init_(struct Render* r1) {
-    // struct RenderImpl* r = (struct RenderImpl*)r1;
+    struct RenderImpl* r = (struct RenderImpl*)r1;
     gladLoadGL(glfwGetProcAddress);
 
 //    glEnable(GL_DEPTH_TEST);
@@ -125,12 +126,12 @@ static void init_(struct Render* r1) {
 
     gl_info();
 
-    glfwSwapInterval(1); // vsync
+    glfwSwapInterval(r->cfg.vsync != 0); // vsync
 }
 
 struct PipelineBuilder* pipeline_builder_opengl(struct Render*);
 
-struct Render* rend_opengl_new()
+struct Render* rend_opengl_new(struct RenderConfig cfg)
 {
     struct RenderImpl* r = calloc(1, sizeof(*r));
     struct Render base = {
@@ -145,6 +146,7 @@ struct Render* rend_opengl_new()
         .set_viewport = set_viewport,
     };
     r->base = base;
+    r->cfg = cfg;
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1); // mac os compatible

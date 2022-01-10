@@ -36,10 +36,17 @@ static VkSurfaceFormatKHR choose_format(VkSurfaceFormatKHR* formats, int n) {
 	return formats[0];
 }
 
-static VkPresentModeKHR choose_mode(VkPresentModeKHR* modes, int n_modes) {
+static VkPresentModeKHR choose_mode(VkPresentModeKHR* modes, int n_modes, VkPresentModeKHR prefer) {
 
 	VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
     int i;
+
+    for (i = 0; i < n_modes; i++) {
+        VkPresentModeKHR* mode = &modes[i];
+        if (*mode == prefer) {
+            return *mode;
+        }
+    }
 
     for (i = 0; i < n_modes; i++) {
         VkPresentModeKHR* mode = &modes[i];
@@ -76,7 +83,10 @@ void sc_init(struct SwapChain* sc, struct RenderImpl* r) {
     sc->depth_format = VK_FORMAT_D32_SFLOAT;
     VkSurfaceFormatKHR surfaceFormat = choose_format(r->formats, r->n_formats);
 
-    VkPresentModeKHR presentMode = choose_mode(r->modes, r->n_modes);
+    VkPresentModeKHR presentMode = choose_mode(
+        r->modes,
+        r->n_modes,
+        r->cfg.vsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR);
 
     VkExtent2D extent = choose_extent(&r->caps);
 

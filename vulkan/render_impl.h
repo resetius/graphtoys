@@ -23,6 +23,7 @@ struct Texture {
 
 struct RenderImpl {
     struct Render base;
+    struct RenderConfig cfg;
     VkInstance instance;
     VkSurfaceKHR surface;
     // Physical Device

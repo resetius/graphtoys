@@ -9,6 +9,8 @@
 #include <font/font.h>
 
 #include <lib/object.h>
+#include <lib/config.h>
+
 #include <models/triangle.h>
 #include <models/torus.h>
 #include <models/mandelbrot.h>
@@ -95,6 +97,20 @@ struct ObjectAndConstructor {
     ConstructorT constructor;
 };
 
+static void fill_render_config(struct RenderConfig* r, struct Config* cfg) {
+    const char* vsync;
+    r->api = cfg_gets_def(cfg, "render:api", "opengl");
+    printf("api: '%s'\n", r->api);
+    vsync = cfg_gets_def(cfg, "render:vsync", "on");
+    printf("vsync: %s\n", vsync);
+    if (!strcmp(vsync, "on")) {
+        r->vsync = 1;
+    } else {
+        r->vsync = 0;
+    }
+    printf("vsync: %d\n", r->vsync);
+}
+
 int main(int argc, char** argv)
 {
     GLFWwindow* window = NULL;
@@ -103,6 +119,8 @@ int main(int argc, char** argv)
     struct Label* fps = NULL;
     struct Label* text = NULL;
     struct Render* render = NULL;
+    struct Config* cfg = NULL;
+    struct RenderConfig rcfg;
     float t1, t2;
     long long frames = 0;
     int enable_labels = 1;
@@ -116,7 +134,6 @@ int main(int argc, char** argv)
         {NULL, NULL}
     };
     int i, j;
-    const char* render_name = NULL;
     ConstructorT constr = CreateTorus;
     memset(&app, 0, sizeof(app));
     for (i = 1; i < argc; i++) {
@@ -125,8 +142,6 @@ int main(int argc, char** argv)
                 printf("%s %s\n", argv[0], constructors[j].name);
             }
             return 0;
-        } else if (!strcmp(argv[i], "--render")) {
-            render_name = argv[++i];
         } else {
             for (j = 0; constructors[j].name; j++) {
                 if (!strcmp(constructors[j].name, argv[i])) {
@@ -144,12 +159,16 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    if (render_name == NULL || !strcmp(render_name, "opengl")) {
-        render = rend_opengl_new();
-    } else if (!strcmp(render_name, "vulkan")) {
-        render = rend_vulkan_new();
+    cfg = cfg_new("main.ini", argc, argv);
+    cfg_print(cfg);
+    fill_render_config(&rcfg, cfg);
+
+    if (!strcmp(rcfg.api, "opengl")) {
+        render = rend_opengl_new(rcfg);
+    } else if (!strcmp(rcfg.api, "vulkan")) {
+        render = rend_vulkan_new(rcfg);
     } else {
-        fprintf(stderr, "Unknown render: '%s'\n", render_name);
+        fprintf(stderr, "Unknown render: '%s'\n", rcfg.api);
         return -1;
     }
 
@@ -246,6 +265,7 @@ int main(int argc, char** argv)
     label_free(text);
     font_free(font);
     rend_free(render);
+    cfg_free(cfg);
     glfwTerminate();
     return 0;
 }

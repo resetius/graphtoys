@@ -334,7 +334,7 @@ static void set_viewport_(struct Render* r1, int w, int h) {
 struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r);
 struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm);
 
-struct Render* rend_vulkan_new() {
+struct Render* rend_vulkan_new(struct RenderConfig cfg) {
     struct RenderImpl* r = calloc(1, sizeof(*r));
     struct Render base = {
         .free = free_,
@@ -393,6 +393,7 @@ struct Render* rend_vulkan_new() {
     }
 
     r->base = base;
+    r->cfg = cfg;
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 

@@ -7,6 +7,14 @@ struct Texture;
 struct Char;
 struct PipelineBuilder;
 
+struct RenderConfig {
+    const char* api;
+    // 0 - off
+    // 1 - on
+    // 2 - adaptive
+    int vsync;
+};
+
 struct Render {
     struct Program* (*prog_new)(struct Render*);
     struct PipelineBuilder* (*pipeline)(struct Render*);
@@ -22,8 +30,8 @@ struct Render {
     void (*set_viewport)(struct Render*, int w, int h);
 };
 
-struct Render* rend_opengl_new();
-struct Render* rend_vulkan_new();
+struct Render* rend_opengl_new(struct RenderConfig cfg);
+struct Render* rend_vulkan_new(struct RenderConfig cfg);
 
 void rend_free(struct Render*);
 
