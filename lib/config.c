@@ -5,6 +5,8 @@
 #include <limits.h>
 #include "config.h"
 
+static struct Config* cfg_key_node(struct Config* root, const char* name);
+
 struct Config {
     char* section;
     char* key;
@@ -63,6 +65,43 @@ static int get_key_value(char* s, char const** k, char const** v) {
     return 1;
 }
 
+static void cfg_rewrite(struct Config* root, int argc, char** argv) {
+    int i;
+    const char* colon, *eq;
+    char* sect_name = NULL, *key = NULL, *val = NULL;
+    struct Config* sect, *key_node;
+    for (i = 0; i < argc; i++) {
+        if (strstr(argv[i], "--") == argv[i] && (colon = strchr(argv[i], ':'))) {
+            if ((eq = strchr(argv[i], '=')) && (eq > colon)) {
+                sect_name = strdup(argv[i]+2);
+                sect_name[colon - argv[i] - 2] = 0;
+                key = strdup(colon + 1);
+                key[eq - colon - 1] = 0;
+                val = strdup(eq+1);
+
+                sect = cfg_section(root, sect_name);
+                if (!sect) {
+                    sect = calloc(1, sizeof(*sect));
+                    sect->section = sect_name; sect_name = NULL;
+                    sect->next_section = root->next_section;
+                    root->next_section = sect;
+                }
+                key_node = cfg_key_node(sect, key);
+                if (!key_node) {
+                    key_node = calloc(1, sizeof(*key_node));
+                    key_node->next_key = sect->next_key;
+                    sect->next_key = key_node;
+                }
+                free(key_node->key); key_node->key = key; key = NULL;
+                free(key_node->value); key_node->value = val; val = NULL;
+            }
+        }
+
+        free(sect_name); free(key); free(val);
+        sect_name = key = val = NULL;
+    }
+}
+
 struct Config* cfg_new(const char* file, int argc, char** argv) {
     FILE* f = fopen(file, "rb");
     char buf[32768];
@@ -97,7 +136,9 @@ struct Config* cfg_new(const char* file, int argc, char** argv) {
         }
     }
     fclose(f);
-    // replace argc/argv here
+
+    cfg_rewrite(root, argc, argv);
+
     return root;
 }
 
@@ -125,12 +166,46 @@ void cfg_print(struct Config* c) {
     }
 }
 
-struct Config* cfg_section(struct Config* root, const char* section) {
-    struct Config* node = root->next_section;
-    while (node && strcmp(node->section, section)) {
-        node = node->next_section;
+static struct Config* cfg_key_node(struct Config* root, const char* name) {
+    struct Config* node = root ? root->next_key : NULL;
+    while (node && strcmp(node->key, name)) {
+        node = node->next_key;
     }
     return node;
+}
+
+struct Config* cfg_section(struct Config* root, const char* section) {
+    struct Config* node = root->next_section;
+    struct Config* prev = NULL;
+    struct Config* sect = NULL;
+    while (node) {
+        struct Config* next = node->next_section;
+        if (!strcmp(node->section, section)) {
+            if (sect == NULL) {
+                prev = node;
+                sect = node;
+            } else {
+                // merge
+                struct Config* last = sect->next_key;
+                if (!last) {
+                    printf("1\n");
+                    sect->next_key = node->next_key;
+                } else {
+                    while (last->next_key) {
+                        last = last->next_key;
+                    }
+                    last->next_key = node->next_key;
+                }
+                free(node->section);
+                free(node);
+                prev->next_section = node->next_section;
+            }
+        } else {
+            prev = node;
+        }
+        node = next;
+    }
+    return sect;
 }
 
 long cfg_geti(struct Config* root, const char* name) {
@@ -148,10 +223,7 @@ long cfg_geti(struct Config* root, const char* name) {
 }
 
 static const char* cfg_get_key(struct Config* root, const char* name) {
-    struct Config* node = root->next_key;
-    while (node && strcmp(node->key, name)) {
-        node = node->next_key;
-    }
+    struct Config* node = cfg_key_node(root, name);
     return node ? node->value : NULL;
 }
 
