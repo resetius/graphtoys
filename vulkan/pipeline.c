@@ -597,6 +597,14 @@ struct VkDescriptorSetLayoutBinding* get_texture_layout_bindings(struct Pipeline
 }
 
 static void builder_free(struct PipelineBuilderImpl* p) {
+    int i;
+    for (i = 0; i < p->n_vert_shaders; i++) {
+        vkDestroyShaderModule(p->r->log_dev, p->vert_shaders[i], NULL);
+    }
+    for (i = 0; i < p->n_frag_shaders; i++) {
+        vkDestroyShaderModule(p->r->log_dev, p->frag_shaders[i], NULL);
+    }
+
     free(p->shader_stages);
     free(p->attr_descrs);
     free(p->binding_descrs);

@@ -15,13 +15,22 @@
 #include "render_impl.h"
 
 static void free_(struct Render* r1) {
+    int i;
     struct RenderImpl* r = (struct RenderImpl*)r1;
     dcb_destroy(&r->dcb);
     rt_destroy(&r->rt);
     rp_destroy(&r->rp);
     sc_destroy(&r->sc);
 
+    for (i = 0; i < r->n_infl_fences; i++) {
+        vkDestroyFence(r->log_dev, r->infl_fences[i], NULL);
+    }
+    vkDestroySemaphore(r->log_dev, r->imageAvailableSemaphore, NULL);
+    vkDestroySemaphore(r->log_dev, r->renderFinishedSemaphore, NULL);
+
+    vkDestroyDevice(r->log_dev, NULL);
     vkDestroySurfaceKHR(r->instance, r->surface, NULL);
+    vkDestroyInstance(r->instance, NULL);
 
     free(r->modes);
     free(r->formats);
