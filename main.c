@@ -257,10 +257,7 @@ int main(int argc, char** argv)
         //break;
     }
 
-    for (i = 0; i < app.objs.size; i++) {
-        app.objs.objs[i]->free(app.objs.objs[i]);
-    }
-
+    ovec_free(&app.objs);
     label_free(fps);
     label_free(text);
     font_free(font);

@@ -2,6 +2,10 @@
 #include "object.h"
 
 void ovec_free(struct ObjectVec* v) {
+    int i;
+    for (i = 0; i < v->size; i++) {
+        v->objs[i]->free(v->objs[i]);
+    }
     free(v->objs);
 }
 
