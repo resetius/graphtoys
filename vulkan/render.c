@@ -20,6 +20,9 @@ static void free_(struct Render* r1) {
     rt_destroy(&r->rt);
     rp_destroy(&r->rp);
     sc_destroy(&r->sc);
+
+    vkDestroySurfaceKHR(r->instance, r->surface, NULL);
+
     free(r->modes);
     free(r->formats);
     free(r);
