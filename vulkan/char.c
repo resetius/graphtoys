@@ -27,6 +27,7 @@ static void char_free_(struct Char* ch) {
 
         vkDestroyImage(c->r->log_dev, c->tex.tex, NULL);
         vkFreeMemory(c->r->log_dev, c->tex.memory, NULL);
+        free(c);
     }
 }
 
