@@ -233,6 +233,7 @@ const char* cfg_gets(struct Config* root, const char* name) {
     const char* section_name;
     const char* key;
     char* copy;
+    const char* result = NULL;
     struct Config* section;
     if (root->section) {
         return cfg_get_key(root, name);
@@ -248,12 +249,11 @@ const char* cfg_gets(struct Config* root, const char* name) {
     if (!(section = cfg_section(root, section_name))) {
         goto noresult;
     }
-    free(copy);
-    return cfg_get_key(section, key);
+    result = cfg_get_key(section, key);
 
 noresult:
     free(copy);
-    return NULL;
+    return result;
 }
 
 const char* cfg_gets_def(struct Config* root, const char* name, const char* def) {
