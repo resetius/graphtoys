@@ -51,14 +51,16 @@ struct RenderImpl {
 
     //
     uint32_t image_index;
+    uint32_t current_frame;
     VkCommandBuffer buffer;
 
     //
     VkFence infl_fences[10];
+    VkFence images_infl[10];
     int n_infl_fences;
 
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
+    VkSemaphore imageAvailableSemaphore[10];
+    VkSemaphore renderFinishedSemaphore[10];
 
     //
     VkViewport viewport;

@@ -24,9 +24,9 @@ static void free_(struct Render* r1) {
 
     for (i = 0; i < r->n_infl_fences; i++) {
         vkDestroyFence(r->log_dev, r->infl_fences[i], NULL);
+        vkDestroySemaphore(r->log_dev, r->imageAvailableSemaphore[i], NULL);
+        vkDestroySemaphore(r->log_dev, r->renderFinishedSemaphore[i], NULL);
     }
-    vkDestroySemaphore(r->log_dev, r->imageAvailableSemaphore, NULL);
-    vkDestroySemaphore(r->log_dev, r->renderFinishedSemaphore, NULL);
 
     vkDestroyDevice(r->log_dev, NULL);
     vkDestroySurfaceKHR(r->instance, r->surface, NULL);
@@ -57,17 +57,21 @@ static void draw_begin_(struct Render* r1) {
         VkRect2D scissor = {{0, 0}, r->sc.extent};
         r->scissor = scissor;
     }
+    
+    vkWaitForFences(r->log_dev, 1, &r->infl_fences[r->current_frame], VK_TRUE, UINT64_MAX);
 
     vkAcquireNextImageKHR(
         r->log_dev,
         r->sc.swapchain,
         (uint64_t)-1,
-        r->imageAvailableSemaphore,
+        r->imageAvailableSemaphore[r->current_frame],
         VK_NULL_HANDLE,
         &r->image_index);
 
-    vkWaitForFences(r->log_dev, 1, &r->infl_fences[r->image_index], VK_TRUE, (uint64_t)-1);
-    vkResetFences(r->log_dev, 1, &r->infl_fences[r->image_index]);
+    if (r->images_infl[r->image_index] != VK_NULL_HANDLE) {
+        vkWaitForFences(r->log_dev, 1, &r->images_infl[r->image_index], VK_TRUE, UINT64_MAX);
+    }
+    r->images_infl[r->image_index] = r->infl_fences[r->current_frame];
 
     r->buffer = r->dcb.buffers[r->image_index];
 
@@ -109,24 +113,27 @@ static void draw_end_(struct Render* r1) {
         .pCommandBuffers = &r->buffer,
         .pWaitDstStageMask = waitStages,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &r->imageAvailableSemaphore,
+        .pWaitSemaphores = &r->imageAvailableSemaphore[r->current_frame],
         .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &r->renderFinishedSemaphore
+        .pSignalSemaphores = &r->renderFinishedSemaphore[r->current_frame]
     };
 
-    vkQueueSubmit(r->g_queue, 1, &submitInfo, r->infl_fences[r->image_index]);
+    vkResetFences(r->log_dev, 1, &r->infl_fences[r->current_frame]);
+
+    vkQueueSubmit(r->g_queue, 1, &submitInfo, r->infl_fences[r->current_frame]);
 
     VkPresentInfoKHR presentInfo = {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &r->renderFinishedSemaphore,
+        .pWaitSemaphores = &r->renderFinishedSemaphore[r->current_frame],
         .swapchainCount = 1,
         .pSwapchains = &r->sc.swapchain,
         .pImageIndices = &r->image_index
     };
 
     vkQueuePresentKHR(r->p_queue, &presentInfo);
-    vkQueueWaitIdle(r->p_queue);
+
+    r->current_frame = (1+r->current_frame) % r->sc.n_images;
 }
 
 static void set_window_(struct Render* r1, void* w) {
@@ -302,10 +309,10 @@ static void init_(struct Render* r1) {
         .flags = VK_FENCE_CREATE_SIGNALED_BIT
     };
 
-	vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->imageAvailableSemaphore);
-	vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->renderFinishedSemaphore);
-
 	for (int i = 0; i < r->n_infl_fences; i++) {
+    	vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->imageAvailableSemaphore[i]);
+	    vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->renderFinishedSemaphore[i]);
+
 		if (vkCreateFence(r->log_dev, &fenceCreateInfo, NULL, &r->infl_fences[i]) != VK_SUCCESS) {
 
             fprintf(stderr, "Failed to create synchronization objects per frame\n");
