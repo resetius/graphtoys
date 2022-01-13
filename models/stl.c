@@ -378,7 +378,7 @@ struct Object* CreateStl(struct Render* r) {
 
         ->build(pl);
 
-    t->model = t->pl->buffer_create(t->pl, 0, vertices, nvertices*sizeof(struct Vertex), 0);
+    t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, nvertices*sizeof(struct Vertex));
 
     struct Vertex pp[] = {
         {{1.0, 0.0, 1.0}, {0.0, 0.0, 0.0}, { -1,  1, 0}},
@@ -410,7 +410,7 @@ struct Object* CreateStl(struct Render* r) {
 
         ->build(plt);
 
-    t->dot = t->plt->buffer_create(t->plt, 0, pp, sizeof(pp), 0);
+    t->dot = t->plt->buffer_create(t->plt, BUFFER_ARRAY, MEMORY_STATIC, 0, pp, sizeof(pp));
 
     free(vertices);
 

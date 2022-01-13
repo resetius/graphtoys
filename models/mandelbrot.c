@@ -145,7 +145,7 @@ struct Object* CreateMandelbrot(struct Render* r) {
 
         ->build(pl);
 
-    t->model = t->pl->buffer_create(t->pl, 0, vertices, nvertices*sizeof(struct Vertex), 0);
+    t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, nvertices*sizeof(struct Vertex));
 
     t->T[0] = t->T[1] = 0.0; t->T[2] = 2.0;
 

@@ -169,7 +169,7 @@ struct Object* CreateMandelbulb(struct Render* r) {
 
         ->build(p);
 
-    t->model = t->pl->buffer_create(t->pl, 0, vertices, n_vertices*sizeof(struct Vertex), 0);
+    t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, n_vertices*sizeof(struct Vertex));
 
     t->n_types = 4;
     t->cur_type = 0;

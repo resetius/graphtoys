@@ -3,7 +3,17 @@
 #include <stdint.h>
 #include "render.h"
 
+enum BufferType {
+    BUFFER_ARRAY
+};
+
+enum BufferMemoryType {
+    MEMORY_STATIC,
+    MEMORY_DYNAMIC
+};
+
 struct Pipeline {
+
     void (*free)(struct Pipeline*);
 
     void (*uniform_update)(
@@ -22,9 +32,11 @@ struct Pipeline {
 
     int (*buffer_create)(
         struct Pipeline* p1,
+        enum BufferType type,
+        enum BufferMemoryType mem_type,
         int binding,
         const void* data,
-        int size, int dynamic); // -> buffer id
+        int size); // -> buffer id
 
     void (*run)(struct Pipeline*);
 

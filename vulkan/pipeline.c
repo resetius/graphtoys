@@ -136,7 +136,7 @@ static void buffer_update(struct Pipeline* p1, int id, const void* data, int off
          //}
 }
 
-static int buffer_create(struct Pipeline* p1, int binding, const void* data, int size, int dynamic)
+static int buffer_create(struct Pipeline* p1, enum BufferType type, enum BufferMemoryType mem_type, int binding, const void* data, int size)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     struct RenderImpl* r = p->r;
@@ -165,7 +165,7 @@ static int buffer_create(struct Pipeline* p1, int binding, const void* data, int
         &stagingBuffer,
         &stagingBufferMemory);
 
-    assert(data || dynamic);
+    assert(data || mem_type == MEMORY_DYNAMIC);
 
     if (data) {
         void* dst;
@@ -174,7 +174,7 @@ static int buffer_create(struct Pipeline* p1, int binding, const void* data, int
         vkUnmapMemory(r->log_dev, stagingBufferMemory);
     }
 
-    if (dynamic) {
+    if (mem_type == MEMORY_DYNAMIC) {
         buf->buffer = stagingBuffer;
         buf->memory = stagingBufferMemory;
     } else {

@@ -200,7 +200,7 @@ struct Object* CreateTorus(struct Render* r) {
 
         ->build(pl);
 
-    t->model = t->pl->buffer_create(t->pl, 0, vertices, nvertices*sizeof(struct Vertex), 0);
+    t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, nvertices*sizeof(struct Vertex));
 
     free(vertices);
 

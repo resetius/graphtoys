@@ -84,7 +84,7 @@ struct Object* CreateTriangle(struct Render* r) {
 
         ->build(pl);
 
-    tr->model = tr->pl->buffer_create(tr->pl, 0, vertices, sizeof(vertices), 0);
+    tr->model = tr->pl->buffer_create(tr->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, sizeof(vertices));
 
     return (struct Object*)tr;
 }

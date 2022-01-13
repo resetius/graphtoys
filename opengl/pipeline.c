@@ -20,8 +20,9 @@ struct Buffer {
     GLuint vbo;
     GLuint vao;
     int size;
-    int dynamic;
     int stride;
+    GLenum type;
+    GLenum mtype;
 };
 
 struct BufferAttribute {
@@ -93,6 +94,35 @@ struct PipelineBuilderImpl {
     int enable_depth;
     int enable_blend;
 };
+
+static GLenum buffer_type(enum BufferType type) {
+    GLenum ret = -1;
+    switch (type) {
+    case BUFFER_ARRAY:
+        ret = GL_ARRAY_BUFFER;
+        break;
+    default:
+        assert(0);
+        break;
+    }
+    return ret;
+}
+
+static GLenum memory_type(enum BufferMemoryType type) {
+    GLenum ret = -1;
+    switch (type) {
+    case MEMORY_STATIC:
+        ret = GL_STATIC_DRAW;
+        break;
+    case MEMORY_DYNAMIC:
+        ret = GL_DYNAMIC_DRAW;
+        break;
+    default:
+        assert(0);
+        break;
+    }
+    return ret;
+}
 
 static struct PipelineBuilder* begin_uniform(
     struct PipelineBuilder*p1,
@@ -240,13 +270,19 @@ static void buffer_update(struct Pipeline* p1, int id, const void* data, int off
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     // TODO: check is dynamic
     assert(id < p->n_buffers);
-    glBindBuffer(GL_ARRAY_BUFFER, p->buffers[id].vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(p->buffers[id].type, p->buffers[id].vbo);
+    glBufferSubData(p->buffers[id].type, offset, size, data);
+    glBindBuffer(p->buffers[id].type, 0);
 }
 
-static int buffer_create(struct Pipeline* p1, int binding, const void* data, int size, int dynamic)
+static int buffer_create(
+    struct Pipeline* p1,
+    enum BufferType type,
+    enum BufferMemoryType mem_type,
+    int binding, const void* data, int size)
 {
+    int btype = buffer_type(type);
+    int mtype = memory_type(mem_type);
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     assert(binding < p->n_buf_descrs);
     struct BufferDescriptor* descr = &p->buf_descr[binding];
@@ -256,15 +292,14 @@ static int buffer_create(struct Pipeline* p1, int binding, const void* data, int
     }
     int buffer_id = p->n_buffers++;
     struct Buffer* buf = &p->buffers[buffer_id];
+    buf->type = btype;
+    buf->mtype = mtype;
     buf->stride = descr->stride;
     buf->n_vertices = size / descr->stride;
     buf->size = size;
     glGenBuffers(1, &buf->vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, buf->vbo);
-    glBufferData(GL_ARRAY_BUFFER, buf->size, data,
-                 dynamic
-                 ? GL_DYNAMIC_DRAW
-                 : GL_STATIC_DRAW);
+    glBindBuffer(btype, buf->vbo);
+    glBufferData(btype, buf->size, data, mtype);
 
     glGenVertexArrays(1, &buf->vao);
     glBindVertexArray(buf->vao);
@@ -277,7 +312,7 @@ static int buffer_create(struct Pipeline* p1, int binding, const void* data, int
             descr->stride,
             (const void*)descr->attrs[j].offset);
     }
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(btype, 0);
     glBindVertexArray(0);
 
     return buffer_id;

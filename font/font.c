@@ -215,7 +215,7 @@ void label_set_text(struct Label* l, const char* s1) {
             l->text[k] = symbol | 0x80000000;
         }
         if (k >= l->len) {
-            l->buf[k] = f->pl->buffer_create(f->pl, 0, NULL, 6*4*4, 1);
+            l->buf[k] = f->pl->buffer_create(f->pl, BUFFER_ARRAY, MEMORY_DYNAMIC, 0, NULL, 6*4*4);
         }
 
         k++;
