@@ -101,6 +101,9 @@ static GLenum buffer_type(enum BufferType type) {
     case BUFFER_ARRAY:
         ret = GL_ARRAY_BUFFER;
         break;
+    case BUFFER_SHADER_STORAGE:
+        ret = GL_SHADER_STORAGE_BUFFER;
+        break;
     default:
         assert(0);
         break;
@@ -116,6 +119,9 @@ static GLenum memory_type(enum BufferMemoryType type) {
         break;
     case MEMORY_DYNAMIC:
         ret = GL_DYNAMIC_DRAW;
+        break;
+    case MEMORY_DYNAMIC_COPY:
+        ret = GL_DYNAMIC_COPY;
         break;
     default:
         assert(0);

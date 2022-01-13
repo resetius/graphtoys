@@ -4,12 +4,14 @@
 #include "render.h"
 
 enum BufferType {
-    BUFFER_ARRAY
+    BUFFER_ARRAY, // vao
+    BUFFER_SHADER_STORAGE
 };
 
 enum BufferMemoryType {
     MEMORY_STATIC,
-    MEMORY_DYNAMIC
+    MEMORY_DYNAMIC,
+    MEMORY_DYNAMIC_COPY
 };
 
 struct Pipeline {
