@@ -203,10 +203,15 @@ int main(int argc, char** argv)
         ovec_add(&app.objs, constr(render));
     }
 
+
+    float scale_w, scale_h;
+    glfwGetWindowContentScale(window, &scale_w, &scale_h);
+
+
     if (enable_labels) {
-        font = font_new(render);
+        font = font_new(render, 0, 16*64, 150*scale_w, 150*scale_h);
         fps = label_new(font);
-        label_set_pos(fps, 100, 100);
+        label_set_pos(fps, 10, 10);
         label_set_text(fps, "FPS:");
 
 

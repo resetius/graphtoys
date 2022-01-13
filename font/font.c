@@ -69,7 +69,7 @@ static void char_dim(FT_Face face, wchar_t ch, int* w, int* h) {
     *h = max(*h, bitmap.rows);
 }
 
-struct Font* font_new(struct Render* r) {
+struct Font* font_new(struct Render* r, int char_w, int char_h, int dev_w, int dev_h) {
     struct FontImpl* t = calloc(1, sizeof(*t));
     int i;
     FT_Library library;
@@ -94,11 +94,11 @@ struct Font* font_new(struct Render* r) {
         exit(1);
     }
     error = FT_Set_Char_Size(
-          face,    /* handle to face object           */
-          0,       /* char_width in 1/64th of points  */
-          16*64,   /* char_height in 1/64th of points */
-          300,     /* horizontal device resolution    */
-          300 );   /* vertical device resolution      */
+        face,     /* handle to face object           */
+        char_w,   /* char_width in 1/64th of points  */
+        char_h,   /* char_height in 1/64th of points */
+        dev_w,    /* horizontal device resolution    */
+        dev_h );  /* vertical device resolution      */
     if (error) {
         printf("Cannot set char size\n");
         exit(1);

@@ -20,7 +20,11 @@ struct Label {
     int id;
 };
 
-struct Font* font_new(struct Render* r);
+struct Font* font_new(struct Render* r,
+                      int char_width,
+                      int char_height,
+                      int device_w,
+                      int device_h);
 void font_free(struct Font*);
 
 struct Label* label_new(struct Font* f);
