@@ -343,37 +343,6 @@ static void after(struct PipelineImpl* p) {
     }
 }
 
-static void run(struct Pipeline* p1) {
-    struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    int i;
-
-    before(p);
-
-    for (i = 0; i < p->n_programs; i++) {
-        prog_use(p->programs[i]);
-    }
-
-    for (i = 0; i < p->n_samplers; i++) {
-        glBindSampler(p->samplers[i].binding, p->samplers[i].id);
-    }
-
-    for (i = 0; i < p->n_uniforms; i++) {
-        glBindBufferBase(
-            GL_UNIFORM_BUFFER,
-            p->uniforms[i].binding,
-            p->uniforms[i].buffer);
-    }
-
-    for (i = 0; i < p->n_buffers; i++) {
-        glBindVertexArray(p->buffers[i].vao);
-        if (p->buffers[i].n_vertices) {
-            glDrawArrays(GL_TRIANGLES, 0, p->buffers[i].n_vertices);
-        }
-    }
-
-    after(p);
-}
-
 static void start(struct Pipeline* p1) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     int i;
@@ -450,7 +419,6 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .uniform_update = uniform_update,
         .buffer_update = buffer_update,
         .buffer_create = buffer_create,
-        .run = run,
         .start = start,
         .draw = draw,
         .use_texture = use_texture

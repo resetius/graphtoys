@@ -40,12 +40,19 @@ struct Pipeline {
         const void* data,
         int size); // -> buffer id
 
-    void (*run)(struct Pipeline*);
-
     void (*use_texture)(struct Pipeline* p1, void* texture);
     void (*start)(struct Pipeline* p1);
     void (*draw)(struct Pipeline* p1, int buffer_id);
 };
+
+void pl_free(struct Pipeline*);
+void pl_uniform_update(struct Pipeline*, int id, const void* data, int offset, int size);
+void pl_buffer_update(struct Pipeline*, int od, const void* data, int offset, int size);
+void pl_buffer_create(struct Pipeline*, enum BufferType type, enum BufferMemoryType mtype,
+                      int binding, const void* data, int size);
+void pl_use_texture(struct Pipeline* p1, void* texture);
+void pl_start(struct Pipeline*);
+void pl_draw(struct Pipeline* p1, int buffer_id);
 
 struct ShaderCode {
     const char* glsl;

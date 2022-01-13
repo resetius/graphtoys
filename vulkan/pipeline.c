@@ -299,41 +299,6 @@ static void draw(struct Pipeline* p1, int id) {
     }
 }
 
-static void run(struct Pipeline* p1) {
-    struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    struct RenderImpl* r = p->r;
-
-    VkCommandBuffer buffer = r->buffer;
-
-    vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, p->graphicsPipeline);
-
-    vkCmdBindDescriptorSets(
-        buffer,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        p->pipelineLayout,
-        0,
-        1,
-        &p->descriptorSets[r->image_index], 0, NULL);
-
-    for (int id = 0; id < p->n_buffers; id++) {
-        VkDeviceSize offset = 0;
-        struct Buffer* buf = &p->buffers[id];
-        vkCmdBindVertexBuffers(
-            buffer,
-            0,
-            1,
-            &buf->buffer,
-            &offset);
-
-        vkCmdDraw(
-            buffer,
-            buf->n_vertices, // vertices
-            1, // instance count -- just the 1
-            0, // vertex offet -- any offsets to add
-            0);// first instance -- since no instancing, is set to 0
-    }
-}
-
 static struct PipelineBuilder* begin_sampler(struct PipelineBuilder*p1, int binding)
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
@@ -669,7 +634,6 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct PipelineImpl* pl = calloc(1, sizeof(*pl));
     struct RenderImpl* r = p->r;
     struct Pipeline base = {
-        .run = run,
         .uniform_update = uniform_update,
         .buffer_update = buffer_update,
         .buffer_create = buffer_create,
