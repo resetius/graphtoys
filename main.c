@@ -16,6 +16,7 @@
 #include <models/mandelbrot.h>
 #include <models/mandelbulb.h>
 #include <models/stl.h>
+#include <models/particles.h>
 
 struct App {
     struct DrawContext ctx;
@@ -130,6 +131,7 @@ int main(int argc, char** argv)
         {"mandelbrot", CreateMandelbrot},
         {"mandelbulb", CreateMandelbulb},
         {"stl", CreateStl},
+        {"particles", CreateParticles},
         {"test", NULL},
         {NULL, NULL}
     };

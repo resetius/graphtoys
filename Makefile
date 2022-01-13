@@ -47,6 +47,7 @@ SOURCES=main.c\
 	models/torus.c\
 	models/mandelbrot.c\
 	models/mandelbulb.c\
+	models/particles.c\
 	models/stl.c\
 	opengl/program.c\
 	opengl/render.c\
@@ -118,6 +119,9 @@ tools/cfgprint.exe: tools/cfgprint.o lib/config.o
 %.frag.h: %.frag tools/rcc.exe
 	./tools/rcc.exe $< -o $@
 
+%.comp.h: %.comp tools/rcc.exe
+	./tools/rcc.exe $< -o $@
+
 %.spv.h: %.spv tools/rcc.exe
 	./tools/rcc.exe $< -o $@
 
@@ -125,6 +129,9 @@ tools/cfgprint.exe: tools/cfgprint.o lib/config.o
 	$(GLSLC) -fauto-bind-uniforms $< -o $@
 
 %.frag.spv: %.frag
+	$(GLSLC) -fauto-bind-uniforms $< -o $@
+
+%.comp.spv: %.comp
 	$(GLSLC) -fauto-bind-uniforms $< -o $@
 
 ifneq ($(MAKECMDGOALS),clean)
