@@ -84,6 +84,12 @@ static int prog_add_fs_(struct Program* p1, const char* shader) {
     return prog_add_(p, shader, shaderId);
 }
 
+static int prog_add_cs_(struct Program* p1, const char* shader) {
+    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+    GLuint shaderId = glCreateShader(GL_COMPUTE_SHADER);
+    return prog_add_(p, shader, shaderId);
+}
+
 static int prog_use_(struct Program* p1) {
     struct ProgramImpl* p = (struct ProgramImpl*)p1;
     glUseProgram(p->program);
@@ -185,6 +191,7 @@ struct Program* prog_opengl_new() {
         .use = prog_use_,
         .add_vs = prog_add_vs_,
         .add_fs = prog_add_fs_,
+        .add_cs = prog_add_cs_,
         .set_mat3x3 = prog_set_mat3x3_,
         .set_mat4x4 = prog_set_mat4x4_,
         .set_vec3 = prog_set_vec3_,

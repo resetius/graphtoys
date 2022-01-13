@@ -12,6 +12,10 @@ int prog_add_fs(struct Program* p, const char* shader) {
     return p->add_fs(p, shader);
 }
 
+int prog_add_cs(struct Program* p, const char* shader) {
+    return p->add_cs(p, shader);
+}
+
 int prog_link(struct Program* p) {
     return p->link(p);
 }

@@ -44,6 +44,7 @@ struct PipelineBuilder {
     struct PipelineBuilder* (*begin_program)(struct PipelineBuilder*);
     struct PipelineBuilder* (*add_vs)(struct PipelineBuilder*, struct ShaderCode shader);
     struct PipelineBuilder* (*add_fs)(struct PipelineBuilder*, struct ShaderCode shader);
+    struct PipelineBuilder* (*add_cs)(struct PipelineBuilder*, struct ShaderCode shader);
     struct PipelineBuilder* (*end_program)(struct PipelineBuilder*);
 
     struct PipelineBuilder* (*begin_buffer)(struct PipelineBuilder*, int stride);

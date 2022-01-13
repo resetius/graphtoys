@@ -7,8 +7,12 @@ struct Program {
     int (*link)(struct Program*);
     int (*use)(struct Program*);
     int (*validate)(struct Program*);
+    // vertex shader
     int (*add_vs)(struct Program* p, const char* shader);
+    // fragment shader
     int (*add_fs)(struct Program* p, const char* shader);
+    // compute shader
+    int (*add_cs)(struct Program* p, const char* shader);
     int (*set_mat3x3)(struct Program*, const char* name, const mat3x3* mat);
     int (*set_mat4x4)(struct Program*, const char* name, const mat4x4* mat);
     int (*set_vec3)(struct Program*, const char* name, const vec3* vec);
@@ -22,6 +26,7 @@ void prog_free(struct Program* p);
 
 int prog_add_vs(struct Program* p, const char* shader);
 int prog_add_fs(struct Program* p, const char* shader);
+int prog_add_cs(struct Program* p, const char* shader);
 
 int prog_link(struct Program* p);
 int prog_use(struct Program* p);

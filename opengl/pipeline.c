@@ -139,21 +139,28 @@ static struct PipelineBuilder* begin_program(struct PipelineBuilder* p1) {
 
 static struct PipelineBuilder* add_vs(struct PipelineBuilder*p1, struct ShaderCode shader) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    // TODO: check begin
+    assert(p->cur_program);
     prog_add_vs(p->cur_program, shader.glsl);
     return p1;
 }
 
 static struct PipelineBuilder* add_fs(struct PipelineBuilder*p1, struct ShaderCode shader) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    // TODO: check begin
+    assert(p->cur_program);
     prog_add_fs(p->cur_program, shader.glsl);
+    return p1;
+}
+
+static struct PipelineBuilder* add_cs(struct PipelineBuilder*p1, struct ShaderCode shader) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    assert(p->cur_program);
+    prog_add_cs(p->cur_program, shader.glsl);
     return p1;
 }
 
 static struct PipelineBuilder* end_program(struct PipelineBuilder*p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    // TODO: check begin
+    assert(p->cur_program);
     prog_link(p->cur_program);
     p->cur_program = NULL;
     return p1;
@@ -437,6 +444,7 @@ struct PipelineBuilder* pipeline_builder_opengl(struct Render* r) {
         .begin_program = begin_program,
         .add_vs = add_vs,
         .add_fs = add_fs,
+        .add_cs = add_cs,
         .end_program = end_program,
 
         .begin_uniform = begin_uniform,
