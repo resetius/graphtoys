@@ -9,6 +9,8 @@
 struct ProgramImpl {
     struct Program base;
     GLuint program;
+    GLint major;
+    GLint minor;
     void (*log)(const char* msg);
 };
 
@@ -86,8 +88,14 @@ static int prog_add_fs_(struct Program* p1, const char* shader) {
 
 static int prog_add_cs_(struct Program* p1, const char* shader) {
     struct ProgramImpl* p = (struct ProgramImpl*)p1;
-    GLuint shaderId = glCreateShader(GL_COMPUTE_SHADER);
-    return prog_add_(p, shader, shaderId);
+    if (p->major > 4 || (p->major == 4 && p->minor >= 3)) {
+        GLuint shaderId = glCreateShader(GL_COMPUTE_SHADER);
+        return prog_add_(p, shader, shaderId);
+    } else {
+        printf("Compute shader is not supported\n");
+        exit(-1);
+        return -1;
+    }
 }
 
 static int prog_use_(struct Program* p1) {
@@ -203,5 +211,9 @@ struct Program* prog_opengl_new() {
     p->base = base;
     p->program = glCreateProgram();
     p->log = log_func;
+
+    glGetIntegerv(GL_MAJOR_VERSION, &p->major);
+    glGetIntegerv(GL_MINOR_VERSION, &p->minor);
+
     return (struct Program*)p;
 }

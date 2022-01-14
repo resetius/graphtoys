@@ -24,6 +24,8 @@ struct RenderImpl {
     struct Render base;
     struct RenderConfig cfg;
     GLFWwindow* window;
+    GLint major;
+    GLint minor;
 };
 
 static void GLAPIENTRY
@@ -140,9 +142,13 @@ static void init_(struct Render* r1) {
 
     gl_info();
 
-    // TODO: check extension
-    glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback(message_callback, 0);
+    glGetIntegerv(GL_MAJOR_VERSION, &r->major);
+    glGetIntegerv(GL_MINOR_VERSION, &r->minor);
+
+    if (r->major > 4 || (r->major == 4 && r->minor >= 3)) {
+        glEnable(GL_DEBUG_OUTPUT);
+        glDebugMessageCallback(message_callback, 0);
+    }
 
     glfwSwapInterval(r->cfg.vsync != 0); // vsync
 }
@@ -167,8 +173,11 @@ struct Render* rend_opengl_new(struct RenderConfig cfg)
     r->cfg = cfg;
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1); // mac os compatible
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6); // mac os compatible
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+#else
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+#endif
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
