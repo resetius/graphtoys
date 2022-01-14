@@ -27,13 +27,30 @@ struct Particles {
 
 static void draw_(struct Object* obj, struct DrawContext* ctx) {
     struct Particles* t = (struct Particles*)obj;
-    mat4x4 m, p, mvp;
+    mat4x4 m, p, v, mv, mvp;
     mat4x4_identity(m);
+    //mat4x4_scale(m, m, 10000);
     //mat4x4_rotate_X(m, m, ctx->time);
     //mat4x4_rotate_Y(m, m, ctx->time);
     //mat4x4_rotate_Z(m, m, ctx->time);
-    mat4x4_ortho(p, -ctx->ratio, ctx->ratio, -1.f, 1.f, 1.f, -1.f);
-    mat4x4_mul(mvp, p, m);
+    /*for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            printf("%f ", m[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n");*/
+    //mat4x4_ortho(p, -ctx->ratio, ctx->ratio, -1.f, 1.f, 1.f, -1.f);
+
+    vec3 eye = {.0f, .0f, 10.f};
+    vec3 center = {.0f, .0f, .0f};
+    vec3 up = {.0f, 1.f, .0f};
+    mat4x4_look_at(v, eye, center, up);
+
+    mat4x4_mul(mv, v, m);
+
+    mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 100.f);
+    mat4x4_mul(mvp, p, mv);
 
     t->pl->start_compute_part(t->pl, 0, t->particles/1000, 1, 1);
     t->pl->wait_part(t->pl, 0);
