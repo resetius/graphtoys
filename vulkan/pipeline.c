@@ -83,6 +83,9 @@ struct PipelineBuilderImpl {
     VkShaderModule frag_shaders[100];
     int n_frag_shaders;
 
+    VkShaderModule comp_shaders[100];
+    int n_comp_shaders;
+
     struct BufferDescriptor buffers[100];
     struct BufferDescriptor* cur_buffer;
     int n_buffers;
@@ -424,6 +427,13 @@ static struct PipelineBuilder* add_fs(struct PipelineBuilder* p1,struct ShaderCo
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     p->frag_shaders[p->n_frag_shaders++] = add_shader(p->r->log_dev, shader);
+    return p1;
+}
+
+static struct PipelineBuilder* add_cs(struct PipelineBuilder* p1,struct ShaderCode shader)
+{
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    p->comp_shaders[p->n_comp_shaders++] = add_shader(p->r->log_dev, shader);
     return p1;
 }
 
@@ -926,6 +936,7 @@ struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r) {
         .end_program = end_program,
         .add_vs = add_vs,
         .add_fs = add_fs,
+        .add_cs = add_cs,
         .begin_buffer = begin_buffer,
         .buffer_attribute = buffer_attribute,
         .end_buffer = end_buffer,
