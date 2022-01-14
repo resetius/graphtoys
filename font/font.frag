@@ -2,7 +2,7 @@
 #extension GL_ARB_shading_language_420pack : enable
 #extension GL_KHR_vulkan_glsl : enable
 
-#ifdef GL_ARB_shading_language_420pack
+#if defined(GL_KHR_vulkan_glsl) || defined(GLSLC)
 layout (set = 0, binding = 0)
 #endif
 uniform MatrixBlock {
@@ -12,7 +12,7 @@ uniform MatrixBlock {
 layout (location = 0) in vec2 TexCoord;
 layout (location = 0) out vec4 fragColor;
 
-#ifdef GL_ARB_shading_language_420pack
+#if defined(GL_KHR_vulkan_glsl) || defined(GLSLC)
 layout (set = 1, binding = 0)
 #endif
 uniform sampler2D Texture;

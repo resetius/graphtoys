@@ -127,13 +127,13 @@ tools/cfgprint.exe: tools/cfgprint.o lib/config.o
 	./tools/rcc.exe $< -o $@
 
 %.vert.spv: %.vert
-	$(GLSLC) -fauto-bind-uniforms $< -o $@
+	$(GLSLC) -DGLSLC -fauto-bind-uniforms $< -o $@
 
 %.frag.spv: %.frag
-	$(GLSLC) -fauto-bind-uniforms $< -o $@
+	$(GLSLC) -DGLSLC -fauto-bind-uniforms $< -o $@
 
 %.comp.spv: %.comp
-	$(GLSLC) -fauto-bind-uniforms $< -o $@
+	$(GLSLC) -DGLSLC -fauto-bind-uniforms $< -o $@
 
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEPS)
