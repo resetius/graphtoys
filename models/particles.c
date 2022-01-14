@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #include <render/render.h>
 #include <render/pipeline.h>
@@ -103,13 +104,15 @@ struct Object* CreateParticles(struct Render* r) {
     float dy = 4.0f/(n_y-1);
     float dz = 4.0f/(n_z-1);
 
+    srand(time(NULL));
+
     for (i = 0; i < n_x; i++) {
         for (j = 0; j < n_y; j++) {
             for (k = 0; k < n_z; k++) {
                 coords[n++] = dx * i - 2.0f;
                 coords[n++] = dy * j - 2.0f;
                 coords[n++] = dz * k - 2.0f;
-                coords[n++] = 1.0f;
+                coords[n++] = 0.2 + 1.5*(double)rand() / (double)RAND_MAX;
             }
         }
     }

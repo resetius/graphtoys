@@ -19,29 +19,45 @@ void main() {
     uint idx = gl_GlobalInvocationID.x;
     uint total = gl_NumWorkGroups.x*gl_WorkGroupSize.x;
     float DeltaT = 0.001;
-    float ParticleMass = 1;
 
-    if (length(vec3(Position[idx])) > 1e5) {
-        return;
-    }
+    float newMass = Position[idx].w;
+    bool erase = false;
 
-    vec4 F = vec4(0);
+    if (length(vec3(Position[idx])) < 1e6 && Position[idx].w > 0) {
+        vec3 F = vec3(0);
 
-    for (int j = 0; j < total; j++) {
-        if (idx != j) {
-            float R = length(Position[idx]-Position[j]);
-            if (R > 0.0001) {
-                vec4 otherA = ParticleMass * (Position[j]-Position[idx]) / R / R / R;
-                F = F + otherA;
+        for (int j = 0; j < total; j++) {
+            if (idx != j && Position[j].w > 0) {
+                float R = length(vec3(Position[idx]-Position[j]));
+                float r = (Position[idx].w+Position[j].w)*1e-3;
+                if (R > r) {
+                    float mass = Position[j].w * Position[idx].w;
+                    vec3 otherA = mass * vec3(Position[j]-Position[idx]) / R / R / R;
+                    F = F + otherA;
+                } else {
+                    if (j < idx) {
+                        // elliminate
+                        erase = true;
+                    } else {
+                        // add mass
+                        newMass += Position[j].w;
+                    }
+                }
             }
         }
-    }
 
-    Velocity[idx] = Velocity[idx] + DeltaT * F;
-    Velocity[idx] = vec4(vec3(Velocity[idx]), 0.0);
+        Velocity[idx] = Velocity[idx] + DeltaT * vec4(F, 0);
+        Velocity[idx] = vec4(vec3(Velocity[idx]), 0.0);
+    } else {
+        erase = true;
+    }
 
     barrier();
 
+    if (erase) {
+        newMass = 0;
+    }
+
     Position[idx] = Position[idx] + DeltaT * Velocity[idx];
-    Position[idx] = vec4(vec3(Position[idx]), 1.0);
+    Position[idx] = vec4(vec3(Position[idx]), newMass);
 }

@@ -12,6 +12,6 @@ void main()
 {
     gl_Position = MVP * vPos;
 //    gl_Position = vPos;
-    gl_PointSize = 5;
+    gl_PointSize = vPos.w; // mass
     color = vec3(1.0, 0.0, 1.0);
 }
