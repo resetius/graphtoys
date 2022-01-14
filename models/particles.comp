@@ -9,10 +9,39 @@ layout(std430, binding=1) buffer Pos {
 layout(std430, binding=2) buffer Vel {
     vec4 Velocity[];
 };
+/*
+layout(std430, binding=3) buffer Tmp {
+    vec4 Unused[];
+};
+*/
 
 void main() {
     uint idx = gl_GlobalInvocationID.x;
+    uint total = gl_NumWorkGroups.x*gl_WorkGroupSize.x;
+    float DeltaT = 0.001;
+    float ParticleMass = 1;
 
-    Position[idx] = Position[idx]+0.01;
-    Velocity[idx] = Velocity[idx];
+    if (length(vec3(Position[idx])) > 1e5) {
+        return;
+    }
+
+    vec4 F = vec4(0);
+
+    for (int j = 0; j < total; j++) {
+        if (idx != j) {
+            float R = length(Position[idx]-Position[j]);
+            if (R > 0.0001) {
+                vec4 otherA = ParticleMass * (Position[j]-Position[idx]) / R / R / R;
+                F = F + otherA;
+            }
+        }
+    }
+
+    Velocity[idx] = Velocity[idx] + DeltaT * F;
+    Velocity[idx] = vec4(vec3(Velocity[idx]), 0.0);
+
+    barrier();
+
+    Position[idx] = Position[idx] + DeltaT * Velocity[idx];
+    Position[idx] = vec4(vec3(Position[idx]), 1.0);
 }
