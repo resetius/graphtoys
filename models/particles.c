@@ -94,7 +94,7 @@ struct Object* CreateParticles(struct Render* r) {
 
         ->build(pl);
 
-    int n_x = 16, n_y = 16, n_z = 16;
+    int n_x = 10, n_y = 10, n_z = 10;
     int n_particles = n_x*n_y*n_z;
     int size = n_particles*4*sizeof(float);
     float* coords = malloc(size);
@@ -121,8 +121,7 @@ struct Object* CreateParticles(struct Render* r) {
 
     t->pos = pl_buffer_storage_create(t->pl, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, 1, 0, coords, size);
     t->vel = pl_buffer_storage_create(t->pl, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, 2, -1, vels, size);
-    // tmp
-    //pl_buffer_storage_create(t->pl, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, 3, -1, NULL, size);
+    pl_buffer_storage_create(t->pl, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, 3, -1, vels, size);
 
     free(coords);
     free(vels);
