@@ -3,6 +3,11 @@
 #include <stdint.h>
 #include "render.h"
 
+enum GeometryType {
+    GEOM_TRIANGLES = 0,
+    GEOM_POINTS
+};
+
 enum BufferType {
     BUFFER_ARRAY, // vao
     BUFFER_SHADER_STORAGE
@@ -40,7 +45,21 @@ struct Pipeline {
         const void* data,
         int size); // -> buffer id
 
+    int (*buffer_storage_create)(
+        struct Pipeline* p1,
+        enum BufferType type,
+        enum BufferMemoryType mem_type,
+        int binding,
+        int descriptor,
+        const void* data,
+        int size); // -> buffer id
+
     void (*use_texture)(struct Pipeline* p1, void* texture);
+
+    void (*start_part)(struct Pipeline* p1, int part);
+    void (*start_compute_part)(struct Pipeline* p1, int part, int sx, int sy, int sz);
+    void (*wait_part)(struct Pipeline* p1, int part);
+
     void (*start)(struct Pipeline* p1);
     void (*draw)(struct Pipeline* p1, int buffer_id);
 };
@@ -48,8 +67,10 @@ struct Pipeline {
 void pl_free(struct Pipeline*);
 void pl_uniform_update(struct Pipeline*, int id, const void* data, int offset, int size);
 void pl_buffer_update(struct Pipeline*, int od, const void* data, int offset, int size);
-void pl_buffer_create(struct Pipeline*, enum BufferType type, enum BufferMemoryType mtype,
+int pl_buffer_create(struct Pipeline*, enum BufferType type, enum BufferMemoryType mtype,
                       int binding, const void* data, int size);
+int pl_buffer_storage_create(struct Pipeline*, enum BufferType type, enum BufferMemoryType mtype,
+                             int binding, int descriptor, const void* data, int size);
 void pl_use_texture(struct Pipeline* p1, void* texture);
 void pl_start(struct Pipeline*);
 void pl_draw(struct Pipeline* p1, int buffer_id);
@@ -88,6 +109,8 @@ struct PipelineBuilder {
 
     struct PipelineBuilder* (*enable_depth)(struct PipelineBuilder* p1);
     struct PipelineBuilder* (*enable_blend)(struct PipelineBuilder* p1);
+
+    struct PipelineBuilder* (*geometry)(struct PipelineBuilder* p1, enum GeometryType type);
 
     struct Pipeline* (*build)(struct PipelineBuilder*); // free
 };

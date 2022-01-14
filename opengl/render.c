@@ -26,6 +26,20 @@ struct RenderImpl {
     GLFWwindow* window;
 };
 
+static void GLAPIENTRY
+message_callback( GLenum source,
+                  GLenum type,
+                  GLuint id,
+                  GLenum severity,
+                  GLsizei length,
+                  const GLchar* message,
+                  const void* userParam )
+{
+    fprintf( stderr, "GL CALLBACK: %s source = 0x%x, type = 0x%x, severity = 0x%x, message = %s\n",
+             ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+             source, type, severity, message );
+}
+
 static struct Program* rend_prog_new_(struct Render* r) {
     return prog_opengl_new();
 };
@@ -126,6 +140,10 @@ static void init_(struct Render* r1) {
 
     gl_info();
 
+    // TODO: check extension
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(message_callback, 0);
+
     glfwSwapInterval(r->cfg.vsync != 0); // vsync
 }
 
@@ -149,7 +167,8 @@ struct Render* rend_opengl_new(struct RenderConfig cfg)
     r->cfg = cfg;
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1); // mac os compatible
+    //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1); // mac os compatible
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6); // mac os compatible
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 

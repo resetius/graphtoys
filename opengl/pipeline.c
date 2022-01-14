@@ -23,6 +23,8 @@ struct Buffer {
     int stride;
     GLenum type;
     GLenum mtype;
+    int binding;
+    int descriptor;
 };
 
 struct BufferAttribute {
@@ -67,6 +69,7 @@ struct PipelineImpl {
 
     int enable_depth;
     int enable_blend;
+    enum GeometryType geometry;
 };
 
 struct PipelineBuilderImpl {
@@ -93,6 +96,7 @@ struct PipelineBuilderImpl {
 
     int enable_depth;
     int enable_blend;
+    enum GeometryType geometry;
 };
 
 static GLenum buffer_type(enum BufferType type) {
@@ -281,6 +285,72 @@ static void buffer_update(struct Pipeline* p1, int id, const void* data, int off
     glBindBuffer(p->buffers[id].type, 0);
 }
 
+static int buffer_storage_create(
+    struct Pipeline* p1,
+    enum BufferType type,
+    enum BufferMemoryType mem_type,
+    int binding, int descriptor,
+    const void* data, int size)
+{
+    int btype = buffer_type(type);
+    int mtype = memory_type(mem_type);
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    assert(descriptor < p->n_buf_descrs);
+    struct BufferDescriptor* descr = descriptor < 0 ? NULL : &p->buf_descr[descriptor];
+    if (p->n_buffers >= p->buf_cap) {
+        p->buf_cap = (p->buf_cap+1)*2;
+        p->buffers = realloc(p->buffers, p->buf_cap*sizeof(struct Buffer));
+    }
+    int buffer_id = p->n_buffers++;
+    struct Buffer* buf = &p->buffers[buffer_id];
+    memset(buf, 0, sizeof(*buf));
+    buf->type = btype;
+    buf->mtype = mtype;
+    buf->stride = descr ? descr->stride : 0;
+    buf->n_vertices = descr ? size / descr->stride : 0;
+    buf->size = size;
+    buf->descriptor = descriptor;
+    buf->binding = binding;
+    glGenBuffers(1, &buf->vbo);
+    //glBindBuffer(btype, buf->vbo);
+    //glBufferData(btype, buf->size, data, mtype);
+
+    glUseProgram(0);
+    if (binding >= 0) {
+        printf("Bind %x\n", btype);
+        //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, buf->vbo);
+        //glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_DRAW);
+        //glBindBuffer(btype, buf->vbo);
+        //glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_DRAW);
+
+        //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, buf->vbo);
+
+        glBindBufferBase(btype, binding, buf->vbo);
+        glBufferData(btype, buf->size, data, mtype);
+    }
+
+    if (descr) {
+        printf("Descr\n");
+        glBindBuffer(GL_ARRAY_BUFFER, buf->vbo);
+        glGenVertexArrays(1, &buf->vao);
+        glBindVertexArray(buf->vao);
+
+        for (int j = 0; j < descr->n_attrs; j++) {
+            int location = descr->attrs[j].location;
+            glEnableVertexAttribArray(location);
+            glVertexAttribPointer(
+                location, descr->attrs[j].channels, GL_FLOAT, GL_FALSE,
+                descr->stride,
+                (const void*)descr->attrs[j].offset);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+
+    return buffer_id;
+}
+
+// TODO: maybe buffer_vertex_create and remove type?
 static int buffer_create(
     struct Pipeline* p1,
     enum BufferType type,
@@ -298,15 +368,18 @@ static int buffer_create(
     }
     int buffer_id = p->n_buffers++;
     struct Buffer* buf = &p->buffers[buffer_id];
+    memset(buf, 0, sizeof(*buf));
     buf->type = btype;
     buf->mtype = mtype;
     buf->stride = descr->stride;
     buf->n_vertices = size / descr->stride;
     buf->size = size;
+    buf->descriptor = binding;
     glGenBuffers(1, &buf->vbo);
     glBindBuffer(btype, buf->vbo);
     glBufferData(btype, buf->size, data, mtype);
 
+    glBindBuffer(GL_ARRAY_BUFFER, buf->vbo);
     glGenVertexArrays(1, &buf->vao);
     glBindVertexArray(buf->vao);
 
@@ -332,6 +405,9 @@ static void before(struct PipelineImpl* p) {
     if (p->enable_depth) {
         glEnable(GL_DEPTH_TEST);
     }
+    if (p->geometry == GEOM_POINTS) {
+        glEnable(GL_PROGRAM_POINT_SIZE);
+    }
 }
 
 static void after(struct PipelineImpl* p) {
@@ -340,6 +416,9 @@ static void after(struct PipelineImpl* p) {
     }
     if (p->enable_depth) {
         glDisable(GL_DEPTH_TEST);
+    }
+    if (p->geometry == GEOM_POINTS) {
+        glDisable(GL_PROGRAM_POINT_SIZE);
     }
 }
 
@@ -363,6 +442,57 @@ static void start(struct Pipeline* p1) {
     }
 }
 
+static void start_part(struct Pipeline* p1, int part) {
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    int i;
+
+    assert(part < p->n_programs);
+    prog_use(p->programs[part]);
+
+    // TODO: what samplers to use?
+    for (i = 0; i < p->n_samplers; i++) {
+        glBindSampler(p->samplers[i].binding, p->samplers[i].id);
+    }
+
+    // TODO: what uniforms to use?
+    for (i = 0; i < p->n_uniforms; i++) {
+        glBindBufferBase(
+            GL_UNIFORM_BUFFER,
+            p->uniforms[i].binding,
+            p->uniforms[i].buffer);
+    }
+}
+
+static void start_compute_part(struct Pipeline* p1, int part, int sx, int sy, int sz) {
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    int i;
+
+    //printf("compute %d %d %d %d\n", part, sx, sy, sz);
+    assert(part < p->n_programs);
+    prog_use(p->programs[part]);
+
+    // TODO: bind
+    //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, p->buffers[0].vbo);
+    //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, p->buffers[1].vbo);
+
+    // TODO: what uniforms to use?
+    /*for (i = 0; i < p->n_uniforms; i++) {
+        glBindBufferBase(
+            GL_UNIFORM_BUFFER,
+            p->uniforms[i].binding,
+            p->uniforms[i].buffer);
+    }*/
+
+    glDispatchCompute(sx, sy, sz);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT); // TODO
+}
+
+static void wait_part(struct Pipeline* p1, int part) {
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    assert(part < p->n_programs);
+    // glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT); // TODO
+}
+
 static void use_texture(struct Pipeline* p1, void* tex) {
     //struct PipelineImpl* p = (struct PipelineImpl*)p1;
     int tex_id = *(int*)tex;
@@ -374,7 +504,12 @@ static void draw(struct Pipeline* p1, int id) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     before(p);
     glBindVertexArray(p->buffers[id].vao);
-    glDrawArrays(GL_TRIANGLES, 0, p->buffers[id].n_vertices);
+    if (p->geometry == GEOM_POINTS) {
+        glDrawArrays(GL_POINTS, 0, p->buffers[id].n_vertices);
+    } else {
+        glDrawArrays(GL_TRIANGLES, 0, p->buffers[id].n_vertices);
+    }
+
     after(p);
 }
 
@@ -387,6 +522,12 @@ static struct PipelineBuilder* enable_depth(struct PipelineBuilder* p1) {
 static struct PipelineBuilder* enable_blend(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     p->enable_blend = 1;
+    return p1;
+}
+
+static struct PipelineBuilder* geometry(struct PipelineBuilder* p1, enum GeometryType type) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    p->geometry = type;
     return p1;
 }
 
@@ -419,7 +560,11 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .uniform_update = uniform_update,
         .buffer_update = buffer_update,
         .buffer_create = buffer_create,
+        .buffer_storage_create = buffer_storage_create,
         .start = start,
+        .start_part = start_part,
+        .start_compute_part = start_compute_part,
+        .wait_part = wait_part,
         .draw = draw,
         .use_texture = use_texture
     };
@@ -442,6 +587,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 
     pl->enable_depth = p->enable_depth;
     pl->enable_blend = p->enable_blend;
+    pl->geometry = p->geometry;
 
     free(p);
     return (struct Pipeline*)pl;
@@ -468,6 +614,8 @@ struct PipelineBuilder* pipeline_builder_opengl(struct Render* r) {
 
         .enable_depth = enable_depth,
         .enable_blend = enable_blend,
+
+        .geometry = geometry,
 
         .build = build
     };
