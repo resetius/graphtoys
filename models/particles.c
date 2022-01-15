@@ -21,6 +21,7 @@ struct Particles {
     struct Pipeline* pl;
     int particles;
     int pos;
+    int new_pos;
     int vel;
     int model;
     float z;
@@ -73,12 +74,18 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_mul(mvp, p, mv);
 
     //printf("particles %d\n", t->particles);
-    t->pl->start_compute_part(t->pl, 0, max(1, t->particles/1000), 1, 1);
+    t->pl->start_compute_part(t->pl, 0, max(1, t->particles/100), 1, 1);
     t->pl->wait_part(t->pl, 0);
+
+    //t->pl->buffer_copy(t->pl, t->pos, t->new_pos);
 
     t->pl->start_part(t->pl, 1);
     t->pl->uniform_update(t->pl, 0, &mvp[0][0], 0, sizeof(mat4x4));
-    t->pl->draw(t->pl, t->pos);
+
+    t->pl->draw(t->pl, t->new_pos);
+
+    int tt = t->pos; t->pos = t->new_pos; t->new_pos = tt;
+    t->pl->buffer_swap(t->pl, t->pos, t->new_pos);
 }
 
 static void free_(struct Object* obj) {
@@ -143,7 +150,7 @@ struct Object* CreateParticles(struct Render* r) {
 
         ->build(pl);
 
-    int n_x = 20, n_y = 20, n_z = 20;
+    int n_x = 32, n_y = 32, n_z = 32;
     int n_particles = n_x*n_y*n_z;
     int size = n_particles*4*sizeof(float);
     float* coords = malloc(size);
@@ -177,6 +184,7 @@ struct Object* CreateParticles(struct Render* r) {
         {{0, 30, 0}, {0.18, 0, 0}, 16.7, 0, "Neptune"}};
 
     const int nbodies = 10;
+
 /*
     for (i = 0; i < nbodies; i++) {
         coords[n] = body[i].x[0];
@@ -193,14 +201,31 @@ struct Object* CreateParticles(struct Render* r) {
     }
 */
 
-
     for (i = 0; i < n_x; i++) {
         for (j = 0; j < n_y; j++) {
             for (k = 0; k < n_z; k++) {
-                coords[n++] = dx * i - 2.0f;
-                coords[n++] = dy * j - 2.0f;
-                coords[n++] = dz * k - 2.0f;
-                coords[n++] = 0.2 + 1.5*(double)rand() / (double)RAND_MAX;
+                coords[n] = dx * i - 2.0f + 0.1 * (double)rand() / (double)RAND_MAX;
+                coords[n+1] = dy * j - 2.0f + 0.1 * (double)rand() / (double)RAND_MAX;
+                coords[n+2] = dz * k - 2.0f + 0.1 * (double)rand() / (double)RAND_MAX;
+                coords[n+3] = 0.2 + 1.5*(double)rand() / (double)RAND_MAX;
+
+                double R =
+                    coords[n]*coords[n]+
+                    coords[n+1]*coords[n+1]+
+                    coords[n+2]*coords[n+2];
+                R = sqrt(R);
+                double V = sqrt(1000)/sqrt(R); // sqrt(100/R);
+
+                vels[n] = V*coords[n+1];
+                vels[n+1] = -V*coords[n];
+                vels[n+2] = 0;
+
+                //vels[n] = rand() / (double) RAND_MAX;
+                //vels[n+1] = rand() / (double) RAND_MAX;
+                //vels[n+2] = rand() / (double) RAND_MAX;
+                vels[n+3] = 0;
+
+                n += 4;
             }
         }
     }
@@ -220,7 +245,9 @@ struct Object* CreateParticles(struct Render* r) {
 
     t->pos = pl_buffer_storage_create(t->pl, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, 1, 0, coords, size);
     t->vel = pl_buffer_storage_create(t->pl, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, 2, -1, vels, size);
-    pl_buffer_storage_create(t->pl, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, 3, -1, accel, size);
+    pl_buffer_storage_create(t->pl, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, 3, -1, accel, size);
+
+    t->new_pos = pl_buffer_storage_create(t->pl, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, 4, 0, coords, size);
 
     free(coords);
     free(vels);

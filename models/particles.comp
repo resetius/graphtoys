@@ -14,11 +14,14 @@ layout(std430, binding=3) buffer Tmp {
     vec4 Accel[];
 };
 
+layout(std430, binding=4) buffer NewPos {
+    vec4 NewPosition[];
+};
 
 void main() {
     uint idx = gl_GlobalInvocationID.x;
     uint total = gl_NumWorkGroups.x*gl_WorkGroupSize.x;
-    float DeltaT = 0.001;
+    float DeltaT = 0.0001;
 
     float newMass = Position[idx].w;
     bool erase = false;
@@ -27,50 +30,44 @@ void main() {
     float G = 1;
     vec4 r = vec4(0);
     vec3 A = vec3(0);
-    int steps = 1;
+    // Verlet integration
+    if (length(vec3(Position[idx])) < 1e6 && Position[idx].w > 0) {
+        // (1) R(t2)
+        r = Position[idx] + DeltaT*Velocity[idx] + 0.5 * DeltaT * DeltaT * Accel[idx];
 
-    for (int i = 0; i < steps; i++) {
-        // Verlet integration
-        if (length(vec3(Position[idx])) < 1e6 && Position[idx].w > 0) {
-            // (1) R(t2)
-            r = Position[idx] + DeltaT*Velocity[idx] + 0.5 * DeltaT * DeltaT * Accel[idx];
-
-            // (3) new Accel
-            for (int j = 0; j < total; j++) {
-                if (idx != j && Position[j].w > 0) {
-                    float R = length(vec3(r-Position[j]));
-                    //float r1 = (Position[idx].w+Position[j].w)*1e-4;
-                    //float r1 = 1e-6;
-                    float r1 = 1e-3;
-                    if (R > r1 /* 1e-6 */) {
-                        float mass = Position[j].w;
-                        vec3 otherA = G * mass * vec3(Position[j]-r) / R / R / R;
-                        A = A + otherA;
+        // (3) new Accel
+        for (int j = 0; j < total; j++) {
+            if (idx != j && Position[j].w > 0) {
+                float R = length(vec3(r-Position[j]));
+                float r1 = min(30, (Position[idx].w+Position[j].w))*0.0004;
+                //float r1 = 1e-6;
+                //float r1 = 1e-3;
+                if (R > r1 /* 1e-6 */) {
+                    float mass = Position[j].w;
+                    vec3 otherA = G * mass * vec3(Position[j]-r) / R / R / R;
+                    A = A + otherA;
+                } else {
+                    if (j < idx) {
+                        // elliminate
+                        erase = true;
                     } else {
-                        if (j < idx) {
-                            // elliminate
-                            erase = true;
-                        } else {
-                            // add mass
-                            newMass += Position[j].w;
-                        }
+                        // add mass
+                        newMass += Position[j].w;
                     }
                 }
             }
-
-        } else {
-            erase = true;
         }
 
-        if (erase) {
-            newMass = 0;
-        }
-
-        barrier();
-
-        // (4) new Velocity
-        Velocity[idx] = Velocity[idx] + 0.5 * DeltaT * (vec4(A, 0) + Accel[idx]);
-        Accel[idx] = vec4(A, 0);
-        Position[idx] = vec4(vec3(r), newMass);
+    } else {
+        erase = true;
     }
+
+    if (erase) {
+        newMass = 0;
+    }
+
+    // (4) new Velocity
+    Velocity[idx] = Velocity[idx] + 0.5 * DeltaT * (vec4(A, 0) + Accel[idx]);
+    Accel[idx] = vec4(A, 0);
+    NewPosition[idx] = vec4(vec3(r), newMass);
 }

@@ -397,6 +397,36 @@ static int buffer_create(
     return buffer_id;
 }
 
+void buffer_copy(struct Pipeline* p1, int dst, int src) {
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    assert(dst < p->n_buffers);
+    assert(src < p->n_buffers);
+    struct Buffer* src_buf = &p->buffers[src];
+    struct Buffer* dst_buf = &p->buffers[dst];
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, src_buf->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, dst_buf->vbo);
+    glCopyBufferSubData(GL_SHADER_STORAGE_BUFFER, GL_ARRAY_BUFFER, 0, 0, src_buf->size);
+}
+
+
+void buffer_swap(struct Pipeline* p1, int dst, int src) {
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    assert(dst < p->n_buffers);
+    assert(src < p->n_buffers);
+    struct Buffer* src_buf = &p->buffers[src];
+    struct Buffer* dst_buf = &p->buffers[dst];
+    assert(src_buf->binding >= 0);
+    assert(dst_buf->binding >= 0);
+
+    glBindBufferBase(src_buf->type, dst_buf->binding, src_buf->vbo);
+    glBindBufferBase(dst_buf->type, src_buf->binding, dst_buf->vbo);
+
+    int t = src_buf->binding;
+    src_buf->binding = dst_buf->binding;
+    dst_buf->binding = t;
+}
+
 static void before(struct PipelineImpl* p) {
     if (p->enable_blend) {
         glEnable(GL_BLEND);
@@ -471,9 +501,12 @@ static void start_compute_part(struct Pipeline* p1, int part, int sx, int sy, in
     assert(part < p->n_programs);
     prog_use(p->programs[part]);
 
+    static int a = 0;
+    static int b = 3;
+
     // TODO: bind
-    //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, p->buffers[0].vbo);
-    //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, p->buffers[1].vbo);
+    //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, p->buffers[a].vbo);
+    //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, p->buffers[b].vbo);
 
     // TODO: what uniforms to use?
     /*for (i = 0; i < p->n_uniforms; i++) {
@@ -485,6 +518,8 @@ static void start_compute_part(struct Pipeline* p1, int part, int sx, int sy, in
 
     glDispatchCompute(sx, sy, sz);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT); // TODO
+
+    int t = a; a = b; b = t;
 }
 
 static void wait_part(struct Pipeline* p1, int part) {
@@ -558,9 +593,11 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct Pipeline base = {
         .free = pipeline_free,
         .uniform_update = uniform_update,
+        .buffer_copy = buffer_copy,
         .buffer_update = buffer_update,
         .buffer_create = buffer_create,
         .buffer_storage_create = buffer_storage_create,
+        .buffer_swap = buffer_swap,
         .start = start,
         .start_part = start_part,
         .start_compute_part = start_compute_part,

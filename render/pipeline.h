@@ -37,6 +37,11 @@ struct Pipeline {
         int offset,
         int size);
 
+    void (*buffer_copy)(struct Pipeline* p1,
+                        int dst, int src);
+    void (*buffer_swap)(struct Pipeline* p1,
+                        int dst, int src);
+
     int (*buffer_create)(
         struct Pipeline* p1,
         enum BufferType type,
