@@ -49,6 +49,7 @@ SOURCES=main.c\
 	models/mandelbulb.c\
 	models/particles.c\
 	models/stl.c\
+	opengl/buffer.c\
 	opengl/program.c\
 	opengl/render.c\
 	opengl/pipeline.c\
