@@ -10,8 +10,13 @@ layout (location = 0) out vec3 color;
 
 void main()
 {
-    gl_Position = MVP * vPos;
+    float mass = vPos.w;
+    gl_Position = MVP * vec4(vec3(vPos), 1);
 //    gl_Position = vPos;
-    gl_PointSize = vPos.w; // mass
-    color = vec3(1.0, 0.0, 1.0);
+    gl_PointSize = max(4, min(30, vPos.w)); // mass
+    if (mass > 1e-7) {
+        color = vec3(1.0, 0.0, 1.0);
+    } else {
+        color = vec3(0);
+    }
 }
