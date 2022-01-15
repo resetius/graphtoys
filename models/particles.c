@@ -25,28 +25,105 @@ struct Particles {
     int vel;
     int model;
     float z;
+    quat q;
+    double ax, ay, az;
 };
 
 static int max(int a, int b) {
     return a>b?a:b;
 }
 
+// TODO: copy-paste
+static void transform(struct Particles* t) {
+    vec3 ox = {1,0,0};
+    vec3 oy = {0,1,0};
+    vec3 oz = {0,0,1};
+    quat ox1 = {1,0,0,0};
+    quat oy1 = {0,1,0,0};
+    quat oz1 = {0,0,1,0};
+    quat qx, qy, qz, q;
+
+    quat_conj(q, t->q);
+
+    quat_mul(ox1, ox1, t->q);
+    quat_mul(ox1,  q, ox1);
+    memcpy(ox, ox1, sizeof(vec3));
+
+    quat_mul(oy1, oy1, t->q);
+    quat_mul(oy1,  q, oy1);
+    memcpy(oy, oy1, sizeof(vec3));
+
+    quat_mul(oz1, oz1, t->q);
+    quat_mul(oz1,  q, oz1);
+    memcpy(oz, oz1, sizeof(vec3));
+
+    quat_rotate(qx, t->ax, ox);
+    quat_rotate(qy, t->ay, oy);
+    quat_rotate(qz, t->az, oz);
+
+    quat_mul(t->q, t->q, qx);
+    quat_mul(t->q, t->q, qy);
+    quat_mul(t->q, t->q, qz);
+
+    t->ax = t->ay = t->az = 0;
+}
+
+static void move_left(struct Object* obj, int mods) {
+    struct Particles* t = (struct Particles*)obj;
+
+    t->az += -5*M_PI/360;
+    transform(t);
+}
+
+static void move_right(struct Object* obj, int mods) {
+    struct Particles* t = (struct Particles*)obj;
+
+    t->az += 5*M_PI/360;
+    transform(t);
+}
+
+static void move_up(struct Object* obj, int mods) {
+    struct Particles* t = (struct Particles*)obj;
+
+    t->ax += -5*M_PI/360;
+    transform(t);
+}
+
+static void move_down(struct Object* obj, int mods) {
+    struct Particles* t = (struct Particles*)obj;
+
+    t->ax += 5*M_PI/360;
+    transform(t);
+}
+
 static void zoom_in(struct Object* obj, int mods) {
     struct Particles* t = (struct Particles*)obj;
-    t->z /= 2;
-    printf("%f\n", t->z);
+    if (mods & 1) {
+        t->z /= 2;
+        printf("%f\n", t->z);
+    } else {
+        t->ay -= 5*M_PI/360;
+        transform(t);
+    }
 }
 
 static void zoom_out(struct Object* obj, int mods) {
     struct Particles* t = (struct Particles*)obj;
-    t->z *= 2;
-    printf("%f\n", t->z);
+    if (mods & 1) {
+        t->z *= 2;
+        printf("%f\n", t->z);
+    } else {
+        t->ay += 5*M_PI/360;
+        transform(t);
+    }
 }
 
 static void draw_(struct Object* obj, struct DrawContext* ctx) {
     struct Particles* t = (struct Particles*)obj;
     mat4x4 m, p, v, mv, mvp;
     mat4x4_identity(m);
+    mat4x4_from_quat(m, t->q);
+
     //mat4x4_scale(m, m, 10000);
     //mat4x4_rotate_X(m, m, ctx->time);
     //mat4x4_rotate_Y(m, m, ctx->time);
@@ -106,6 +183,11 @@ struct body
 struct Object* CreateParticles(struct Render* r) {
     struct Particles* t = calloc(1, sizeof(struct Particles));
     struct Object base = {
+        .move_left = move_left,
+        .move_right = move_right,
+        .move_up = move_up,
+        .move_down = move_down,
+
         .zoom_in = zoom_in,
         .zoom_out = zoom_out,
         .draw = draw_,
@@ -161,6 +243,8 @@ struct Object* CreateParticles(struct Render* r) {
     float dy = 4.0f/(n_y-1);
     float dz = 4.0f/(n_z-1);
 
+    quat_identity(t->q);
+
     srand(time(NULL));
 
     const double G = 2.92e-6;
@@ -204,9 +288,9 @@ struct Object* CreateParticles(struct Render* r) {
     for (i = 0; i < n_x; i++) {
         for (j = 0; j < n_y; j++) {
             for (k = 0; k < n_z; k++) {
-                coords[n] = dx * i - 2.0f + 0.1 * (double)rand() / (double)RAND_MAX;
-                coords[n+1] = dy * j - 2.0f + 0.1 * (double)rand() / (double)RAND_MAX;
-                coords[n+2] = dz * k - 2.0f + 0.1 * (double)rand() / (double)RAND_MAX;
+                coords[n] = dx * i - 2.0f + 0.5 * (double)rand() / (double)RAND_MAX;
+                coords[n+1] = dy * j - 2.0f + 0.5 * (double)rand() / (double)RAND_MAX;
+                coords[n+2] = dz * k - 2.0f + 0.5 * (double)rand() / (double)RAND_MAX;
                 coords[n+3] = 0.2 + 1.5*(double)rand() / (double)RAND_MAX;
 
                 double R =
