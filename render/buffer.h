@@ -38,7 +38,7 @@ struct BufferManager {
         int offset,
         int size);
 
-    void (*free)(struct BufferManager* mgr, int id);
+    void (*destroy)(struct BufferManager* mgr, int id);
 
     // internal handler
     void* (*get)(struct BufferManager* mgr, int id);

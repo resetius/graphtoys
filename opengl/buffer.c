@@ -87,9 +87,9 @@ static int create(
     buf->mtype = mtype;
     buf->valid = 1;
     glGenBuffers(1, &buf->buffer);
-    glBindBuffer(GL_UNIFORM_BUFFER, buf->buffer);
-    glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    glBindBuffer(buf->type, buf->buffer);
+    glBufferData(buf->type, size, data, buf->mtype);
+    glBindBuffer(buf->type, 0);
     return id;
 }
 
@@ -107,7 +107,7 @@ static void update(
     glBindBuffer(b->buffers[id].type, 0);
 }
 
-static void buf_free(struct BufferManager* mgr, int id) {
+static void destroy(struct BufferManager* mgr, int id) {
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
     assert(id < b->n_buffers);
     glDeleteBuffers(1, &b->buffers[id].buffer);
@@ -130,7 +130,7 @@ struct BufferManager* buf_mgr_opengl_new(struct Render* r) {
         .get = get,
         .create = create,
         .update = update,
-        .free = buf_free,
+        .destroy = destroy,
     };
 
     b->base = base;

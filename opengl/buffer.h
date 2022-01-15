@@ -2,6 +2,8 @@
 
 #include <render/buffer.h>
 
+#include "glad/gl.h"
+
 struct BufferImpl {
     GLuint buffer;
     GLenum type;
@@ -12,3 +14,4 @@ struct BufferImpl {
 
 struct Render;
 struct BufferManager* buf_mgr_opengl_new(struct Render* r);
+// TODO: BufferManager free

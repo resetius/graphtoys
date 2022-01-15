@@ -4,8 +4,7 @@
 
 #include <render/pipeline.h>
 #include <render/program.h>
-
-#include "glad/gl.h"
+#include <opengl/buffer.h>
 
 struct UniformBlock {
     const char* name;
@@ -16,15 +15,14 @@ struct UniformBlock {
 };
 
 struct Buffer {
-    int n_vertices;
-    GLuint vbo;
-    GLuint vao;
-    int size;
-    int stride;
-    GLenum type;
-    GLenum mtype;
-    int binding;
-    int descriptor;
+    struct BufferImpl base;
+
+    int id;
+    int n_vertices; // pipeline
+    GLuint vao; // pipeline
+    int stride; // pipeline
+    int binding;  // pipeline
+    int descriptor; // pipeline
 };
 
 struct BufferAttribute {
@@ -70,6 +68,8 @@ struct PipelineImpl {
     int enable_depth;
     int enable_blend;
     enum GeometryType geometry;
+
+    struct BufferManager* b; // TODO: remove me
 };
 
 struct PipelineBuilderImpl {
@@ -97,42 +97,9 @@ struct PipelineBuilderImpl {
     int enable_depth;
     int enable_blend;
     enum GeometryType geometry;
+
+    struct BufferManager* b; // TODO: remove me
 };
-
-static GLenum buffer_type(enum BufferType type) {
-    GLenum ret = -1;
-    switch (type) {
-    case BUFFER_ARRAY:
-        ret = GL_ARRAY_BUFFER;
-        break;
-    case BUFFER_SHADER_STORAGE:
-        ret = GL_SHADER_STORAGE_BUFFER;
-        break;
-    default:
-        assert(0);
-        break;
-    }
-    return ret;
-}
-
-static GLenum memory_type(enum BufferMemoryType type) {
-    GLenum ret = -1;
-    switch (type) {
-    case MEMORY_STATIC:
-        ret = GL_STATIC_DRAW;
-        break;
-    case MEMORY_DYNAMIC:
-        ret = GL_DYNAMIC_DRAW;
-        break;
-    case MEMORY_DYNAMIC_COPY:
-        ret = GL_DYNAMIC_COPY;
-        break;
-    default:
-        assert(0);
-        break;
-    }
-    return ret;
-}
 
 static struct PipelineBuilder* begin_uniform(
     struct PipelineBuilder*p1,
@@ -248,7 +215,7 @@ static void pipeline_free(struct Pipeline* p1) {
     }
     free(p->programs);
     for (i = 0; i < p->n_buffers; i++) {
-        glDeleteBuffers(1, &p->buffers[i].vbo);
+        p->b->destroy(p->b, p->buffers[i].id); // TODO: remove me
         if (p->buffers[i].vao) {
             glDeleteVertexArrays(1, &p->buffers[i].vao);
         }
@@ -275,14 +242,13 @@ static void uniform_update(struct Pipeline* p1, int id, const void* data, int of
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+// TODO: remove
 static void buffer_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     // TODO: check is dynamic
     assert(id < p->n_buffers);
-    glBindBuffer(p->buffers[id].type, p->buffers[id].vbo);
-    glBufferSubData(p->buffers[id].type, offset, size, data);
-    glBindBuffer(p->buffers[id].type, 0);
+    p->b->update(p->b, p->buffers[id].id, data, offset, size);
 }
 
 static int buffer_storage_create(
@@ -292,8 +258,6 @@ static int buffer_storage_create(
     int binding, int descriptor,
     const void* data, int size)
 {
-    int btype = buffer_type(type);
-    int mtype = memory_type(mem_type);
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     assert(descriptor < p->n_buf_descrs);
     struct BufferDescriptor* descr = descriptor < 0 ? NULL : &p->buf_descr[descriptor];
@@ -301,37 +265,24 @@ static int buffer_storage_create(
         p->buf_cap = (p->buf_cap+1)*2;
         p->buffers = realloc(p->buffers, p->buf_cap*sizeof(struct Buffer));
     }
-    int buffer_id = p->n_buffers++;
+    int buffer_id = p->n_buffers++; // logical id
     struct Buffer* buf = &p->buffers[buffer_id];
     memset(buf, 0, sizeof(*buf));
-    buf->type = btype;
-    buf->mtype = mtype;
+    buf->id = p->b->create(p->b, type, mem_type, data, size);
+    memcpy(&buf->base, p->b->get(p->b, buf->id), sizeof(buf->base));
+
     buf->stride = descr ? descr->stride : 0;
     buf->n_vertices = descr ? size / descr->stride : 0;
-    buf->size = size;
     buf->descriptor = descriptor;
     buf->binding = binding;
-    glGenBuffers(1, &buf->vbo);
-    //glBindBuffer(btype, buf->vbo);
-    //glBufferData(btype, buf->size, data, mtype);
 
-    glUseProgram(0);
     if (binding >= 0) {
-        printf("Bind %x\n", btype);
-        //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, buf->vbo);
-        //glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_DRAW);
-        //glBindBuffer(btype, buf->vbo);
-        //glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_DRAW);
-
-        //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, buf->vbo);
-
-        glBindBufferBase(btype, binding, buf->vbo);
-        glBufferData(btype, buf->size, data, mtype);
+        glBindBufferBase(buf->base.type, binding, buf->base.buffer);
+        //glBufferData(btype, buf->size, data, mtype);
     }
 
     if (descr) {
-        printf("Descr\n");
-        glBindBuffer(GL_ARRAY_BUFFER, buf->vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, buf->base.buffer);
         glGenVertexArrays(1, &buf->vao);
         glBindVertexArray(buf->vao);
 
@@ -357,8 +308,6 @@ static int buffer_create(
     enum BufferMemoryType mem_type,
     int binding, const void* data, int size)
 {
-    int btype = buffer_type(type);
-    int mtype = memory_type(mem_type);
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     assert(binding < p->n_buf_descrs);
     struct BufferDescriptor* descr = &p->buf_descr[binding];
@@ -369,17 +318,14 @@ static int buffer_create(
     int buffer_id = p->n_buffers++;
     struct Buffer* buf = &p->buffers[buffer_id];
     memset(buf, 0, sizeof(*buf));
-    buf->type = btype;
-    buf->mtype = mtype;
+    buf->id = p->b->create(p->b, type, mem_type, data, size);
+    memcpy(&buf->base, p->b->get(p->b, buf->id), sizeof(buf->base));
+
     buf->stride = descr->stride;
     buf->n_vertices = size / descr->stride;
-    buf->size = size;
     buf->descriptor = binding;
-    glGenBuffers(1, &buf->vbo);
-    glBindBuffer(btype, buf->vbo);
-    glBufferData(btype, buf->size, data, mtype);
 
-    glBindBuffer(GL_ARRAY_BUFFER, buf->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, buf->base.buffer);
     glGenVertexArrays(1, &buf->vao);
     glBindVertexArray(buf->vao);
 
@@ -391,22 +337,24 @@ static int buffer_create(
             descr->stride,
             (const void*)descr->attrs[j].offset);
     }
-    glBindBuffer(btype, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
     return buffer_id;
 }
 
 void buffer_copy(struct Pipeline* p1, int dst, int src) {
-    struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    assert(dst < p->n_buffers);
-    assert(src < p->n_buffers);
-    struct Buffer* src_buf = &p->buffers[src];
-    struct Buffer* dst_buf = &p->buffers[dst];
+//    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+//    assert(dst < p->n_buffers);
+//    assert(src < p->n_buffers);
+//    struct Buffer* src_buf = &p->buffers[src];
+//    struct Buffer* dst_buf = &p->buffers[dst];
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, src_buf->vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, dst_buf->vbo);
-    glCopyBufferSubData(GL_SHADER_STORAGE_BUFFER, GL_ARRAY_BUFFER, 0, 0, src_buf->size);
+    assert(0);
+
+//    glBindBuffer(GL_SHADER_STORAGE_BUFFER, src_buf->vbo);
+//    glBindBuffer(GL_ARRAY_BUFFER, dst_buf->vbo);
+//    glCopyBufferSubData(GL_SHADER_STORAGE_BUFFER, GL_ARRAY_BUFFER, 0, 0, src_buf->size);
 }
 
 
@@ -419,8 +367,8 @@ void buffer_swap(struct Pipeline* p1, int dst, int src) {
     assert(src_buf->binding >= 0);
     assert(dst_buf->binding >= 0);
 
-    glBindBufferBase(src_buf->type, dst_buf->binding, src_buf->vbo);
-    glBindBufferBase(dst_buf->type, src_buf->binding, dst_buf->vbo);
+    glBindBufferBase(src_buf->base.type, dst_buf->binding, src_buf->base.buffer);
+    glBindBufferBase(dst_buf->base.type, src_buf->binding, dst_buf->base.buffer);
 
     int t = src_buf->binding;
     src_buf->binding = dst_buf->binding;
@@ -495,7 +443,7 @@ static void start_part(struct Pipeline* p1, int part) {
 
 static void start_compute_part(struct Pipeline* p1, int part, int sx, int sy, int sz) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    int i;
+    //int i;
 
     //printf("compute %d %d %d %d\n", part, sx, sy, sz);
     assert(part < p->n_programs);
@@ -625,6 +573,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     pl->enable_depth = p->enable_depth;
     pl->enable_blend = p->enable_blend;
     pl->geometry = p->geometry;
+    pl->b = p->b;
 
     free(p);
     return (struct Pipeline*)pl;
@@ -658,5 +607,6 @@ struct PipelineBuilder* pipeline_builder_opengl(struct Render* r) {
     };
     p->base = base;
     p->r = r;
+    p->b = buf_mgr_opengl_new(r); // TODO: remove me
     return (struct PipelineBuilder*)p;
 }

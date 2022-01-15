@@ -1,22 +1,13 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "render.h"
+#include "buffer.h" // TODO: remove
 
 enum GeometryType {
     GEOM_TRIANGLES = 0,
     GEOM_POINTS
-};
-
-enum BufferType {
-    BUFFER_ARRAY, // vao
-    BUFFER_SHADER_STORAGE
-};
-
-enum BufferMemoryType {
-    MEMORY_STATIC,
-    MEMORY_DYNAMIC,
-    MEMORY_DYNAMIC_COPY
 };
 
 struct Pipeline {
@@ -46,7 +37,7 @@ struct Pipeline {
         struct Pipeline* p1,
         enum BufferType type,
         enum BufferMemoryType mem_type,
-        int binding,
+        int descriptor,
         const void* data,
         int size); // -> buffer id
 
