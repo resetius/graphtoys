@@ -36,7 +36,7 @@ void main() {
         r = Position[idx] + DeltaT*Velocity[idx] + 0.5 * DeltaT * DeltaT * Accel[idx];
 
         // (3) new Accel
-        for (int j = 0; j < total; j++) {
+        for (int j = 0; j < total && !erase; j++) {
             if (idx != j && Position[j].w > 0) {
                 float R = length(vec3(r-Position[j]));
                 float r1 = min(30, (Position[idx].w+Position[j].w))*0.0004;
