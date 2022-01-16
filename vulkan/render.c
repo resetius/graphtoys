@@ -153,12 +153,16 @@ static void find_queue_families(struct RenderImpl* r) {
     families = malloc(count*sizeof(VkQueueFamilyProperties));
     vkGetPhysicalDeviceQueueFamilyProperties(r->phy_dev, &count, families);
 
-    r->graphics_family = r->present_family = -1;
+    r->compute_family = r->graphics_family = r->present_family = -1;
 
     for (i = 0; i < count; i++) {
         VkBool32 flag = 0;
         if (families[i].queueCount > 0 && (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
             r->graphics_family = i;
+        }
+
+        if (families[i].queueCount > 0 && (families[i].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+            r->compute_family = i;
         }
 
         vkGetPhysicalDeviceSurfaceSupportKHR(r->phy_dev, i, r->surface, &flag);
@@ -167,13 +171,14 @@ static void find_queue_families(struct RenderImpl* r) {
             r->present_family = i;
         }
 
-        if (r->present_family >= 0 && r->graphics_family >= 0) {
+        if (r->present_family >= 0 && r->graphics_family >= 0 && r->compute_family >= 0) {
             break;
         }
     }
-    printf("Present: %d, graphics: %d\n",
+    printf("Present: %d, graphics: %d, compute: %d\n",
            r->present_family,
-           r->graphics_family);
+           r->graphics_family,
+           r->compute_family);
     free(families);
 }
 

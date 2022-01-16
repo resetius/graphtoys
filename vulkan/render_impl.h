@@ -35,6 +35,7 @@ struct RenderImpl {
     uint32_t n_modes;
     int graphics_family;
     int present_family;
+    int compute_family;
     // Logical Device
     VkDevice log_dev;
     VkQueue g_queue;
