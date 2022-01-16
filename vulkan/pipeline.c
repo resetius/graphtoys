@@ -106,8 +106,26 @@ struct PipelineBuilderImpl {
     int enable_depth;
     int enable_blend;
 
+    enum GeometryType geometry;
+
     struct BufferManager* b; // TODO: remove me
 };
+
+static uint32_t primitive_topology(enum GeometryType geometry) {
+    uint32_t ret = -1;
+    switch (geometry) {
+    case GEOM_TRIANGLES:
+        ret = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        break;
+    case GEOM_POINTS:
+        ret = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+        break;
+    default:
+        assert(0);
+        break;
+    }
+    return ret;
+}
 
 static int buffer_assign(struct Pipeline* p1, int id, int buffer_id) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
@@ -708,6 +726,13 @@ static struct PipelineBuilder* set_bmgr(struct PipelineBuilder* p1, struct Buffe
     return p1;
 }
 
+static struct PipelineBuilder* set_geometry(struct PipelineBuilder* p1, enum GeometryType geometry)
+{
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    p->geometry = geometry;
+    return p1;
+}
+
 static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     struct PipelineImpl* pl = calloc(1, sizeof(*pl));
@@ -749,7 +774,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     // Vertex Input assembly State
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-        .topology =  VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+        .topology =  primitive_topology(p->geometry),
         .primitiveRestartEnable = VK_FALSE
     };
     // Rasterization State
@@ -1011,10 +1036,12 @@ struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r) {
         .enable_blend = enable_blend,
         .begin_sampler = begin_sampler,
         .end_sampler = end_sampler,
+        .geometry = set_geometry,
         .build = build,
     };
     p->base = base;
     p->r = (struct RenderImpl*)r;
+    p->geometry = GEOM_TRIANGLES;
 
     return (struct PipelineBuilder*)p;
 }
