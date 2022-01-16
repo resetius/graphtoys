@@ -212,8 +212,6 @@ struct Object* CreateTorus(struct Render* r) {
     t->model_buffer_id = t->b->create(t->b, BUFFER_ARRAY, MEMORY_STATIC, vertices, nvertices*sizeof(struct Vertex));
     t->model = t->pl->buffer_assign(t->pl, 0, t->model_buffer_id);
 
-    //t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, nvertices*sizeof(struct Vertex));
-
     free(vertices);
 
     return (struct Object*)t;
