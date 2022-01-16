@@ -13,7 +13,9 @@
 
 #include <freetype/freetype.h>
 
+
 struct Program* prog_opengl_new();
+struct BufferManager* buf_mgr_opengl_new(struct Render* r);
 
 struct CharImpl {
     struct Char base;
@@ -168,6 +170,7 @@ struct Render* rend_opengl_new(struct RenderConfig cfg)
         .init = init_,
         .pipeline = pipeline_builder_opengl,
         .set_viewport = set_viewport,
+        .buffer_manager = buf_mgr_opengl_new,
     };
     r->base = base;
     r->cfg = cfg;

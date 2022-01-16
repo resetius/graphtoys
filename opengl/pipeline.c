@@ -109,12 +109,15 @@ static struct PipelineBuilder* begin_uniform(
     int size)
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    // TODO: check program
+    assert(p->n_programs > 0);
     int program = prog_handle(p->programs[p->n_programs-1]);
     GLuint index = glGetUniformBlockIndex(program, name);
     glUniformBlockBinding(program, index, binding);
 
     struct BufferImpl base;
+    if (!p->b) {
+        p->b = buf_mgr_opengl_new(p->r); // TODO: remove me
+    }
     int id = p->b->create(p->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, size);
     memcpy(&base, p->b->get(p->b, id), sizeof(base));
 
@@ -129,6 +132,27 @@ static struct PipelineBuilder* begin_uniform(
     };
     p->cur_uniform = &p->uniforms[p->n_uniforms++];
     *p->cur_uniform = block;
+    return p1;
+}
+
+static struct PipelineBuilder* uniform_add(
+    struct PipelineBuilder*p1,
+    int binding,
+    const char* name)
+{
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    assert(p->n_programs > 0);
+    int program = prog_handle(p->programs[p->n_programs-1]);
+    GLuint index = glGetUniformBlockIndex(program, name);
+    glUniformBlockBinding(program, index, binding);
+
+    struct UniformBlock block = {
+        .id = -1,
+        .name = name,
+        .binding = binding,
+        .index = index,
+    };
+    p->uniforms[p->n_uniforms++] = block;
     return p1;
 }
 
@@ -232,6 +256,16 @@ static void pipeline_free(struct Pipeline* p1) {
     free(p->samplers);
     free(p->buf_descr);
     free(p);
+}
+
+static void uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id)
+{
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    assert(uniform_id < p->n_uniforms);
+    p->uniforms[uniform_id].id = buffer_id;
+    memcpy(&p->uniforms[uniform_id].base,
+           p->b->get(p->b, buffer_id),
+           sizeof(p->uniforms[uniform_id].base));
 }
 
 static void uniform_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
@@ -534,11 +568,19 @@ static struct PipelineBuilder* end_sampler(struct PipelineBuilder* p1) {
     return p1;
 }
 
+struct PipelineBuilder* set_bmgr(struct PipelineBuilder* p1, struct BufferManager* b)
+{
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    p->b = b;
+    return p1;
+}
+
 static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     struct PipelineImpl* pl = calloc(1, sizeof(*pl));
     struct Pipeline base = {
         .free = pipeline_free,
+        .uniform_assign = uniform_assign,
         .uniform_update = uniform_update,
         .buffer_copy = buffer_copy,
         .buffer_update = buffer_update,
@@ -581,12 +623,15 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 struct PipelineBuilder* pipeline_builder_opengl(struct Render* r) {
     struct PipelineBuilderImpl* p = calloc(1, sizeof(*p));
     struct PipelineBuilder base = {
+        .set_bmgr = set_bmgr,
+
         .begin_program = begin_program,
         .add_vs = add_vs,
         .add_fs = add_fs,
         .add_cs = add_cs,
         .end_program = end_program,
 
+        .uniform_add = uniform_add,
         .begin_uniform = begin_uniform,
         .end_uniform = end_uniform,
 
@@ -606,6 +651,5 @@ struct PipelineBuilder* pipeline_builder_opengl(struct Render* r) {
     };
     p->base = base;
     p->r = r;
-    p->b = buf_mgr_opengl_new(r); // TODO: remove me
     return (struct PipelineBuilder*)p;
 }

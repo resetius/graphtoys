@@ -14,6 +14,9 @@ struct Pipeline {
 
     void (*free)(struct Pipeline*);
 
+    void (*uniform_assign)(struct Pipeline* p1, int uniform_id, int buffer_id);
+
+    // deprecated
     void (*uniform_update)(
         struct Pipeline*,
         int id,
@@ -78,6 +81,7 @@ struct ShaderCode {
 };
 
 struct PipelineBuilder {
+    struct PipelineBuilder* (*set_bmgr)(struct PipelineBuilder*, struct BufferManager*);
 
     struct PipelineBuilder* (*begin_program)(struct PipelineBuilder*);
     struct PipelineBuilder* (*add_vs)(struct PipelineBuilder*, struct ShaderCode shader);
@@ -93,11 +97,18 @@ struct PipelineBuilder {
         uint64_t offset);
     struct PipelineBuilder* (*end_buffer)(struct PipelineBuilder*);
 
+    struct PipelineBuilder* (*uniform_add)(
+        struct PipelineBuilder*p1,
+        int binding,
+        const char* name);
+
+    // deprecated
     struct PipelineBuilder* (*begin_uniform)(
         struct PipelineBuilder*,
         int binding,
         const char* blockName,
         int size);
+    // deprecated
     struct PipelineBuilder* (*end_uniform)(struct PipelineBuilder*);
 
     struct PipelineBuilder* (*begin_sampler)(struct PipelineBuilder* p1, int binding);
