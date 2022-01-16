@@ -422,8 +422,8 @@ void storage_swap(struct Pipeline* p1, int dst, int src) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     assert(dst < p->n_storages);
     assert(src < p->n_storages);
-    struct Buffer* src_buf = &p->storage[src];
-    struct Buffer* dst_buf = &p->storage[dst];
+    struct StorageBlock* src_buf = &p->storage[src];
+    struct StorageBlock* dst_buf = &p->storage[dst];
 
     int t = src_buf->binding;
     src_buf->binding = dst_buf->binding;
