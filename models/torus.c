@@ -209,6 +209,7 @@ struct Object* CreateTorus(struct Render* r) {
 
     t->uniform_buffer_id = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
     t->pl->uniform_assign(t->pl, 0, t->uniform_buffer_id);
+
     t->model_buffer_id = t->b->create(t->b, BUFFER_ARRAY, MEMORY_STATIC, vertices, nvertices*sizeof(struct Vertex));
     t->model = t->pl->buffer_assign(t->pl, 0, t->model_buffer_id);
 

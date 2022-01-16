@@ -109,6 +109,27 @@ struct PipelineBuilderImpl {
     struct BufferManager* b; // TODO: remove me
 };
 
+static int buffer_assign(struct Pipeline* p1, int id, int buffer_id) {
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    assert(id < p->n_buf_descr);
+    struct BufferDescriptor* descr = &p->buf_descr[id];
+
+    if (p->n_buffers >= p->buf_cap) {
+        p->buf_cap = (p->buf_cap+1)*2;
+        p->buffers = realloc(p->buffers, p->buf_cap*sizeof(struct Buffer));
+    }
+    int logical_id = p->n_buffers++; // logical id
+    struct Buffer* buf = &p->buffers[logical_id];
+    memset(buf, 0, sizeof(*buf));
+    memcpy(&buf->base, p->b->get(p->b, buffer_id), sizeof(buf->base));
+
+    buf->stride = descr->stride;
+    buf->n_vertices = buf->base.size / descr->stride;
+    buf->binding = id; // ?
+
+    return logical_id;
+}
+
 static void uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
@@ -667,6 +688,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct PipelineImpl* pl = calloc(1, sizeof(*pl));
     struct RenderImpl* r = p->r;
     struct Pipeline base = {
+        .buffer_assign = buffer_assign,
         .uniform_update = uniform_update,
         .uniform_assign = uniform_assign,
         .buffer_update = buffer_update,
