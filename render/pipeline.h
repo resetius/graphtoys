@@ -14,8 +14,9 @@ struct Pipeline {
 
     void (*free)(struct Pipeline*);
 
+    void (*storage_assign)(struct Pipeline* p1, int storage_id, int buffer_id);
     void (*uniform_assign)(struct Pipeline* p1, int uniform_id, int buffer_id);
-    int (*buffer_assign)(struct Pipeline* p1, int binding, int buffer_id);
+    int (*buffer_assign)(struct Pipeline* p1, int descriptor_id, int buffer_id);
 
     // deprecated
     void (*uniform_update)(
@@ -36,8 +37,8 @@ struct Pipeline {
     // deprecated
     void (*buffer_copy)(struct Pipeline* p1,
                         int dst, int src);
-    void (*buffer_swap)(struct Pipeline* p1,
-                        int dst, int src);
+    void (*storage_swap)(struct Pipeline* p1,
+                         int dst, int src);
 
     // deprecated
     int (*buffer_create)(
@@ -48,21 +49,9 @@ struct Pipeline {
         const void* data,
         int size); // -> buffer id
 
-    // deprecated
-    int (*buffer_storage_create)(
-        struct Pipeline* p1,
-        enum BufferType type,
-        enum BufferMemoryType mem_type,
-        int binding,
-        int descriptor,
-        const void* data,
-        int size); // -> buffer id
-
     void (*use_texture)(struct Pipeline* p1, void* texture);
 
-    void (*start_part)(struct Pipeline* p1, int part);
-    void (*start_compute_part)(struct Pipeline* p1, int part, int sx, int sy, int sz);
-    void (*wait_part)(struct Pipeline* p1, int part);
+    void (*start_compute)(struct Pipeline* p1, int sx, int sy, int sz);
 
     void (*start)(struct Pipeline* p1);
     void (*draw)(struct Pipeline* p1, int buffer_id);
@@ -73,8 +62,6 @@ void pl_uniform_update(struct Pipeline*, int id, const void* data, int offset, i
 void pl_buffer_update(struct Pipeline*, int od, const void* data, int offset, int size);
 int pl_buffer_create(struct Pipeline*, enum BufferType type, enum BufferMemoryType mtype,
                       int binding, const void* data, int size);
-int pl_buffer_storage_create(struct Pipeline*, enum BufferType type, enum BufferMemoryType mtype,
-                             int binding, int descriptor, const void* data, int size);
 void pl_use_texture(struct Pipeline* p1, void* texture);
 void pl_start(struct Pipeline*);
 void pl_draw(struct Pipeline* p1, int buffer_id);
@@ -101,6 +88,11 @@ struct PipelineBuilder {
         int channels, int bytes_per_channel,
         uint64_t offset);
     struct PipelineBuilder* (*end_buffer)(struct PipelineBuilder*);
+
+    struct PipelineBuilder* (*storage_add)(
+        struct PipelineBuilder*p1,
+        int binding,
+        const char* name);
 
     struct PipelineBuilder* (*uniform_add)(
         struct PipelineBuilder*p1,

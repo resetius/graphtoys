@@ -17,12 +17,6 @@ int pl_buffer_create(struct Pipeline* pl, enum BufferType type, enum BufferMemor
     return pl->buffer_create(pl, type, mtype, binding, data, size);
 }
 
-int pl_buffer_storage_create(struct Pipeline* pl, enum BufferType type, enum BufferMemoryType mtype,
-                             int binding, int descriptor, const void* data, int size)
-{
-    return pl->buffer_storage_create(pl, type, mtype, binding, descriptor, data, size);
-}
-
 void pl_use_texture(struct Pipeline* pl, void* texture) {
     pl->use_texture(pl, texture);
 }

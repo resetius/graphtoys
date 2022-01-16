@@ -13,7 +13,7 @@ void main()
     float mass = vPos.w;
     gl_Position = MVP * vec4(vec3(vPos), 1);
 //    gl_Position = vPos;
-    gl_PointSize = min(30, 2*vPos.w); // mass
+    gl_PointSize = max(1, min(30, 2*vPos.w)); // mass
     if (mass > 0) {
         color = vec3(1.0, 0.0, 1.0);
     } else {

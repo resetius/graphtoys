@@ -18,11 +18,20 @@
 
 struct Particles {
     struct Object base;
+    struct Pipeline* comp;
     struct Pipeline* pl;
+    struct BufferManager* b;
+
     int particles;
+
     int pos;
     int new_pos;
+    int accel;
     int vel;
+
+    int pos_vao;
+    int new_pos_vao;
+
     int model;
     float z;
     quat q;
@@ -151,18 +160,18 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_mul(mvp, p, mv);
 
     //printf("particles %d\n", t->particles);
-    t->pl->start_compute_part(t->pl, 0, max(1, t->particles/100), 1, 1);
-    t->pl->wait_part(t->pl, 0);
+    t->comp->start_compute(t->comp, max(1, t->particles/100), 1, 1);
 
     //t->pl->buffer_copy(t->pl, t->pos, t->new_pos);
 
-    t->pl->start_part(t->pl, 1);
+    t->pl->start(t->pl);
     t->pl->uniform_update(t->pl, 0, &mvp[0][0], 0, sizeof(mat4x4));
 
-    t->pl->draw(t->pl, t->new_pos);
+    //t->pl->draw(t->pl, t->new_pos_vao);
+    t->pl->draw(t->pl, t->pos_vao);
 
-    int tt = t->pos; t->pos = t->new_pos; t->new_pos = tt;
-    t->pl->buffer_swap(t->pl, t->pos, t->new_pos);
+    int tt = t->pos_vao; t->pos_vao = t->new_pos_vao; t->new_pos_vao = tt;
+    t->comp->storage_swap(t->comp, 0, 3);
 }
 
 static void free_(struct Object* obj) {
@@ -211,10 +220,26 @@ struct Object* CreateParticles(struct Render* r) {
         .spir_v = models_particles_comp_spv,
         .size = models_particles_comp_spv_size,
     };
-    t->pl = pl
+
+    t->b = r->buffer_manager(r);
+
+    t->comp = pl
+        ->set_bmgr(pl, t->b)
         ->begin_program(pl)
         ->add_cs(pl, compute_shader)
         ->end_program(pl)
+
+        ->storage_add(pl, 1, "Pos")
+        ->storage_add(pl, 2, "Vel")
+        ->storage_add(pl, 3, "Tmp")
+        ->storage_add(pl, 4, "NewPos")
+
+        ->build(pl);
+
+    pl = r->pipeline(r);
+
+    t->pl = pl
+        ->set_bmgr(pl, t->b)
 
         ->begin_program(pl)
         ->add_vs(pl, vertex_shader)
@@ -232,7 +257,7 @@ struct Object* CreateParticles(struct Render* r) {
 
         ->build(pl);
 
-    int n_x = 32, n_y = 32, n_z = 32;
+    int n_x = 16, n_y = 16, n_z = 16;
     int n_particles = n_x*n_y*n_z;
     int size = n_particles*4*sizeof(float);
     float* coords = malloc(size);
@@ -327,11 +352,18 @@ struct Object* CreateParticles(struct Render* r) {
 */
     size = t->particles*4*sizeof(float);
 
-    t->pos = pl_buffer_storage_create(t->pl, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, 1, 0, coords, size);
-    t->vel = pl_buffer_storage_create(t->pl, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, 2, -1, vels, size);
-    pl_buffer_storage_create(t->pl, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, 3, -1, accel, size);
+    t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, coords, size);
+    t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, vels, size);
+    t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, accel, size);
+    t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, coords, size);
 
-    t->new_pos = pl_buffer_storage_create(t->pl, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, 4, 0, coords, size);
+    t->pos_vao = t->pl->buffer_assign(t->pl, 0, t->pos);
+    t->new_pos_vao = t->pl->buffer_assign(t->pl, 0, t->new_pos);
+
+    t->comp->storage_assign(t->comp, 0, t->pos);
+    t->comp->storage_assign(t->comp, 1, t->vel);
+    t->comp->storage_assign(t->comp, 2, t->accel);
+    t->comp->storage_assign(t->comp, 3, t->new_pos);
 
     free(coords);
     free(vels);

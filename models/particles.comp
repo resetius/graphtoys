@@ -21,7 +21,7 @@ layout(std430, binding=4) buffer NewPos {
 void main() {
     uint idx = gl_GlobalInvocationID.x;
     uint total = gl_NumWorkGroups.x*gl_WorkGroupSize.x;
-    float DeltaT = 0.0001;
+    float DeltaT = 0.001;
 
     float newMass = Position[idx].w;
     bool erase = false;
