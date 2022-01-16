@@ -132,8 +132,11 @@ static int buffer_assign(struct Pipeline* p1, int id, int buffer_id) {
 static void uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    int i;
     assert(uniform_id < p->n_uniforms);
-    // p->uniforms[uniform_id].id = buffer_id;
+    for (i = 0; i < p->r->sc.n_images; i++) {
+        p->descriptorSetFlags[i] = 0; // rebuild descriptor set
+    }
     memcpy(&p->uniforms[uniform_id].base,
            p->b->get(p->b, buffer_id),
            sizeof(p->uniforms[uniform_id].base));
@@ -234,38 +237,34 @@ static VkDescriptorSet currentDescriptorSet(struct PipelineImpl* p)
     int i = r->image_index;
 
     if (!p->descriptorSetFlags[i]) {
-        VkDescriptorBufferInfo* uboBufferDescInfo = malloc(p->n_uniforms*sizeof(VkDescriptorBufferInfo));
         for (int j = 0; j < p->n_uniforms; j++) {
             VkDescriptorBufferInfo info = {
                 .buffer = p->uniforms[j].base.buffer[i],
                 .offset = 0,
                 .range = p->uniforms[j].base.size
             };
-            uboBufferDescInfo[j] = info;
+
+            VkWriteDescriptorSet uboDescWrites = {
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .pNext = NULL,
+                .dstSet = p->descriptorSets[i],
+                .dstBinding = p->uniforms[j].layoutBinding.binding,
+                .dstArrayElement = 0,
+                .descriptorType = p->uniforms[j].layoutBinding.descriptorType,
+                .descriptorCount = 1,
+                .pBufferInfo = &info,
+                .pImageInfo = NULL,
+                .pTexelBufferView = NULL,
+            };
+
+            VkWriteDescriptorSet descWrites[] = {uboDescWrites};
+            vkUpdateDescriptorSets(
+                r->log_dev,
+                1,
+                descWrites,
+                0,
+                NULL);
         }
-
-        VkWriteDescriptorSet uboDescWrites = {
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .pNext = NULL,
-            .dstSet = p->descriptorSets[i],
-            .dstBinding = 0,
-            .dstArrayElement = 0,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = p->n_uniforms,
-            .pBufferInfo = uboBufferDescInfo,
-            .pImageInfo = NULL,
-            .pTexelBufferView = NULL,
-        };
-
-        VkWriteDescriptorSet descWrites[] = {uboDescWrites};
-        vkUpdateDescriptorSets(
-            r->log_dev,
-            1,
-            descWrites,
-            0,
-            NULL);
-
-        free(uboBufferDescInfo);
 
         p->descriptorSetFlags[i] = 1;
     }
@@ -365,28 +364,44 @@ static struct PipelineBuilder* end_sampler(struct PipelineBuilder*p1)
     return p1;
 }
 
-static struct PipelineBuilder* uniform_add(
+static struct PipelineBuilder* uniform_or_storage_add(
     struct PipelineBuilder*p1,
     int binding,
-    const char* name)
+    uint32_t type)
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
 
-    // TODO: checkptr
+    assert(p->cur_uniform == NULL);
     p->cur_uniform = &p->uniforms[p->n_uniforms++];
 
     VkDescriptorSetLayoutBinding uboLayoutBinding = {
         .binding = binding,
         .descriptorCount = 1,
-        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorType = type,
         .pImmutableSamplers = NULL,
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT // TODO
+        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT|VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT // TODO
     };
 
     p->cur_uniform->layoutBinding = uboLayoutBinding;
     p->cur_uniform = NULL;
 
     return p1;
+}
+
+static struct PipelineBuilder* storage_add(
+    struct PipelineBuilder*p1,
+    int binding,
+    const char* name)
+{
+    return uniform_or_storage_add(p1, binding, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+}
+
+static struct PipelineBuilder* uniform_add(
+    struct PipelineBuilder*p1,
+    int binding,
+    const char* name)
+{
+    return uniform_or_storage_add(p1, binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 }
 
 static struct PipelineBuilder* begin_uniform(
@@ -688,6 +703,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct Pipeline base = {
         .buffer_assign = buffer_assign,
         .uniform_update = uniform_update,
+        .storage_assign = uniform_assign,
         .uniform_assign = uniform_assign,
         .buffer_update = buffer_update,
         .buffer_create = buffer_create,
@@ -943,6 +959,7 @@ struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r) {
     struct PipelineBuilder base = {
         .set_bmgr = set_bmgr,
 
+        .storage_add = storage_add,
         .uniform_add = uniform_add,
         .begin_uniform = begin_uniform,
         .end_uniform = end_uniform,
