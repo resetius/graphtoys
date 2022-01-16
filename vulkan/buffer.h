@@ -8,6 +8,7 @@ struct BufferImpl {
     struct BufferBase base;
     VkBuffer buffer[10];       // buffer per swapchain image
     VkDeviceMemory memory[10]; // used for uniform buffers
+    int n_buffers;
     VkDeviceSize size;
 };
 
