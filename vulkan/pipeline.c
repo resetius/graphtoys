@@ -27,7 +27,6 @@ struct Buffer {
 
 struct UniformBlock {
     struct BufferImpl base;
-    VkDeviceSize size;
     VkDescriptorSetLayoutBinding layoutBinding;
 };
 
@@ -240,7 +239,7 @@ static VkDescriptorSet currentDescriptorSet(struct PipelineImpl* p)
             VkDescriptorBufferInfo info = {
                 .buffer = p->uniforms[j].base.buffer[i],
                 .offset = 0,
-                .range = p->uniforms[j].size
+                .range = p->uniforms[j].base.size
             };
             uboBufferDescInfo[j] = info;
         }
@@ -411,7 +410,6 @@ static struct PipelineBuilder* begin_uniform(
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT // TODO
     };
 
-    p->cur_uniform->size = size;
     p->cur_uniform->layoutBinding = uboLayoutBinding;
 
     struct BufferImpl base;

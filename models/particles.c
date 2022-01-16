@@ -177,6 +177,8 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 static void free_(struct Object* obj) {
     struct Particles* t = (struct Particles*)obj;
     t->pl->free(t->pl);
+    t->comp->free(t->comp);
+    t->b->free(t->b);
     free(obj);
 }
 
