@@ -38,7 +38,8 @@ struct Torus {
     struct Pipeline* pl;
     struct BufferManager* b;
     int uniform_buffer_id;
-    int model;
+    int model_buffer_id;
+    int model; // vao
 };
 
 static struct Vertex* init (int* nvertices) {
@@ -154,8 +155,8 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
 
 static void t_free(struct Object* obj) {
     struct Torus* t = (struct Torus*)obj;
-    t->b->free(t->b);
     t->pl->free(t->pl);
+    t->b->free(t->b);
     free(t);
 }
 
@@ -208,8 +209,10 @@ struct Object* CreateTorus(struct Render* r) {
 
     t->uniform_buffer_id = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
     t->pl->uniform_assign(t->pl, 0, t->uniform_buffer_id);
+    t->model_buffer_id = t->b->create(t->b, BUFFER_ARRAY, MEMORY_STATIC, vertices, nvertices*sizeof(struct Vertex));
+    t->model = t->pl->buffer_assign(t->pl, 0, t->model_buffer_id);
 
-    t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, nvertices*sizeof(struct Vertex));
+    //t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, nvertices*sizeof(struct Vertex));
 
     free(vertices);
 

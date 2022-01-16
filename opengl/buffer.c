@@ -90,6 +90,7 @@ static int create(
     buf->type = btype;
     buf->mtype = mtype;
     buf->valid = 1;
+    buf->size = size;
     glGenBuffers(1, &buf->buffer);
     glBindBuffer(buf->type, buf->buffer);
     glBufferData(buf->type, size, data, buf->mtype);

@@ -258,6 +258,51 @@ static void pipeline_free(struct Pipeline* p1) {
     free(p);
 }
 
+static int buffer_assign(struct Pipeline* p1, int id, int buffer_id) {
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    assert(id < p->n_buf_descrs);
+    struct BufferDescriptor* descr = &p->buf_descr[id];
+
+    if (p->n_buffers >= p->buf_cap) {
+        p->buf_cap = (p->buf_cap+1)*2;
+        p->buffers = realloc(p->buffers, p->buf_cap*sizeof(struct Buffer));
+    }
+    int logical_id = p->n_buffers++; // logical id
+    struct Buffer* buf = &p->buffers[logical_id];
+    memset(buf, 0, sizeof(*buf));
+    buf->id = buffer_id;
+    memcpy(&buf->base, p->b->get(p->b, buf->id), sizeof(buf->base));
+
+    buf->stride = descr->stride;
+    buf->n_vertices = buf->base.size / descr->stride;
+    buf->descriptor = id;
+
+    if (buf->base.type == GL_SHADER_STORAGE_BUFFER) {
+        // TODO: binding from descriptor
+        //glBindBufferBase(buf->base.type, binding, buf->base.buffer);
+        glBindBufferBase(buf->base.type, id, buf->base.buffer);
+    }
+
+    if (buf->base.type == GL_ARRAY_BUFFER) {
+        glBindBuffer(GL_ARRAY_BUFFER, buf->base.buffer);
+        glGenVertexArrays(1, &buf->vao);
+        glBindVertexArray(buf->vao);
+
+        for (int j = 0; j < descr->n_attrs; j++) {
+            int location = descr->attrs[j].location;
+            glEnableVertexAttribArray(location);
+            glVertexAttribPointer(
+                location, descr->attrs[j].channels, GL_FLOAT, GL_FALSE,
+                descr->stride,
+                (const void*)descr->attrs[j].offset);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+
+    return logical_id;
+}
+
 static void uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
@@ -582,6 +627,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .free = pipeline_free,
         .uniform_assign = uniform_assign,
         .uniform_update = uniform_update,
+        .buffer_assign = buffer_assign,
         .buffer_copy = buffer_copy,
         .buffer_update = buffer_update,
         .buffer_create = buffer_create,

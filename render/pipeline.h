@@ -15,6 +15,7 @@ struct Pipeline {
     void (*free)(struct Pipeline*);
 
     void (*uniform_assign)(struct Pipeline* p1, int uniform_id, int buffer_id);
+    int (*buffer_assign)(struct Pipeline* p1, int binding, int buffer_id);
 
     // deprecated
     void (*uniform_update)(
