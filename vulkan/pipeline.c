@@ -250,6 +250,22 @@ static void start(struct Pipeline* p1) {
     vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, p->graphicsPipeline);
 }
 
+static void storage_swap(struct Pipeline* p1, int dst, int src) {
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+
+    // TODO
+}
+
+static void start_compute(struct Pipeline* p1, int sx, int sy, int sz) {
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    struct RenderImpl* r = p->r;
+
+    VkCommandBuffer buffer = r->buffer; // use different command buffer?
+
+    vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_COMPUTE, p->computePipeline);
+
+}
+
 static VkDescriptorSet currentDescriptorSet(struct PipelineImpl* p)
 {
     struct RenderImpl* r = p->r;
@@ -739,12 +755,14 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct RenderImpl* r = p->r;
     struct Pipeline base = {
         .buffer_assign = buffer_assign,
+        .storage_swap = storage_swap,
         .uniform_update = uniform_update,
         .storage_assign = uniform_assign,
         .uniform_assign = uniform_assign,
         .buffer_update = buffer_update,
         .buffer_create = buffer_create,
         .free = pipeline_free,
+        .start_compute = start_compute,
         .start = start,
         .use_texture = use_texture,
         .draw = draw

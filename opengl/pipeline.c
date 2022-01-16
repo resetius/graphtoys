@@ -418,7 +418,7 @@ void buffer_copy(struct Pipeline* p1, int dst, int src) {
 }
 
 
-void storage_swap(struct Pipeline* p1, int dst, int src) {
+static void storage_swap(struct Pipeline* p1, int dst, int src) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     assert(dst < p->n_storages);
     assert(src < p->n_storages);
