@@ -97,7 +97,7 @@ static void update(
     struct RenderImpl* r = b->r;
     void* dest;
     int i = (buf->n_buffers == 1)
-        ? 1
+        ? 0
         : r->image_index;
 
     vkMapMemory(r->log_dev, buf->memory[i], offset, size, 0, &dest);

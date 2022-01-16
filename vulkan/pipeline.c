@@ -19,9 +19,7 @@ struct BufferDescriptor {
 };
 
 struct Buffer {
-    VkBuffer buffer;
-    VkDeviceMemory memory;
-    VkDeviceSize size;
+    struct BufferImpl base;
     int stride;
     int n_vertices;
     int binding;
@@ -111,13 +109,6 @@ struct PipelineBuilderImpl {
     struct BufferManager* b; // TODO: remove me
 };
 
-static void buffer_update_(VkDevice dev, VkDeviceMemory memory, const void* data, int offset, int size) {
-    void* dest;
-    vkMapMemory(dev, memory, offset, size, 0, &dest);
-    memcpy(dest, data, size);
-    vkUnmapMemory(dev, memory);
-}
-
 static void uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
@@ -137,24 +128,15 @@ static void uniform_update(struct Pipeline* p1, int id, const void* data, int of
 static void buffer_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    struct RenderImpl* r = p->r;
     assert(id < p->n_buffers);
 
     struct Buffer* buf = &p->buffers[id];
-
-    // TODO: buffer per frame
-    // TODO: barriers
-        //vkCmdUpdateBuffer(
-        //    r->buffer,
-        //    buf->buffer, 0, size, data);
-         buffer_update_(r->log_dev, buf->memory, data, offset, size);
-         //}
+    p->b->update(p->b, buf->base.base.id, data, offset, size);
 }
 
 static int buffer_create(struct Pipeline* p1, enum BufferType type, enum BufferMemoryType mem_type, int binding, const void* data, int size)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    struct RenderImpl* r = p->r;
     assert(binding < p->n_buf_descr);
     struct BufferDescriptor* descr = &p->buf_descr[binding];
     if (p->n_buffers >= p->buf_cap) {
@@ -166,50 +148,10 @@ static int buffer_create(struct Pipeline* p1, enum BufferType type, enum BufferM
     buf->stride = descr->stride;
     buf->n_vertices = size / descr->stride;
     buf->binding = binding;
-    buf->size = size;
 
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
+    int id = p->b->create(p->b, type, mem_type, data, size);
+    memcpy(&buf->base, p->b->get(p->b, id), sizeof(buf->base));
 
-    create_buffer(
-        r->phy_dev, r->log_dev,
-        buf->size,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        //VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        &stagingBuffer,
-        &stagingBufferMemory);
-
-    assert(data || mem_type == MEMORY_DYNAMIC);
-
-    if (data) {
-        void* dst;
-        vkMapMemory(r->log_dev, stagingBufferMemory, 0, size, 0, &dst);
-        memcpy(dst, data, size);
-        vkUnmapMemory(r->log_dev, stagingBufferMemory);
-    }
-
-    if (mem_type == MEMORY_DYNAMIC) {
-        buf->buffer = stagingBuffer;
-        buf->memory = stagingBufferMemory;
-    } else {
-        create_buffer(
-            r->phy_dev, r->log_dev,
-            size,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            &buf->buffer,
-            &buf->memory);
-
-        copy_buffer(
-            r->graphics_family,
-            r->g_queue, r->log_dev,
-            stagingBuffer,
-            buf->buffer, size);
-
-        vkDestroyBuffer(r->log_dev, stagingBuffer, NULL);
-        vkFreeMemory(r->log_dev, stagingBufferMemory, NULL);
-    }
     return buffer_id;
 }
 
@@ -345,7 +287,7 @@ static void draw(struct Pipeline* p1, int id) {
             buffer,
             buf->binding,
             1,
-            &buf->buffer,
+            &buf->base.buffer[0],
             &offset);
 
         //printf("Use %p\n", p->currentDescriptorSet);
@@ -675,8 +617,7 @@ static void pipeline_free(struct Pipeline* p1) {
     free(p->uniforms); p->uniforms = NULL; p->n_uniforms = 0;
 
     for (i = 0; i < p->n_buffers; i++) {
-        vkDestroyBuffer(r->log_dev, p->buffers[i].buffer, NULL);
-        vkFreeMemory(r->log_dev, p->buffers[i].memory, NULL);
+        p->b->destroy(p->b, p->buffers[i].base.base.id);
     }
     free(p->buffers); p->n_buffers = 0;
     p->buffers = NULL;
