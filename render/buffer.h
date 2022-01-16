@@ -42,6 +42,8 @@ struct BufferManager {
 
     // internal handler
     void* (*get)(struct BufferManager* mgr, int id);
+
+    void (*free)(struct BufferManager* mgr);
 };
 
 // buffer_id

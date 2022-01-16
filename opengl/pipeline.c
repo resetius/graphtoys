@@ -7,11 +7,12 @@
 #include <opengl/buffer.h>
 
 struct UniformBlock {
+    struct BufferImpl base;
+
+    int id;
     const char* name;
     GLuint binding;
-    GLuint buffer;
     GLuint index;
-    int size;
 };
 
 struct Buffer {
@@ -111,20 +112,20 @@ static struct PipelineBuilder* begin_uniform(
     // TODO: check program
     int program = prog_handle(p->programs[p->n_programs-1]);
     GLuint index = glGetUniformBlockIndex(program, name);
-    GLuint buffer;
     glUniformBlockBinding(program, index, binding);
 
-    glGenBuffers(1, &buffer);
-    glBindBuffer(GL_UNIFORM_BUFFER, buffer);
-    glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_UNIFORM_BUFFER, binding, buffer);
+    struct BufferImpl base;
+    int id = p->b->create(p->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, size);
+    memcpy(&base, p->b->get(p->b, id), sizeof(base));
+
+    glBindBufferBase(GL_UNIFORM_BUFFER, binding, base.buffer);
 
     struct UniformBlock block = {
+        .base = base,
+        .id = id,
         .name = name,
         .binding = binding,
         .index = index,
-        .buffer = buffer,
-        .size = size
     };
     p->cur_uniform = &p->uniforms[p->n_uniforms++];
     *p->cur_uniform = block;
@@ -222,7 +223,7 @@ static void pipeline_free(struct Pipeline* p1) {
     }
     free(p->buffers);
     for (i = 0; i < p->n_uniforms; i++) {
-        glDeleteBuffers(1, &p->uniforms[i].buffer);
+        p->b->destroy(p->b, p->uniforms[i].id);
     }
     free(p->uniforms);
     for (i = 0; i < p->n_samplers; i++) {
@@ -236,10 +237,8 @@ static void pipeline_free(struct Pipeline* p1) {
 static void uniform_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    // check id < n_buffers
-    glBindBuffer(GL_ARRAY_BUFFER, p->uniforms[id].buffer);
-    glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    assert(id < p->n_uniforms);
+    p->b->update(p->b, p->uniforms[id].id, data, offset, size);
 }
 
 // TODO: remove
@@ -416,7 +415,7 @@ static void start(struct Pipeline* p1) {
         glBindBufferBase(
             GL_UNIFORM_BUFFER,
             p->uniforms[i].binding,
-            p->uniforms[i].buffer);
+            p->uniforms[i].base.buffer);
     }
 }
 
@@ -437,7 +436,7 @@ static void start_part(struct Pipeline* p1, int part) {
         glBindBufferBase(
             GL_UNIFORM_BUFFER,
             p->uniforms[i].binding,
-            p->uniforms[i].buffer);
+            p->uniforms[i].base.buffer);
     }
 }
 

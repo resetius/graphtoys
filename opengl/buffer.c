@@ -26,6 +26,9 @@ static GLenum buffer_type(enum BufferType type) {
     case BUFFER_SHADER_STORAGE:
         ret = GL_SHADER_STORAGE_BUFFER;
         break;
+    case BUFFER_UNIFORM:
+        ret = GL_UNIFORM_BUFFER;
+        break;
     default:
         assert(0);
         break;
@@ -117,6 +120,18 @@ static void destroy(struct BufferManager* mgr, int id) {
     }
 }
 
+static void mgr_free(struct BufferManager* mgr) {
+    struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
+    int i;
+    for (i = 0; i < b->n_buffers; i++) {
+        if (b->buffers[i].valid) {
+            glDeleteBuffers(1, &b->buffers[i].buffer);
+        }
+    }
+    free(b->buffers);
+    free(mgr);
+}
+
 static void* get(struct BufferManager* mgr, int id) {
     // TODO: generic part
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
@@ -131,6 +146,7 @@ struct BufferManager* buf_mgr_opengl_new(struct Render* r) {
         .create = create,
         .update = update,
         .destroy = destroy,
+        .free = mgr_free,
     };
 
     b->base = base;
