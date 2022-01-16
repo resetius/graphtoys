@@ -42,6 +42,7 @@ struct BufferManager {
 
     // internal handler
     void* (*get)(struct BufferManager* mgr, int id);
+    void (*release)(struct BufferManager* mgr, void* buffer);
 
     void (*free)(struct BufferManager* mgr);
 };
@@ -51,3 +52,22 @@ struct BufferManager {
 // local_buffer_id = pipeline->assign(buffer_id, binding)
 // pipeline->use_buffer(local_buffer_id)
 // pipeline->swap_assignments(local_buffer_id1, local_buffer_id2)
+
+struct BufferBase {
+    int id;
+    int valid;
+};
+
+struct BufferManagerBase {
+    struct BufferManager iface;
+
+    int buffer_size;
+    char* buffers;
+    int n_buffers;
+    int cap;
+};
+
+struct BufferBase* buffer_acquire_(struct BufferManagerBase* mgr);
+void buffer_release_(struct BufferManager* mgr, int id);
+void* buffer_get_(struct BufferManager* mgr, int id);
+void buffer_mgr_free_(struct BufferManager* mgr);

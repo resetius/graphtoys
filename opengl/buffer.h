@@ -5,11 +5,11 @@
 #include "glad/gl.h"
 
 struct BufferImpl {
+    struct BufferBase base;
     GLuint buffer;
     GLenum type;
     GLenum mtype;
     int size;
-    int valid;
 };
 
 struct Render;

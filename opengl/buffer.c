@@ -11,11 +11,7 @@
 #include "buffer.h"
 
 struct BufferManagerImpl {
-    struct BufferManager base;
-    struct BufferImpl* buffers;
-    int n_buffers;
-    int cap;
-    int valid;
+    struct BufferManagerBase base;
 };
 
 static GLenum buffer_type(enum BufferType type) {
@@ -64,38 +60,17 @@ static int create(
     int size)
 {
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
-    struct BufferImpl* buf = NULL;
-    int id, btype, mtype;
-    if (b->n_buffers >= b->cap) {
-        int i;
-        for (i = b->n_buffers - 1; i >= 0 && b->buffers[i].valid; --i) {
-            ;
-        }
-        if (i >= 0) {
-            buf = &b->buffers[i];
-        }
-    }
-    if (!buf && b->n_buffers >= b->cap) {
-        // TODO: generic part
-        int old_cap = b->cap;
-        b->cap = (1+b->cap)*2;
-        b->buffers = realloc(b->buffers, b->cap*sizeof(struct BufferImpl));
-        memset(b->buffers + old_cap, 0, (b->cap - old_cap)*sizeof(struct BufferImpl));
-    }
-    id = b->n_buffers++;
-    buf = &b->buffers[id];
-    btype = buffer_type(type);
-    mtype = memory_type(mem_type);
-    memset(buf, 0, sizeof(*buf));
+    struct BufferImpl* buf = (struct BufferImpl*)buffer_acquire_(&b->base);
+    int btype = buffer_type(type);
+    int mtype = memory_type(mem_type);
     buf->type = btype;
     buf->mtype = mtype;
-    buf->valid = 1;
     buf->size = size;
     glGenBuffers(1, &buf->buffer);
     glBindBuffer(buf->type, buf->buffer);
     glBufferData(buf->type, size, data, buf->mtype);
     glBindBuffer(buf->type, 0);
-    return id;
+    return buf->base.id;
 }
 
 static void update(
@@ -105,53 +80,32 @@ static void update(
     int offset,
     int size)
 {
-    struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
-    assert(id < b->n_buffers);
-    glBindBuffer(b->buffers[id].type, b->buffers[id].buffer);
-    glBufferSubData(b->buffers[id].type, offset, size, data);
-    glBindBuffer(b->buffers[id].type, 0);
+    struct BufferImpl* buf = (struct BufferImpl*)mgr->get(mgr, id);
+    glBindBuffer(buf->type, buf->buffer);
+    glBufferSubData(buf->type, offset, size, data);
+    glBindBuffer(buf->type, 0);
 }
 
-static void destroy(struct BufferManager* mgr, int id) {
-    struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
-    assert(id < b->n_buffers);
-    glDeleteBuffers(1, &b->buffers[id].buffer);
-    b->buffers[id].valid = 0;
-    if (id == b->n_buffers - 1) {
-        b->n_buffers --;
+static void release(struct BufferManager* mgr, void* buf1) {
+    struct BufferImpl* buf = buf1;
+    if (buf->base.valid) {
+        glDeleteBuffers(1, &buf->buffer);
     }
-}
-
-static void mgr_free(struct BufferManager* mgr) {
-    struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
-    int i;
-    for (i = 0; i < b->n_buffers; i++) {
-        if (b->buffers[i].valid) {
-            glDeleteBuffers(1, &b->buffers[i].buffer);
-        }
-    }
-    free(b->buffers);
-    free(mgr);
-}
-
-static void* get(struct BufferManager* mgr, int id) {
-    // TODO: generic part
-    struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
-    assert(id < b->n_buffers);
-    return &b->buffers[id];
 }
 
 struct BufferManager* buf_mgr_opengl_new(struct Render* r) {
     struct BufferManagerImpl* b = calloc(1, sizeof(*b));
-    struct BufferManager base = {
-        .get = get,
+    struct BufferManager iface = {
+        .get = buffer_get_,
         .create = create,
+        .release = release,
         .update = update,
-        .destroy = destroy,
-        .free = mgr_free,
+        .destroy = buffer_release_,
+        .free = buffer_mgr_free_,
     };
 
-    b->base = base;
+    b->base.iface = iface;
+    b->base.buffer_size = sizeof(struct BufferImpl);
 
     return (struct BufferManager*)b;
 }
