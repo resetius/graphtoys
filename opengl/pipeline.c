@@ -614,7 +614,7 @@ static struct PipelineBuilder* end_sampler(struct PipelineBuilder* p1) {
     return p1;
 }
 
-struct PipelineBuilder* set_bmgr(struct PipelineBuilder* p1, struct BufferManager* b)
+static struct PipelineBuilder* set_bmgr(struct PipelineBuilder* p1, struct BufferManager* b)
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     p->b = b;

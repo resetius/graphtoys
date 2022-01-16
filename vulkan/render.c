@@ -14,6 +14,8 @@
 #include "swapchain.h"
 #include "render_impl.h"
 
+struct BufferManager* buf_mgr_vulkan_new(struct Render* r);
+
 static void free_(struct Render* r1) {
     int i;
     struct RenderImpl* r = (struct RenderImpl*)r1;
@@ -57,7 +59,7 @@ static void draw_begin_(struct Render* r1) {
         VkRect2D scissor = {{0, 0}, r->sc.extent};
         r->scissor = scissor;
     }
-    
+
     vkWaitForFences(r->log_dev, 1, &r->infl_fences[r->current_frame], VK_TRUE, UINT64_MAX);
 
     vkAcquireNextImageKHR(
@@ -364,6 +366,7 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg) {
         .set_viewport = set_viewport_,
         .pipeline = pipeline_builder_vulkan,
         .char_new =  rend_vulkan_char_new,
+        .buffer_manager = buf_mgr_vulkan_new,
     };
     uint32_t extensionCount = 0;
     const char** glfwExtensionNames = glfwGetRequiredInstanceExtensions(&extensionCount);

@@ -9,6 +9,7 @@
 
 #include "render_impl.h"
 #include "tools.h"
+#include "buffer.h"
 
 struct BufferDescriptor {
     int stride;
@@ -27,9 +28,7 @@ struct Buffer {
 };
 
 struct UniformBlock {
-    VkBuffer buffer[10];
-    VkDeviceMemory memory[10];
-
+    struct BufferImpl base;
     VkDeviceSize size;
     VkDescriptorSetLayoutBinding layoutBinding;
 };
@@ -62,6 +61,8 @@ struct PipelineImpl {
     VkDescriptorPool descriptorPool;
     VkDescriptorSetLayout layout;
     VkDescriptorSetLayout texLayout;
+
+    struct BufferManager* b; // TODO: remove me
 };
 
 struct Sampler {
@@ -106,6 +107,8 @@ struct PipelineBuilderImpl {
 
     int enable_depth;
     int enable_blend;
+
+    struct BufferManager* b; // TODO: remove me
 };
 
 static void buffer_update_(VkDevice dev, VkDeviceMemory memory, const void* data, int offset, int size) {
@@ -115,12 +118,20 @@ static void buffer_update_(VkDevice dev, VkDeviceMemory memory, const void* data
     vkUnmapMemory(dev, memory);
 }
 
+static void uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id)
+{
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    assert(uniform_id < p->n_uniforms);
+    // p->uniforms[uniform_id].id = buffer_id;
+    memcpy(&p->uniforms[uniform_id].base,
+           p->b->get(p->b, buffer_id),
+           sizeof(p->uniforms[uniform_id].base));
+}
+
 static void uniform_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    struct RenderImpl* r = p->r;
-
-    buffer_update_(r->log_dev, p->uniforms[id].memory[r->image_index], data, offset, size);
+    p->b->update(p->b, p->uniforms[id].base.base.id, data, offset, size);
 }
 
 static void buffer_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
@@ -264,7 +275,7 @@ static VkDescriptorSet currentDescriptorSet(struct PipelineImpl* p)
         VkDescriptorBufferInfo* uboBufferDescInfo = malloc(p->n_uniforms*sizeof(VkDescriptorBufferInfo));
         for (int j = 0; j < p->n_uniforms; j++) {
             VkDescriptorBufferInfo info = {
-                .buffer = p->uniforms[j].buffer[i],
+                .buffer = p->uniforms[j].base.buffer[i],
                 .offset = 0,
                 .range = p->uniforms[j].size
             };
@@ -392,6 +403,30 @@ static struct PipelineBuilder* end_sampler(struct PipelineBuilder*p1)
     return p1;
 }
 
+static struct PipelineBuilder* uniform_add(
+    struct PipelineBuilder*p1,
+    int binding,
+    const char* name)
+{
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+
+    // TODO: checkptr
+    p->cur_uniform = &p->uniforms[p->n_uniforms++];
+
+    VkDescriptorSetLayoutBinding uboLayoutBinding = {
+        .binding = binding,
+        .descriptorCount = 1,
+        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .pImmutableSamplers = NULL,
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT // TODO
+    };
+
+    p->cur_uniform->layoutBinding = uboLayoutBinding;
+    p->cur_uniform = NULL;
+
+    return p1;
+}
+
 static struct PipelineBuilder* begin_uniform(
     struct PipelineBuilder*p1,
     int binding,
@@ -400,7 +435,6 @@ static struct PipelineBuilder* begin_uniform(
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     struct RenderImpl* r = p->r;
-    int i;
 
     // TODO: checkptr
     // TODO: uniformBuffer per image index
@@ -414,19 +448,16 @@ static struct PipelineBuilder* begin_uniform(
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT // TODO
     };
 
-    VkDeviceSize uboBufferSize = size;
     p->cur_uniform->size = size;
     p->cur_uniform->layoutBinding = uboLayoutBinding;
 
-    for (i = 0; i < r->sc.n_images; i++) {
-        create_buffer(
-            r->phy_dev, r->log_dev,
-            uboBufferSize,
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &p->cur_uniform->buffer[i],
-            &p->cur_uniform->memory[i]);
+    struct BufferImpl base;
+    if (!p->b) {
+        p->b = r->base.buffer_manager((struct Render*)p->r); // TODO: remove me
     }
+    int id = p->b->create(p->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, size);
+    memcpy(&base, p->b->get(p->b, id), sizeof(base));
+    p->cur_uniform->base = base;
 
     return p1;
 }
@@ -637,12 +668,9 @@ static void builder_free(struct PipelineBuilderImpl* p) {
 static void pipeline_free(struct Pipeline* p1) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     struct RenderImpl* r = p->r;
-    int i,j;
+    int i;
     for (i = 0; i < p->n_uniforms; i++) {
-        for (j = 0; j < r->sc.n_images; j++) {
-            vkDestroyBuffer(r->log_dev, p->uniforms[i].buffer[j], NULL);
-            vkFreeMemory(r->log_dev, p->uniforms[i].memory[j], NULL);
-        }
+        p->b->destroy(p->b, p->uniforms[i].base.base.id);
     }
     free(p->uniforms); p->uniforms = NULL; p->n_uniforms = 0;
 
@@ -686,12 +714,20 @@ static struct PipelineBuilder* enable_blend(struct PipelineBuilder* p1) {
     return p1;
 }
 
+static struct PipelineBuilder* set_bmgr(struct PipelineBuilder* p1, struct BufferManager* b)
+{
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    p->b = b;
+    return p1;
+}
+
 static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     struct PipelineImpl* pl = calloc(1, sizeof(*pl));
     struct RenderImpl* r = p->r;
     struct Pipeline base = {
         .uniform_update = uniform_update,
+        .uniform_assign = uniform_assign,
         .buffer_update = buffer_update,
         .buffer_create = buffer_create,
         .free = pipeline_free,
@@ -933,6 +969,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     pl->buf_descr = malloc(p->n_buffers*sizeof(struct BufferDescriptor));
     memcpy(pl->buf_descr, p->buffers, p->n_buffers*sizeof(struct BufferDescriptor));
     pl->n_buf_descr = p->n_buffers;
+    pl->b = p->b;
 
     builder_free(p);
 
@@ -943,6 +980,9 @@ struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r) {
     struct PipelineBuilderImpl* p = calloc(1, sizeof(*p));
 
     struct PipelineBuilder base = {
+        .set_bmgr = set_bmgr,
+
+        .uniform_add = uniform_add,
         .begin_uniform = begin_uniform,
         .end_uniform = end_uniform,
         .begin_program = begin_program,
@@ -950,6 +990,7 @@ struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r) {
         .add_vs = add_vs,
         .add_fs = add_fs,
         .add_cs = add_cs,
+
         .begin_buffer = begin_buffer,
         .buffer_attribute = buffer_attribute,
         .end_buffer = end_buffer,
