@@ -25,6 +25,7 @@ struct Pipeline {
         int offset,
         int size);
 
+    // deprecated
     void (*buffer_update)(
         struct Pipeline*,
         int buffer_od,
@@ -32,11 +33,13 @@ struct Pipeline {
         int offset,
         int size);
 
+    // deprecated
     void (*buffer_copy)(struct Pipeline* p1,
                         int dst, int src);
     void (*buffer_swap)(struct Pipeline* p1,
                         int dst, int src);
 
+    // deprecated
     int (*buffer_create)(
         struct Pipeline* p1,
         enum BufferType type,
@@ -45,6 +48,7 @@ struct Pipeline {
         const void* data,
         int size); // -> buffer id
 
+    // deprecated
     int (*buffer_storage_create)(
         struct Pipeline* p1,
         enum BufferType type,
