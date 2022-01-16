@@ -52,6 +52,7 @@ struct PipelineImpl {
     VkPipeline graphicsPipeline;
 
     VkDescriptorSet* descriptorSets;
+    int* descriptorSetFlags;
     VkDescriptorSet* currentDescriptorSet;
     int n_descriptor_sets;
 
@@ -254,6 +255,51 @@ static void start(struct Pipeline* p1) {
     vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, p->graphicsPipeline);
 }
 
+static VkDescriptorSet currentDescriptorSet(struct PipelineImpl* p)
+{
+    struct RenderImpl* r = p->r;
+    int i = r->image_index;
+
+    if (!p->descriptorSetFlags[i]) {
+        VkDescriptorBufferInfo* uboBufferDescInfo = malloc(p->n_uniforms*sizeof(VkDescriptorBufferInfo));
+        for (int j = 0; j < p->n_uniforms; j++) {
+            VkDescriptorBufferInfo info = {
+                .buffer = p->uniforms[j].buffer[i],
+                .offset = 0,
+                .range = p->uniforms[j].size
+            };
+            uboBufferDescInfo[j] = info;
+        }
+
+        VkWriteDescriptorSet uboDescWrites = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext = NULL,
+            .dstSet = p->descriptorSets[i],
+            .dstBinding = 0,
+            .dstArrayElement = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = p->n_uniforms,
+            .pBufferInfo = uboBufferDescInfo,
+            .pImageInfo = NULL,
+            .pTexelBufferView = NULL,
+        };
+
+        VkWriteDescriptorSet descWrites[] = {uboDescWrites};
+        vkUpdateDescriptorSets(
+            r->log_dev,
+            1,
+            descWrites,
+            0,
+            NULL);
+
+        free(uboBufferDescInfo);
+
+        p->descriptorSetFlags[i] = 1;
+    }
+
+    return p->descriptorSets[i];
+}
+
 static void draw(struct Pipeline* p1, int id) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     struct RenderImpl* r = p->r;
@@ -266,14 +312,14 @@ static void draw(struct Pipeline* p1, int id) {
 
         //printf("Draw %d %d\n", id, buf->n_vertices);
 
-        VkDescriptorSet currentDescriptorSet = p->descriptorSets[r->image_index];
+        VkDescriptorSet curSet = currentDescriptorSet(p);
         VkDescriptorSet textureDescriptorSet = NULL;
         int n_sets = 1;
         if (p->currentDescriptorSet) {
             textureDescriptorSet = *p->currentDescriptorSet;
             n_sets = 2;
         }
-        VkDescriptorSet use [] = { currentDescriptorSet, textureDescriptorSet };
+        VkDescriptorSet use [] = { curSet, textureDescriptorSet };
 
         vkCmdBindDescriptorSets(
             buffer,
@@ -623,6 +669,7 @@ static void pipeline_free(struct Pipeline* p1) {
     vkDestroyPipeline(r->log_dev, p->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(r->log_dev, p->pipelineLayout, NULL);
     free(p->descriptorSets); p->descriptorSets = NULL; p->n_descriptor_sets = 0;
+    free(p->descriptorSetFlags); p->descriptorSetFlags = NULL;
     free(p);
 }
 
@@ -805,46 +852,12 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 
     pl->n_descriptor_sets = allocInfo.descriptorSetCount;
     pl->descriptorSets = malloc(pl->n_descriptor_sets*sizeof(VkDescriptorSet));
+    pl->descriptorSetFlags = calloc(pl->n_descriptor_sets, sizeof(int));
     if (vkAllocateDescriptorSets(r->log_dev, &allocInfo, pl->descriptorSets) != VK_SUCCESS) {
         fprintf(stderr, "failed to allocate descriptor sets\n");
         exit(-1);
     }
     free(layouts);
-
-    for (int i = 0; i < r->sc.n_images; i++) {
-        VkDescriptorBufferInfo* uboBufferDescInfo = malloc(p->n_uniforms*sizeof(VkDescriptorBufferInfo));
-        for (int j = 0; j < p->n_uniforms; j++) {
-            VkDescriptorBufferInfo info = {
-                .buffer = p->uniforms[j].buffer[i],
-                .offset = 0,
-                .range = p->uniforms[j].size
-            };
-            uboBufferDescInfo[j] = info;
-        }
-
-        VkWriteDescriptorSet uboDescWrites = {
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .pNext = NULL,
-            .dstSet = pl->descriptorSets[i],
-            .dstBinding = 0,
-            .dstArrayElement = 0,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = p->n_uniforms,
-            .pBufferInfo = uboBufferDescInfo,
-            .pImageInfo = NULL,
-            .pTexelBufferView = NULL,
-        };
-
-        VkWriteDescriptorSet descWrites[] = {uboDescWrites};
-        vkUpdateDescriptorSets(
-            r->log_dev,
-            1,
-            descWrites,
-            0,
-            NULL);
-
-        free(uboBufferDescInfo);
-    }
 
     VkDescriptorSetLayout activeLayouts [] = {
         pl->layout, pl->texLayout
