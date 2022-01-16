@@ -40,6 +40,10 @@ static int create(
         buf->n_buffers = r->sc.n_images;
     }
 
+    if (type == BUFFER_SHADER_STORAGE) {
+        vk_type |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    }
+
     for (i = 0; i < buf->n_buffers; i++) {
         create_buffer(
             r->phy_dev, r->log_dev,
