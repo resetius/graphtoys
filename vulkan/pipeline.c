@@ -46,6 +46,7 @@ struct PipelineImpl {
 
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
+    VkPipeline computePipeline;
 
     VkDescriptorSet* descriptorSets;
     int* descriptorSetFlags;
@@ -556,9 +557,20 @@ struct PipelineBuilder* end_buffer(struct PipelineBuilder* p1)
 static VkPipelineShaderStageCreateInfo* get_shader_stages(struct PipelineBuilderImpl* p)
 {
     VkPipelineShaderStageCreateInfo* infos = malloc(
-        (p->n_vert_shaders+p->n_frag_shaders)*sizeof(VkPipelineShaderStageCreateInfo));
+        (p->n_comp_shaders+p->n_vert_shaders+p->n_frag_shaders)*
+        sizeof(VkPipelineShaderStageCreateInfo));
     int i, k;
     k = 0;
+    for (i = 0; i < p->n_comp_shaders; i++) {
+        VkPipelineShaderStageCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage = VK_SHADER_STAGE_COMPUTE_BIT,
+            .module = p->comp_shaders[i],
+            .pName = "main"
+        };
+        infos[k++] = info;
+    }
+
     for (i = 0; i < p->n_vert_shaders; i++) {
         VkPipelineShaderStageCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -825,9 +837,14 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         pl->texLayout = textureDescriptorSetLayout;
     }
 
+    VkDescriptorPoolSize storagePool = {
+        .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .descriptorCount = 10*r->sc.n_images
+    };
+
     VkDescriptorPoolSize uniformPool = {
         .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .descriptorCount = r->sc.n_images
+        .descriptorCount = 10*r->sc.n_images
     };
 
     VkDescriptorPoolSize samplerPool = {
@@ -836,7 +853,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     };
 
     VkDescriptorPoolSize poolSizes[] = {
-        uniformPool, samplerPool
+        storagePool, uniformPool, samplerPool
     };
 
     VkDescriptorPoolCreateInfo poolInfo = {
@@ -910,29 +927,47 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     };
 
     // Create Graphics Pipeline
+    assert(p->n_comp_shaders * p->n_vert_shaders == 0);
 
-    VkGraphicsPipelineCreateInfo gpInfo = {
-        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-        .stageCount = p->n_frag_shaders+p->n_vert_shaders,
-        .pStages = get_shader_stages(p),
-        .pVertexInputState = &vertexInputInfo,
-        .pInputAssemblyState = &inputAssemblyInfo,
-        .pViewportState = &vpStateInfo,
-        .pRasterizationState = &rastStateCreateInfo,
-        .pMultisampleState = &msStateInfo,
-        .pDepthStencilState = &depthStencil,
-        .pColorBlendState = &cbCreateInfo,
-        .pDynamicState = &dynamicStateInfo,
-        .layout = pl->pipelineLayout,
-        .renderPass = r->rp.rp,
-        .subpass = 0,
-        .basePipelineHandle = VK_NULL_HANDLE,
-        .basePipelineIndex = -1
-    };
+    if (p->n_comp_shaders) {
+        assert(p->n_comp_shaders == 1);
 
-    if (vkCreateGraphicsPipelines(r->log_dev, VK_NULL_HANDLE, 1, &gpInfo, NULL, &pl->graphicsPipeline) != VK_SUCCESS) {
-        fprintf(stderr, "Failed to create graphics pipeline\n");
-        exit(-1);
+        VkComputePipelineCreateInfo compInfo = {
+            .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+            .stage = *get_shader_stages(p),
+            .layout = pl->pipelineLayout,
+            .basePipelineHandle = VK_NULL_HANDLE,
+            .basePipelineIndex = -1
+        };
+
+        if (vkCreateComputePipelines(r->log_dev, VK_NULL_HANDLE, 1, &compInfo, NULL, &pl->computePipeline) != VK_SUCCESS) {
+            fprintf(stderr, "Failed to create compute pipeline\n");
+            exit(-1);
+        }
+    } else {
+        VkGraphicsPipelineCreateInfo gpInfo = {
+            .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+            .stageCount = p->n_comp_shaders+p->n_frag_shaders+p->n_vert_shaders,
+            .pStages = get_shader_stages(p),
+            .pVertexInputState = &vertexInputInfo,
+            .pInputAssemblyState = &inputAssemblyInfo,
+            .pViewportState = &vpStateInfo,
+            .pRasterizationState = &rastStateCreateInfo,
+            .pMultisampleState = &msStateInfo,
+            .pDepthStencilState = &depthStencil,
+            .pColorBlendState = &cbCreateInfo,
+            .pDynamicState = &dynamicStateInfo,
+            .layout = pl->pipelineLayout,
+            .renderPass = r->rp.rp,
+            .subpass = 0,
+            .basePipelineHandle = VK_NULL_HANDLE,
+            .basePipelineIndex = -1
+        };
+
+        if (vkCreateGraphicsPipelines(r->log_dev, VK_NULL_HANDLE, 1, &gpInfo, NULL, &pl->graphicsPipeline) != VK_SUCCESS) {
+            fprintf(stderr, "Failed to create graphics pipeline\n");
+            exit(-1);
+        }
     }
 
     pl->n_uniforms = p->n_uniforms;
