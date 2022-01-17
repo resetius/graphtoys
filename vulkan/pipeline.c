@@ -252,8 +252,14 @@ static void start(struct Pipeline* p1) {
 
 static void storage_swap(struct Pipeline* p1, int dst, int src) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
-
-    // TODO
+    int i;
+    // TODO performance
+    for (i = 0; i < p->r->sc.n_images; i++) {
+        p->descriptorSetFlags[i] = 0; // rebuild descriptor set
+    }
+    int t = p->uniforms[dst].layoutBinding.binding;
+    p->uniforms[dst].layoutBinding.binding = p->uniforms[src].layoutBinding.binding;
+    p->uniforms[src].layoutBinding.binding = t;
 }
 
 static void start_compute(struct Pipeline* p1, int sx, int sy, int sz) {
@@ -273,8 +279,12 @@ static VkDescriptorSet currentDescriptorSet(struct PipelineImpl* p)
 
     if (!p->descriptorSetFlags[i]) {
         for (int j = 0; j < p->n_uniforms; j++) {
+            int idx = p->uniforms[j].base.n_buffers > 1
+                ? i
+                : 0;
+
             VkDescriptorBufferInfo info = {
-                .buffer = p->uniforms[j].base.buffer[i],
+                .buffer = p->uniforms[j].base.buffer[idx],
                 .offset = 0,
                 .range = p->uniforms[j].base.size
             };
@@ -346,6 +356,7 @@ static void draw(struct Pipeline* p1, int id) {
 
         //printf("Use %p\n", p->currentDescriptorSet);
 
+        //printf("vertices: %d\n", buf->n_vertices);
         vkCmdDraw(
             buffer,
             buf->n_vertices, // vertices

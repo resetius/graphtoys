@@ -17,6 +17,7 @@
 #include <models/mandelbulb.h>
 #include <models/stl.h>
 #include <models/particles.h>
+#include <models/particles2.h>
 
 struct App {
     struct DrawContext ctx;
@@ -132,6 +133,7 @@ int main(int argc, char** argv)
         {"mandelbulb", CreateMandelbulb},
         {"stl", CreateStl},
         {"particles", CreateParticles},
+        {"particles2", CreateParticles2},
         {"test", NULL},
         {NULL, NULL}
     };
