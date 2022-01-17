@@ -241,7 +241,7 @@ struct Object* CreateParticles2(struct Render* r) {
         ->storage_add(pl, 4, "NewPos")
 
         ->begin_buffer(pl, sizeof(int))
-        ->buffer_attribute(pl, 1, 4, DATA_INT, 0)
+        ->buffer_attribute(pl, 1, 1, DATA_INT, 0)
         ->end_buffer(pl)
 
         ->geometry(pl, GEOM_POINTS)
@@ -249,6 +249,7 @@ struct Object* CreateParticles2(struct Render* r) {
         ->build(pl);
 
     int n_x = 16, n_y = 16, n_z = 16;
+    //int n_x = 23, n_y = 23, n_z = 23;
     int n_particles = n_x*n_y*n_z;
     int size = n_particles*4*sizeof(float);
     float* coords = malloc(size);
