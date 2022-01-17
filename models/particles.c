@@ -252,7 +252,7 @@ struct Object* CreateParticles(struct Render* r) {
         ->end_uniform(pl)
 
         ->begin_buffer(pl, 4*sizeof(float))
-        ->buffer_attribute(pl, 1, 4, 4, 0)
+        ->buffer_attribute(pl, 1, 4, DATA_FLOAT, 0)
         ->end_buffer(pl)
 
         ->geometry(pl, GEOM_POINTS)

@@ -164,7 +164,7 @@ struct Object* CreateMandelbulb(struct Render* r) {
         ->end_uniform(p)
 
         ->begin_buffer(p, sizeof(struct Vertex))
-        ->buffer_attribute(p, 1, 3, 4, offsetof(struct Vertex, pos))
+        ->buffer_attribute(p, 1, 3, DATA_FLOAT, offsetof(struct Vertex, pos))
         ->end_buffer(p)
 
         ->build(p);

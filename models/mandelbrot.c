@@ -140,7 +140,7 @@ struct Object* CreateMandelbrot(struct Render* r) {
         ->end_uniform(pl)
 
         ->begin_buffer(pl, sizeof(struct Vertex))
-        ->buffer_attribute(pl, 1, 3, 4, offsetof(struct Vertex, pos))
+        ->buffer_attribute(pl, 1, 3, DATA_FLOAT, offsetof(struct Vertex, pos))
         ->end_buffer(pl)
 
         ->build(pl);

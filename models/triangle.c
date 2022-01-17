@@ -78,8 +78,8 @@ struct Object* CreateTriangle(struct Render* r) {
         ->end_uniform(pl)
 
         ->begin_buffer(pl, sizeof(Vertex))
-        ->buffer_attribute(pl, 2, 3, 4, offsetof(Vertex, col)) // vCol
-        ->buffer_attribute(pl, 1, 2, 4, offsetof(Vertex, pos)) // vPos
+        ->buffer_attribute(pl, 2, 3, DATA_FLOAT, offsetof(Vertex, col)) // vCol
+        ->buffer_attribute(pl, 1, 2, DATA_FLOAT, offsetof(Vertex, pos)) // vPos
         ->end_buffer(pl)
 
         ->build(pl);

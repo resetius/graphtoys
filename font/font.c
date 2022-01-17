@@ -113,7 +113,7 @@ struct Font* font_new(struct Render* r, int char_w, int char_h, int dev_w, int d
 
         ->begin_buffer(p, sizeof(vec4)) // {x,y,s,t}
         // set buffer data later in char render
-        ->buffer_attribute(p, 1, 4, 4, 0)
+        ->buffer_attribute(p, 1, 4, DATA_FLOAT, 0)
         ->end_buffer(p)
 
         ->begin_uniform(p, 0, "MatrixBlock", sizeof(t->uniform))

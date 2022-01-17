@@ -542,23 +542,41 @@ static struct PipelineBuilder* begin_buffer(struct PipelineBuilder* p1, int stri
     return p1;
 }
 
-static int get_format(int channels, int bytes_per_channel) {
+static int get_format(int channels, enum DataType data_type) {
     int fmt = 0;
-    if (channels == 1) {
-        fmt = VK_FORMAT_R32_SFLOAT;
-    } else if (channels == 2) {
-        fmt = VK_FORMAT_R32G32_SFLOAT;
-    } else if (channels == 3) {
-        fmt = VK_FORMAT_R32G32B32_SFLOAT;
-    } else if (channels == 4) {
-        fmt = VK_FORMAT_R32G32B32A32_SFLOAT;
-    } else {
-        fprintf(stderr, "Wrong number of channels\n");
+    switch (data_type) {
+    case DATA_FLOAT:
+        if (channels == 1) {
+            fmt = VK_FORMAT_R32_SFLOAT;
+        } else if (channels == 2) {
+            fmt = VK_FORMAT_R32G32_SFLOAT;
+        } else if (channels == 3) {
+            fmt = VK_FORMAT_R32G32B32_SFLOAT;
+        } else if (channels == 4) {
+            fmt = VK_FORMAT_R32G32B32A32_SFLOAT;
+        } else {
+            fprintf(stderr, "Wrong number of channels\n");
+            exit(-1);
+        }
+        break;
+    case DATA_INT:
+        if (channels == 1) {
+            fmt = VK_FORMAT_R32_SINT;
+        } else if (channels == 2) {
+            fmt = VK_FORMAT_R32G32_SINT;
+        } else if (channels == 3) {
+            fmt = VK_FORMAT_R32G32B32_SINT;
+        } else if (channels == 4) {
+            fmt = VK_FORMAT_R32G32B32A32_SINT;
+        } else {
+            fprintf(stderr, "Wrong number of channels\n");
+            exit(-1);
+        }
+        break;
+    default:
+        fprintf(stderr, "Wrong data type %d\n", data_type);
         exit(-1);
-    }
-    if (bytes_per_channel != 4) {
-        fprintf(stderr, "Wrong bytes per channel\n");
-        exit(-1);
+        break;
     }
     return fmt;
 }
@@ -566,14 +584,15 @@ static int get_format(int channels, int bytes_per_channel) {
 struct PipelineBuilder* buffer_attribute(
     struct PipelineBuilder* p1,
     int location,
-    int channels, int bytes_per_channel,
+    int channels,
+    enum DataType data_type,
     uint64_t offset)
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     VkVertexInputAttributeDescription attr = {
         .binding = p->cur_buffer->descr.binding,
         .location = location,
-        .format = get_format(channels, bytes_per_channel),
+        .format = get_format(channels, data_type),
         .offset = offset
     };
     p->cur_buffer->attr[p->cur_buffer->n_attr++] = attr;

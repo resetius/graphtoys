@@ -10,6 +10,11 @@ enum GeometryType {
     GEOM_POINTS
 };
 
+enum DataType {
+    DATA_FLOAT = 0,
+    DATA_INT
+};
+
 struct Pipeline {
 
     void (*free)(struct Pipeline*);
@@ -85,7 +90,7 @@ struct PipelineBuilder {
     struct PipelineBuilder* (*buffer_attribute)(
         struct PipelineBuilder*,
         int location,
-        int channels, int bytes_per_channel,
+        int channels, enum DataType data_type,
         uint64_t offset);
     struct PipelineBuilder* (*end_buffer)(struct PipelineBuilder*);
 

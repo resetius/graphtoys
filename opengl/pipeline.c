@@ -37,7 +37,7 @@ struct Buffer {
 struct BufferAttribute {
     int location;
     int channels;
-    int bytes_per_channel;
+    enum DataType data_type;
     int stride;
     uint64_t offset;
 };
@@ -115,6 +115,22 @@ struct PipelineBuilderImpl {
 
     struct BufferManager* b; // TODO: remove me
 };
+
+static GLint gl_data_type(enum DataType data_type) {
+    GLint result = -1;
+    switch (data_type) {
+    case DATA_FLOAT:
+        result = GL_FLOAT;
+        break;
+    case DATA_INT:
+        result = GL_INT;
+        break;
+    default:
+        assert(0);
+        break;
+    }
+    return result;
+}
 
 static struct PipelineBuilder* begin_uniform(
     struct PipelineBuilder*p1,
@@ -240,14 +256,15 @@ static struct PipelineBuilder* begin_buffer(struct PipelineBuilder* p1, int stri
 static struct PipelineBuilder* buffer_attribute(
     struct PipelineBuilder* p1,
     int location,
-    int channels, int bytes_per_channel,
+    int channels,
+    enum DataType data_type,
     uint64_t offset)
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     struct BufferAttribute* attr = &p->cur_buffer->attrs[p->cur_buffer->n_attrs++];
     attr->location = location;
     attr->channels = channels;
-    attr->bytes_per_channel = bytes_per_channel;
+    attr->data_type = data_type;
     attr->stride = p->cur_buffer->stride;
     attr->offset = offset;
     return p1;
@@ -316,7 +333,10 @@ static int buffer_assign(struct Pipeline* p1, int id, int buffer_id) {
         int location = descr->attrs[j].location;
         glEnableVertexAttribArray(location);
         glVertexAttribPointer(
-            location, descr->attrs[j].channels, GL_FLOAT, GL_FALSE,
+            location,
+            descr->attrs[j].channels,
+            gl_data_type(descr->attrs[j].data_type),
+            GL_FALSE,
             descr->stride,
             (const void*)descr->attrs[j].offset);
     }

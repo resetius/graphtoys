@@ -368,9 +368,9 @@ struct Object* CreateStl(struct Render* r) {
         ->end_uniform(pl)
 
         ->begin_buffer(pl, sizeof(struct Vertex))
-        ->buffer_attribute(pl, 3, 3, 4, offsetof(struct Vertex, col))
-        ->buffer_attribute(pl, 2, 3, 4, offsetof(struct Vertex, norm))
-        ->buffer_attribute(pl, 1, 3, 4, offsetof(struct Vertex, pos))
+        ->buffer_attribute(pl, 3, 3, DATA_FLOAT, offsetof(struct Vertex, col))
+        ->buffer_attribute(pl, 2, 3, DATA_FLOAT, offsetof(struct Vertex, norm))
+        ->buffer_attribute(pl, 1, 3, DATA_FLOAT, offsetof(struct Vertex, pos))
 
         ->end_buffer(pl)
 
@@ -400,8 +400,8 @@ struct Object* CreateStl(struct Render* r) {
         ->end_uniform(plt)
 
         ->begin_buffer(plt, sizeof(struct Vertex))
-        ->buffer_attribute(plt, 2, 3, 4, offsetof(struct Vertex, col))
-        ->buffer_attribute(plt, 1, 3, 4, offsetof(struct Vertex, pos))
+        ->buffer_attribute(plt, 2, 3, DATA_FLOAT, offsetof(struct Vertex, col))
+        ->buffer_attribute(plt, 1, 3, DATA_FLOAT, offsetof(struct Vertex, pos))
 
         ->end_buffer(plt)
 
