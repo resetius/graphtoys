@@ -248,8 +248,8 @@ struct Object* CreateParticles2(struct Render* r) {
 
         ->build(pl);
 
-    int n_x = 16, n_y = 16, n_z = 16;
-    //int n_x = 23, n_y = 23, n_z = 23;
+    //int n_x = 16, n_y = 16, n_z = 16;
+    int n_x = 23, n_y = 23, n_z = 23;
     int n_particles = n_x*n_y*n_z;
     int size = n_particles*4*sizeof(float);
     float* coords = malloc(size);
@@ -257,9 +257,11 @@ struct Object* CreateParticles2(struct Render* r) {
     float* vels = calloc(1, size);
     float* accel = calloc(1, size);
     int i,j,k,n=0;
-    float dx = 4.0f/(n_x-1);
-    float dy = 4.0f/(n_y-1);
-    float dz = 4.0f/(n_z-1);
+    //float side = 4.0f;
+    float side = 7.5f;
+    float dx = side/(n_x-1);
+    float dy = side/(n_y-1);
+    float dz = side/(n_z-1);
 
     quat_identity(t->q);
 
@@ -305,9 +307,9 @@ struct Object* CreateParticles2(struct Render* r) {
     for (i = 0; i < n_x; i++) {
         for (j = 0; j < n_y; j++) {
             for (k = 0; k < n_z; k++) {
-                coords[n] = dx * i - 2.0f + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
-                coords[n+1] = dy * j - 2.0f + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
-                coords[n+2] = dz * k - 2.0f + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
+                coords[n] = dx * i - side/2 + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
+                coords[n+1] = dy * j - side/2 + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
+                coords[n+2] = dz * k - side/2 + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
                 coords[n+3] = 0.2 + 1.5*(double)rand() / (double)RAND_MAX;
 
                 double R =
