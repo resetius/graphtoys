@@ -156,7 +156,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     mat4x4_mul(mv, v, m);
 
-    mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 100.f);
+    mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 1000.f);
     mat4x4_mul(mvp, p, mv);
 
     //printf("particles %d\n", t->particles);
@@ -315,9 +315,9 @@ struct Object* CreateParticles(struct Render* r) {
     for (i = 0; i < n_x; i++) {
         for (j = 0; j < n_y; j++) {
             for (k = 0; k < n_z; k++) {
-                coords[n] = dx * i - 2.0f + 0.5 * (double)rand() / (double)RAND_MAX;
-                coords[n+1] = dy * j - 2.0f + 0.5 * (double)rand() / (double)RAND_MAX;
-                coords[n+2] = dz * k - 2.0f + 0.5 * (double)rand() / (double)RAND_MAX;
+                coords[n] = dx * i - 2.0f + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
+                coords[n+1] = dy * j - 2.0f + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
+                coords[n+2] = dz * k - 2.0f + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
                 coords[n+3] = 0.2 + 1.5*(double)rand() / (double)RAND_MAX;
 
                 double R =
