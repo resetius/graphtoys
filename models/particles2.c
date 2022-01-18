@@ -16,7 +16,7 @@
 
 struct UniformBlock {
     mat4x4 mvp;
-    int particles;
+    int32_t particles;
 };
 
 struct Particles {
@@ -240,7 +240,7 @@ struct Object* CreateParticles2(struct Render* r) {
         ->storage_add(pl, 3, "Tmp")
         ->storage_add(pl, 4, "NewPos")
 
-        ->begin_buffer(pl, sizeof(int))
+        ->begin_buffer(pl, 4)
         ->buffer_attribute(pl, 1, 1, DATA_INT, 0)
         ->end_buffer(pl)
 
