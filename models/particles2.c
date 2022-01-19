@@ -289,7 +289,7 @@ struct Object* CreateParticles2(struct Render* r) {
 
     const int nbodies = 10;
 
-
+/*
     for (i = 0; i < nbodies; i++) {
         coords[n] = body[i].x[0];
         coords[n+1] = body[i].x[1];
@@ -303,7 +303,7 @@ struct Object* CreateParticles2(struct Render* r) {
 
         n += 4;
     }
-
+*/
     for (i = 0; i < n_x; i++) {
         for (j = 0; j < n_y; j++) {
             for (k = 0; k < n_z; k++) {
