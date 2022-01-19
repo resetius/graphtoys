@@ -47,6 +47,26 @@ struct BufferManager {
     void (*free)(struct BufferManager* mgr);
 };
 
+inline int buffer_create(
+    struct BufferManager* b,
+    enum BufferType type,
+    enum BufferMemoryType mem_type,
+    const void* data,
+    int size)
+{
+    return b->create(b, type, mem_type, data, size);
+}
+
+inline void buffer_update(
+    struct BufferManager* b,
+    int id,
+    const void* data,
+    int offset,
+    int size)
+{
+    return b->update(b, id, data, offset, size);
+}
+
 // buffer_id
 // local_buffer_id (buffer_id in pipeline)
 // local_buffer_id = pipeline->assign(buffer_id, binding)

@@ -167,7 +167,7 @@ static void uniform_update(struct Pipeline* p1, int id, const void* data, int of
     p->b->update(p->b, p->uniforms[id].base.base.id, data, offset, size);
 }
 
-static void buffer_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
+static void buffer_update_(struct Pipeline* p1, int id, const void* data, int offset, int size)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     assert(id < p->n_buffers);
@@ -176,7 +176,7 @@ static void buffer_update(struct Pipeline* p1, int id, const void* data, int off
     p->b->update(p->b, buf->base.base.id, data, offset, size);
 }
 
-static int buffer_create(struct Pipeline* p1, enum BufferType type, enum BufferMemoryType mem_type, int binding, const void* data, int size)
+static int buffer_create_(struct Pipeline* p1, enum BufferType type, enum BufferMemoryType mem_type, int binding, const void* data, int size)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     assert(binding < p->n_buf_descr);
@@ -789,8 +789,8 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .uniform_update = uniform_update,
         .storage_assign = uniform_assign,
         .uniform_assign = uniform_assign,
-        .buffer_update = buffer_update,
-        .buffer_create = buffer_create,
+        .buffer_update = buffer_update_,
+        .buffer_create = buffer_create_,
         .free = pipeline_free,
         .start_compute = start_compute,
         .start = start,

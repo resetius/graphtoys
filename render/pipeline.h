@@ -67,6 +67,9 @@ void pl_uniform_update(struct Pipeline*, int id, const void* data, int offset, i
 void pl_buffer_update(struct Pipeline*, int od, const void* data, int offset, int size);
 int pl_buffer_create(struct Pipeline*, enum BufferType type, enum BufferMemoryType mtype,
                       int binding, const void* data, int size);
+void pl_storage_assign(struct Pipeline* p1, int storage_id, int buffer_id);
+void pl_uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id);
+int pl_buffer_assign(struct Pipeline* p1, int descriptor_id, int buffer_id);
 void pl_use_texture(struct Pipeline* p1, void* texture);
 void pl_start(struct Pipeline*);
 void pl_draw(struct Pipeline* p1, int buffer_id);

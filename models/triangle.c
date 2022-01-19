@@ -28,7 +28,10 @@ static const Vertex vertices[3] =
 struct Triangle {
     struct Object base;
     struct Pipeline* pl;
+    struct BufferManager* b;
+    int model_buffer_id;
     int model;
+    int uniform_id;
 };
 
 void tr_draw(struct Object* obj, struct DrawContext* ctx) {
@@ -40,7 +43,7 @@ void tr_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_mul(mvp, p, m);
 
     tr->pl->start(tr->pl);
-    tr->pl->uniform_update(tr->pl, 0, &mvp[0][0], 0, sizeof(mat4x4));
+    buffer_update(tr->b, tr->uniform_id, &mvp[0][0], 0, sizeof(mat4x4));
     tr->pl->draw(tr->pl, tr->model);
 }
 
@@ -69,13 +72,17 @@ struct Object* CreateTriangle(struct Render* r) {
         .spir_v = models_triangle_frag_spv,
         .size = models_triangle_frag_spv_size,
     };
-    tr->pl = pl->begin_program(pl)
+
+    tr->b = r->buffer_manager(r);
+    tr->pl = pl
+
+        ->set_bmgr(pl, tr->b)
+        ->begin_program(pl)
         ->add_vs(pl, vertex_shader)
         ->add_fs(pl, fragment_shader)
         ->end_program(pl)
 
-        ->begin_uniform(pl, 0, "MatrixBlock", sizeof(mat4x4))
-        ->end_uniform(pl)
+        ->uniform_add(pl, 0, "MatrixBlock")
 
         ->begin_buffer(pl, sizeof(Vertex))
         ->buffer_attribute(pl, 2, 3, DATA_FLOAT, offsetof(Vertex, col)) // vCol
@@ -84,7 +91,13 @@ struct Object* CreateTriangle(struct Render* r) {
 
         ->build(pl);
 
-    tr->model = tr->pl->buffer_create(tr->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, sizeof(vertices));
+    tr->uniform_id = buffer_create(tr->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(mat4x4));
+
+    pl_uniform_assign(tr->pl, 0, tr->uniform_id);
+
+    tr->model_buffer_id = buffer_create(tr->b, BUFFER_ARRAY, MEMORY_STATIC, vertices, sizeof(vertices));
+
+    tr->model = pl_buffer_assign(tr->pl, 0, tr->model_buffer_id);
 
     return (struct Object*)tr;
 }

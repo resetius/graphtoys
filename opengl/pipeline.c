@@ -373,7 +373,7 @@ static void uniform_update(struct Pipeline* p1, int id, const void* data, int of
 }
 
 // TODO: remove
-static void buffer_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
+static void buffer_update_(struct Pipeline* p1, int id, const void* data, int offset, int size)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     // TODO: check is dynamic
@@ -382,7 +382,7 @@ static void buffer_update(struct Pipeline* p1, int id, const void* data, int off
 }
 
 // TODO: maybe buffer_vertex_create and remove type?
-static int buffer_create(
+static int buffer_create_(
     struct Pipeline* p1,
     enum BufferType type,
     enum BufferMemoryType mem_type,
@@ -596,8 +596,8 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .uniform_update = uniform_update,
         .buffer_assign = buffer_assign,
         .buffer_copy = buffer_copy,
-        .buffer_update = buffer_update,
-        .buffer_create = buffer_create,
+        .buffer_update = buffer_update_,
+        .buffer_create = buffer_create_,
         .storage_swap = storage_swap,
         .start = start,
         .start_compute = start_compute,
