@@ -318,13 +318,23 @@ static int buffer_assign(struct Pipeline* p1, int id, int buffer_id) {
     for (int j = 0; j < descr->n_attrs; j++) {
         int location = descr->attrs[j].location;
         glEnableVertexAttribArray(location);
-        glVertexAttribPointer(
-            location,
-            descr->attrs[j].channels,
-            gl_data_type(descr->attrs[j].data_type),
-            GL_FALSE,
-            descr->stride,
-            (const void*)descr->attrs[j].offset);
+
+        if (gl_data_type(descr->attrs[j].data_type == GL_INT)) {
+            glVertexAttribIPointer(
+                location,
+                descr->attrs[j].channels,
+                gl_data_type(descr->attrs[j].data_type),
+                descr->stride,
+                (const void*)descr->attrs[j].offset);
+        } else {
+            glVertexAttribPointer(
+                location,
+                descr->attrs[j].channels,
+                gl_data_type(descr->attrs[j].data_type),
+                GL_FALSE,
+                descr->stride,
+                (const void*)descr->attrs[j].offset);
+        }
     }
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
