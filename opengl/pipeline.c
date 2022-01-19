@@ -102,6 +102,22 @@ struct PipelineBuilderImpl {
     struct BufferManager* b; // TODO: remove me
 };
 
+static int is_integer(enum DataType data_type) {
+    int result = 0;
+    switch (data_type) {
+    case DATA_FLOAT:
+        result = 0;
+        break;
+    case DATA_INT:
+        result = 1;
+        break;
+    default:
+        assert(0);
+        break;
+    }
+    return result;
+}
+
 static GLint gl_data_type(enum DataType data_type) {
     GLint result = -1;
     switch (data_type) {
@@ -319,7 +335,7 @@ static int buffer_assign(struct Pipeline* p1, int id, int buffer_id) {
         int location = descr->attrs[j].location;
         glEnableVertexAttribArray(location);
 
-        if (gl_data_type(descr->attrs[j].data_type == GL_INT)) {
+        if (is_integer(descr->attrs[j].data_type)) {
             glVertexAttribIPointer(
                 location,
                 descr->attrs[j].channels,
