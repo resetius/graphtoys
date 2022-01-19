@@ -466,7 +466,7 @@ static void start(struct Pipeline* p1) {
 
     for (i = 0; i < p->n_uniforms; i++) {
         glBindBufferBase(
-            GL_UNIFORM_BUFFER,
+            p->uniforms[i].base.type,
             p->uniforms[i].binding,
             p->uniforms[i].base.buffer);
     }
