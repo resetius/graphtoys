@@ -15,14 +15,6 @@ struct UniformBlock {
     GLuint index;
 };
 
-struct StorageBlock {
-    struct BufferImpl base;
-
-    int id;
-    const char* name;
-    GLuint binding;
-};
-
 struct Buffer {
     struct BufferImpl base;
 
@@ -61,9 +53,6 @@ struct PipelineImpl {
     struct Program** programs;
     int n_programs;
 
-    struct StorageBlock* storage;
-    int n_storages;
-
     struct UniformBlock* uniforms;
     int n_uniforms;
 
@@ -91,9 +80,6 @@ struct PipelineBuilderImpl {
     struct Program* programs[100];
     struct Program* cur_program;
     int n_programs;
-
-    struct StorageBlock storage[100];
-    int n_storages;
 
     struct UniformBlock uniforms[100];
     struct UniformBlock* cur_uniform;
@@ -193,12 +179,12 @@ static struct PipelineBuilder* storage_add(
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
 
-    struct StorageBlock block = {
+    struct UniformBlock block = {
         .id = -1,
         .name = name,
         .binding = binding,
     };
-    p->storage[p->n_storages++] = block;
+    p->uniforms[p->n_uniforms++] = block;
     return p1;
 }
 
@@ -346,15 +332,6 @@ static int buffer_assign(struct Pipeline* p1, int id, int buffer_id) {
     return logical_id;
 }
 
-static void storage_assign(struct Pipeline* p1, int storage_id, int buffer_id) {
-    struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    assert(storage_id < p->n_storages);
-    p->storage[storage_id].id = buffer_id;
-    memcpy(&p->storage[storage_id].base,
-           p->b->get(p->b, buffer_id),
-           sizeof(p->storage[storage_id].base));
-}
-
 static void uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id)
 {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
@@ -440,10 +417,10 @@ void buffer_copy(struct Pipeline* p1, int dst, int src) {
 
 static void storage_swap(struct Pipeline* p1, int dst, int src) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    assert(dst < p->n_storages);
-    assert(src < p->n_storages);
-    struct StorageBlock* src_buf = &p->storage[src];
-    struct StorageBlock* dst_buf = &p->storage[dst];
+    assert(dst < p->n_uniforms);
+    assert(src < p->n_uniforms);
+    struct UniformBlock* src_buf = &p->uniforms[src];
+    struct UniformBlock* dst_buf = &p->uniforms[dst];
 
     int t = src_buf->binding;
     src_buf->binding = dst_buf->binding;
@@ -501,17 +478,10 @@ static void start_compute(struct Pipeline* p1, int sx, int sy, int sz) {
 
     prog_use(p->programs[0]);
 
-    assert(p->n_storages > 0);
-    for (i = 0; i < p->n_storages; i++) {
-        glBindBufferBase(
-            GL_SHADER_STORAGE_BUFFER,
-            p->storage[i].binding,
-            p->storage[i].base.buffer);
-    }
-
+    assert(p->n_uniforms > 0);
     for (i = 0; i < p->n_uniforms; i++) {
         glBindBufferBase(
-            GL_UNIFORM_BUFFER,
+            p->uniforms[i].base.type,
             p->uniforms[i].binding,
             p->uniforms[i].base.buffer);
     }
@@ -591,7 +561,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct PipelineImpl* pl = calloc(1, sizeof(*pl));
     struct Pipeline base = {
         .free = pipeline_free,
-        .storage_assign = storage_assign,
+        .storage_assign = uniform_assign,
         .uniform_assign = uniform_assign,
         .uniform_update = uniform_update,
         .buffer_assign = buffer_assign,
@@ -608,10 +578,6 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     pl->n_programs = p->n_programs;
     pl->programs = malloc(pl->n_programs*sizeof(struct Program*));
     memcpy(pl->programs, p->programs, pl->n_programs*sizeof(struct Program*));
-
-    pl->n_storages = p->n_storages;
-    pl->storage = malloc(pl->n_storages*sizeof(struct StorageBlock));
-    memcpy(pl->storage, p->storage, pl->n_storages*sizeof(struct StorageBlock));
 
     pl->n_uniforms = p->n_uniforms;
     pl->uniforms = malloc(pl->n_uniforms*sizeof(struct UniformBlock));
