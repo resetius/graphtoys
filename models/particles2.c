@@ -41,6 +41,8 @@ struct Particles {
     float z;
     quat q;
     double ax, ay, az;
+
+    int dirty;
 };
 
 // TODO: copy-paste
@@ -76,6 +78,7 @@ static void transform(struct Particles* t) {
     quat_mul(t->q, t->q, qz);
 
     t->ax = t->ay = t->az = 0;
+    t->dirty = 4;
 }
 
 static void move_left(struct Object* obj, int mods) {
@@ -108,6 +111,7 @@ static void move_down(struct Object* obj, int mods) {
 
 static void zoom_in(struct Object* obj, int mods) {
     struct Particles* t = (struct Particles*)obj;
+    t->dirty = 4;
     if (mods & 1) {
         t->z /= 2;
         printf("%f\n", t->z);
@@ -119,6 +123,7 @@ static void zoom_in(struct Object* obj, int mods) {
 
 static void zoom_out(struct Object* obj, int mods) {
     struct Particles* t = (struct Particles*)obj;
+    t->dirty = 4;
     if (mods & 1) {
         t->z *= 2;
         printf("%f\n", t->z);
@@ -164,11 +169,13 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     t->pl->start(t->pl);
 
-    struct UniformBlock block;
-    memcpy(block.mvp, mvp, sizeof(mvp));
-    block.particles = t->particles;
-
-    t->b->update(t->b, t->uniform, &block, 0, sizeof(block));
+    if (t->dirty) {
+        struct UniformBlock block;
+        block.particles = t->particles;
+        memcpy(block.mvp, mvp, sizeof(mvp));
+        buffer_update(t->b, t->uniform, &block, 0, sizeof(block));
+        t->dirty--;
+    }
 
     t->pl->draw(t->pl, t->indices_vao);
 
@@ -398,6 +405,7 @@ struct Object* CreateParticles2(struct Render* r, struct Config* cfg) {
 */
     size = t->particles*4*sizeof(float);
 
+    t->dirty = 4;
     t->indices = t->b->create(t->b, BUFFER_ARRAY, MEMORY_STATIC, indices, t->particles*sizeof(int));
 
     t->uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
