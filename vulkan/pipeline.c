@@ -721,6 +721,9 @@ static void pipeline_free(struct Pipeline* p1) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     struct RenderImpl* r = p->r;
     int i;
+
+    vkDeviceWaitIdle(r->log_dev);
+
     for (i = 0; i < p->n_uniforms; i++) {
         p->b->destroy(p->b, p->uniforms[i].base.base.id);
     }
@@ -864,6 +867,8 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
 
     VkPipelineColorBlendStateCreateInfo cbCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        .logicOpEnable = VK_FALSE,
+        .logicOp = VK_LOGIC_OP_COPY,
         .attachmentCount = 1,
         .pAttachments = &cbAttach
     };

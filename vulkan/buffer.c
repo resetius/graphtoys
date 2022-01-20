@@ -70,7 +70,7 @@ static int create(
             create_buffer(
                 r->phy_dev, r->log_dev,
                 size,
-                vk_type,
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT|vk_type,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 &buf->buffer[i],
                 &buf->memory[i]);

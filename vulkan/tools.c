@@ -287,6 +287,8 @@ void transition_image_layout(
         );
 
     endSingleTimeCommands(logicalDevice, g_queue, commandBuffer, commandPool);
+
+    vkDestroyCommandPool(logicalDevice, commandPool, NULL);
 }
 
 
@@ -331,4 +333,6 @@ void copy_buffer_to_image(
 
 
     endSingleTimeCommands(logicalDevice, g_queue, commandBuffer, commandPool);
+
+     vkDestroyCommandPool(logicalDevice, commandPool, NULL);
 }
