@@ -78,9 +78,44 @@ static VkExtent2D choose_extent(const VkSurfaceCapabilitiesKHR* caps) {
 	}
 }
 
+static VkFormat find_supported_format(
+    struct RenderImpl* r,
+    VkFormat* candidates, int n_candidates,
+    VkImageTiling tiling,
+    VkFormatFeatureFlags features)
+{
+    int i;
+    for (i = 0; i < n_candidates; i++) {
+        VkFormat format = candidates[i];
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(r->phy_dev, format, &props);
+
+        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+            return format;
+        } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+            return format;
+        }
+    }
+
+
+    fprintf(stderr, "failed to find supported format!");
+    exit(-1);
+}
+
 void sc_init(struct SwapChain* sc, struct RenderImpl* r) {
     //sc->depth_format = VK_FORMAT_D24_UNORM_S8_UINT; // TODO: detect format
-    sc->depth_format = VK_FORMAT_D32_SFLOAT;
+    VkFormat formats [] = {
+        VK_FORMAT_D32_SFLOAT,
+        VK_FORMAT_D32_SFLOAT_S8_UINT,
+        VK_FORMAT_D24_UNORM_S8_UINT
+    };
+
+    sc->depth_format = find_supported_format(
+        r, formats,
+        sizeof(formats)/sizeof(VkFormat),
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
     VkSurfaceFormatKHR surfaceFormat = choose_format(r->formats, r->n_formats);
 
     VkPresentModeKHR presentMode = choose_mode(
