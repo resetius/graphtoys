@@ -92,7 +92,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     //printf("%d %d %d\n", key, action, mods);
 }
 
-typedef struct Object* (*ConstructorT)(struct Render*);
+typedef struct Object* (*ConstructorT)(struct Render*, struct Config* cfg);
 
 struct ObjectAndConstructor {
     const char* name;
@@ -139,6 +139,7 @@ int main(int argc, char** argv)
     };
     int i, j;
     ConstructorT constr = CreateTorus;
+    const char* name = "torus";
     memset(&app, 0, sizeof(app));
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--help")) {
@@ -150,6 +151,7 @@ int main(int argc, char** argv)
             for (j = 0; constructors[j].name; j++) {
                 if (!strcmp(constructors[j].name, argv[i])) {
                     constr = constructors[j].constructor;
+                    name = constructors[j].name;
                     break;
                 }
             }
@@ -204,7 +206,7 @@ int main(int argc, char** argv)
         ovec_add(&app.objs, CreateTriangle(render));
         ovec_add(&app.objs, CreateTorus(render));
     } else {
-        ovec_add(&app.objs, constr(render));
+        ovec_add(&app.objs, constr(render, cfg_section(cfg, name)));
     }
 
 

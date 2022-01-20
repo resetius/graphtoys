@@ -257,6 +257,14 @@ noresult:
 }
 
 const char* cfg_gets_def(struct Config* root, const char* name, const char* def) {
-    const char* r = cfg_gets(root, name);
+    const char* r = root ? cfg_gets(root, name) : NULL;
     return r ? r : def;
+}
+
+long cfg_geti_def(struct Config* root, const char* name, long def) {
+    if (!root) {
+        return def;
+    }
+    long r = cfg_geti(root, name);
+    return r == LONG_MIN ? def : r;
 }

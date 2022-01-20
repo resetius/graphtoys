@@ -6,6 +6,7 @@
 #include <render/pipeline.h>
 
 #include <lib/linmath.h>
+#include <lib/config.h>
 
 #include <models/particles2.vert.h>
 #include <models/particles2.frag.h>
@@ -41,10 +42,6 @@ struct Particles {
     quat q;
     double ax, ay, az;
 };
-
-static int max(int a, int b) {
-    return a>b?a:b;
-}
 
 // TODO: copy-paste
 static void transform(struct Particles* t) {
@@ -194,7 +191,7 @@ struct body
     char name[100];
 };
 
-struct Object* CreateParticles2(struct Render* r) {
+struct Object* CreateParticles2(struct Render* r, struct Config* cfg) {
     struct Particles* t = calloc(1, sizeof(struct Particles));
     struct Object base = {
         .move_left = move_left,
@@ -249,7 +246,9 @@ struct Object* CreateParticles2(struct Render* r) {
         ->build(pl);
 
     //int n_x = 16, n_y = 16, n_z = 16;
-    int n_x = 23, n_y = 23, n_z = 23;
+    int n_x = cfg_geti_def(cfg, "nx", 23);
+    int n_y = cfg_geti_def(cfg, "ny", 23);
+    int n_z = cfg_geti_def(cfg, "nz", 23);
     int n_particles = n_x*n_y*n_z;
     int size = n_particles*4*sizeof(float);
     float* coords = malloc(size);
@@ -268,48 +267,98 @@ struct Object* CreateParticles2(struct Render* r) {
     srand(time(NULL));
 
     const double G = 2.92e-6;
-/*
-    struct body body[] = {
-        {{0, 0, 0}, {0, 0, 0}, 10000, 1, "Sun"},
-        {{0, 1, 0}, {-1, 0, 0}, 1, 0, "Earth"},
-    };
-    const int nbodies = 2;
-*/
-    struct body body[] = {
-        {{0, 0, 0}, {0, 0, 0}, 333333, 1, "Sun"},
-        {{0, 0.39, 0}, {1.58, 0, 0}, 0.038, 0, "Mercury"},
-        {{0, 0.72, 0}, {1.17, 0, 0}, 0.82, 0, "Venus"},
-        {{0, 1, 0}, {1, 0, 0}, 1, 0, "Earth"},
-        {{0, 1.00256, 0}, {1.03, 0, 0}, 0.012, 0, "Moon"},
-        {{0, 1.51, 0}, {0.8, 0, 0}, 0.1, 0, "Mars"},
-        {{0, 5.2, 0}, {0.43, 0, 0}, 317, 0, "Jupiter"},
-        {{0, 9.3, 0}, {0.32, 0, 0}, 95, 0, "Saturn"},
-        {{0, 19.3, 0}, {0.23, 0, 0}, 14.5, 0, "Uranus"},
-        {{0, 30, 0}, {0.18, 0, 0}, 16.7, 0, "Neptune"}};
+    const char* name = cfg_gets_def(cfg, "name", "solar");
 
-    const int nbodies = 10;
+    if (!strcmp(name, "sunearth")) {
 
-/*
-    for (i = 0; i < nbodies; i++) {
-        coords[n] = body[i].x[0];
-        coords[n+1] = body[i].x[1];
-        coords[n+2] = body[i].x[2];
-        coords[n+3] = G * body[i].mass;
+        struct body body[] = {
+            {{0, 0, 0}, {0, 0, 0}, 10000, 1, "Sun"},
+            {{0, 1, 0}, {-1, 0, 0}, 1, 0, "Earth"},
+        };
+        const int nbodies = 2;
 
-        vels[n] = body[i].v[0];
-        vels[n+1] = body[i].v[1];
-        vels[n+2] = body[i].v[2];
-        vels[n+3] = 0;
+        for (i = 0; i < nbodies; i++) {
+            coords[n] = body[i].x[0];
+            coords[n+1] = body[i].x[1];
+            coords[n+2] = body[i].x[2];
+            coords[n+3] = G * body[i].mass;
 
-        n += 4;
-    }
-*/
-    for (i = 0; i < n_x; i++) {
-        for (j = 0; j < n_y; j++) {
-            for (k = 0; k < n_z; k++) {
-                coords[n] = dx * i - side/2 + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
-                coords[n+1] = dy * j - side/2 + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
-                coords[n+2] = dz * k - side/2 + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
+            vels[n] = body[i].v[0];
+            vels[n+1] = body[i].v[1];
+            vels[n+2] = body[i].v[2];
+            vels[n+3] = 0;
+
+            n += 4;
+        }
+    } else if (!strcmp(name, "solar")) {
+
+        struct body body[] = {
+            {{0, 0, 0}, {0, 0, 0}, 333333, 1, "Sun"},
+            {{0, 0.39, 0}, {1.58, 0, 0}, 0.038, 0, "Mercury"},
+            {{0, 0.72, 0}, {1.17, 0, 0}, 0.82, 0, "Venus"},
+            {{0, 1, 0}, {1, 0, 0}, 1, 0, "Earth"},
+            {{0, 1.00256, 0}, {1.03, 0, 0}, 0.012, 0, "Moon"},
+            {{0, 1.51, 0}, {0.8, 0, 0}, 0.1, 0, "Mars"},
+            {{0, 5.2, 0}, {0.43, 0, 0}, 317, 0, "Jupiter"},
+            {{0, 9.3, 0}, {0.32, 0, 0}, 95, 0, "Saturn"},
+            {{0, 19.3, 0}, {0.23, 0, 0}, 14.5, 0, "Uranus"},
+            {{0, 30, 0}, {0.18, 0, 0}, 16.7, 0, "Neptune"}};
+
+        const int nbodies = 10;
+
+        for (i = 0; i < nbodies; i++) {
+            coords[n] = body[i].x[0];
+            coords[n+1] = body[i].x[1];
+            coords[n+2] = body[i].x[2];
+            coords[n+3] = G * body[i].mass;
+
+            vels[n] = body[i].v[0];
+            vels[n+1] = body[i].v[1];
+            vels[n+2] = body[i].v[2];
+            vels[n+3] = 0;
+
+            n += 4;
+        }
+    } else if (!strcmp(name, "cube")) {
+
+        for (i = 0; i < n_x; i++) {
+            for (j = 0; j < n_y; j++) {
+                for (k = 0; k < n_z; k++) {
+                    coords[n] = dx * i - side/2 + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
+                    coords[n+1] = dy * j - side/2 + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
+                    coords[n+2] = dz * k - side/2 + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
+                    coords[n+3] = 0.2 + 1.5*(double)rand() / (double)RAND_MAX;
+
+                    double R =
+                        coords[n]*coords[n]+
+                        coords[n+1]*coords[n+1]+
+                        coords[n+2]*coords[n+2];
+                    R = sqrt(R);
+                    double V = sqrt(1000)/sqrt(R); // sqrt(100/R);
+
+                    vels[n] = V*coords[n+1];
+                    vels[n+1] = -V*coords[n];
+                    vels[n+2] = 0;
+
+                    //vels[n] = rand() / (double) RAND_MAX;
+                    //vels[n+1] = rand() / (double) RAND_MAX;
+                    //vels[n+2] = rand() / (double) RAND_MAX;
+                    vels[n+3] = 0;
+                    n += 4;
+                }
+            }
+        }
+    } else { // sphere
+
+        while (n < 4*n_x*n_y*n_z) {
+            double x = 2*side*(double)rand() / RAND_MAX - side;
+            double y = 2*side*(double)rand() / RAND_MAX - side;
+            double z = 2*side*(double)rand() / RAND_MAX - side;
+
+            if (x*x+y*y+z*z<side*side) {
+                coords[n] = x;
+                coords[n+1] = y;
+                coords[n+2] = z;
                 coords[n+3] = 0.2 + 1.5*(double)rand() / (double)RAND_MAX;
 
                 double R =
@@ -317,19 +366,19 @@ struct Object* CreateParticles2(struct Render* r) {
                     coords[n+1]*coords[n+1]+
                     coords[n+2]*coords[n+2];
                 R = sqrt(R);
-                double V = sqrt(1000)/sqrt(R); // sqrt(100/R);
+                double V = sqrt(200)/sqrt(R); // sqrt(100/R);
 
                 vels[n] = V*coords[n+1];
                 vels[n+1] = -V*coords[n];
                 vels[n+2] = 0;
 
-                //vels[n] = rand() / (double) RAND_MAX;
-                //vels[n+1] = rand() / (double) RAND_MAX;
-                //vels[n+2] = rand() / (double) RAND_MAX;
                 vels[n+3] = 0;
+                n += 4;
+
                 n += 4;
             }
         }
+
     }
 
     t->z = 1.0f;
