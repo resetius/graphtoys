@@ -268,3 +268,12 @@ long cfg_geti_def(struct Config* root, const char* name, long def) {
     long r = cfg_geti(root, name);
     return r == LONG_MIN ? def : r;
 }
+
+double cfg_getf_def(struct Config* root, const char* name, double def) {
+    char buf[1024];
+    snprintf(buf, sizeof(buf), "%.16le", def);
+    const char* str = cfg_gets_def(root, name, buf);
+    double ret;
+    sscanf(str, "%lf", &ret);
+    return ret;
+}
