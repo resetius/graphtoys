@@ -1,13 +1,14 @@
 .PHONY: All
 .DEFAULT_GOAL := All
 
-# vulkan sdk
-# https://vulkan.lunarg.com/sdk/home
+# for macos install vulkan sdk: https://vulkan.lunarg.com/sdk/home
+# for linux and windows (mingw) use package manager and install headers and glslc
 CC=gcc
 UNAME_S := $(shell uname -s)
 PLATFORM=$(UNAME_S)
 CFLAGS?=-g -O2 -Wall
 # Ubuntu: apt-get install shaderc
+# Mingw: pacman -S mingw-w64-x86_64-spirv-tools mingw-w64-x86_64-vulkan-headers
 GLSLC=glslc
 CFLAGS += -I. $(shell pkg-config --cflags glfw3,freetype2)
 
@@ -16,20 +17,6 @@ LDFLAGS+=$(shell pkg-config --static --libs glfw3,freetype2)
 ifeq ($(UNAME_S),Darwin)
     LDFLAGS+=-framework OpenGl
     CFLAGS += -DGL_SILENCE_DEPRECATION
-endif
-
-ifneq (,$(findstring MINGW,$(UNAME_S)))
-    VULKAN_SDK=c:/VulkanSDK/1.2.198.1
-    VULKAN_INCLUDE?=$(VULKAN_SDK)/include
-    VULKAN_LIB?=$(VULKAN_SDK)/lib
-    VULKAN_BIN?=$(VULKAN_SDK)/bin
-    GLSLC=$(VULKAN_BIN)/glslc
-
-    LDFLAGS+=-L$(VULKAN_LIB)
-
-    CFLAGS += -I$(VULKAN_INCLUDE)
-
-    VULKAN_LOADER=-lvulkan-1
 endif
 
 LDFLAGS+=$(VULKAN_LOADER)
