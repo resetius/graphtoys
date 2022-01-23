@@ -1,0 +1,48 @@
+#define VK_NO_PROTOTYPES
+#include <vulkan/vulkan.h>
+
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
+#include <assert.h>
+
+#define DECL_FUNC(name) \
+    PFN_##name name;
+
+#define L0_FUNC(name) DECL_FUNC(name)
+#define L1_FUNC(name) DECL_FUNC(name)
+#define L2_FUNC(name) DECL_FUNC(name)
+
+#include "symbols.h"
+
+#undef DECL_FUNC
+#undef L0_FUNC
+#undef L1_FUNC
+#undef L2_FUNC
+
+void vk_load_global() {
+#define L0_FUNC(name) \
+    assert((name = (PFN_##name)glfwGetInstanceProcAddress(NULL, #name)));
+
+#include "symbols.h"
+
+#undef L0_FUNC
+}
+
+void vk_load_instance(VkInstance instance) {
+#define L1_FUNC(name) \
+    assert((name = (PFN_##name)glfwGetInstanceProcAddress(instance, #name)));
+
+#include "symbols.h"
+
+#undef L1_FUNC
+}
+
+void vk_load_device(VkDevice device) {
+#define L2_FUNC(name) \
+    assert((name = (PFN_##name)vkGetDeviceProcAddr(device, #name)));
+
+#include "symbols.h"
+
+#undef L2_FUNC
+}

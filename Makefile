@@ -10,15 +10,12 @@ CFLAGS += -I. $(shell pkg-config --cflags glfw3,freetype2)
 
 LDFLAGS+=$(shell pkg-config --static --libs glfw3,freetype2)
 
-VULKAN_LOADER=-lvulkan
-
 ifeq ($(UNAME_S),Darwin)
     VULKAN_INCLUDE?=$(HOME)/VulkanSDK/1.2.198.1/macOS/include
     VULKAN_LIB?=$(HOME)/VulkanSDK/1.2.198.1/macOS/lib
     VULKAN_BIN?=$(HOME)/VulkanSDK/1.2.198.1/macOS/bin
 
     LDFLAGS+=-framework OpenGl
-    LDFLAGS+=-L$(VULKAN_LIB)
 
     CFLAGS += -I$(VULKAN_INCLUDE)
     CFLAGS += -DGL_SILENCE_DEPRECATION
@@ -58,6 +55,7 @@ SOURCES=main.c\
 	render/pipeline.c\
 	render/program.c\
 	render/render.c\
+	vulkan/loader.c\
 	vulkan/buffer.c\
 	vulkan/char.c\
 	vulkan/drawcommandbuffer.c\
