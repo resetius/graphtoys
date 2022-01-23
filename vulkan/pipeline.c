@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include <vulkan/vulkan.h>
 
 #include <render/pipeline.h>
 #include <render/render.h>

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "vk.h"
+
 void create_buffer(
     VkPhysicalDevice physicalDevice,
     VkDevice logicalDevice,

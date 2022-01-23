@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include "vk.h"
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 

@@ -2,7 +2,7 @@
 
 #include <render/buffer.h>
 
-#include <vulkan/vulkan.h>
+#include "vk.h"
 
 struct BufferImpl {
     struct BufferBase base;

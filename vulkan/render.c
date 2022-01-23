@@ -3,7 +3,7 @@
 #include <string.h>
 #include <math.h>
 
-#include <vulkan/vulkan.h>
+#include "vk.h"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -15,6 +15,9 @@
 #include "render_impl.h"
 
 struct BufferManager* buf_mgr_vulkan_new(struct Render* r);
+void vk_load_global();
+void vk_load_instance(VkInstance instance);
+void vk_load_device(VkDevice device);
 
 static void free_(struct Render* r1) {
     int i;
@@ -277,6 +280,8 @@ static void init_(struct Render* r1) {
         exit(-1);
     }
 
+    vk_load_device(r->log_dev);
+
     vkGetDeviceQueue(r->log_dev, r->graphics_family, 0, &r->g_queue);
     vkGetDeviceQueue(r->log_dev, r->present_family, 0, &r->p_queue);
 
@@ -378,6 +383,9 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg) {
 
     uint32_t allExtCount = 0;
     VkExtensionProperties* exts;
+
+    vk_load_global();
+
     vkEnumerateInstanceExtensionProperties(NULL, &allExtCount, NULL);
     exts = malloc(allExtCount*sizeof(VkExtensionProperties));
     vkEnumerateInstanceExtensionProperties(NULL, &allExtCount, exts);
@@ -429,6 +437,8 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg) {
         exit(-1);
     }
     free(extensionNames);
+
+    vk_load_instance(r->instance);
 
     return (struct Render*)r;
 }

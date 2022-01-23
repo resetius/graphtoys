@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include <vulkan/vulkan.h>
-
 #include "tools.h"
 
 static uint32_t findMemoryTypeIndex(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
