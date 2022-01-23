@@ -1,6 +1,8 @@
 .PHONY: All
 .DEFAULT_GOAL := All
 
+# vulkan sdk
+# https://vulkan.lunarg.com/sdk/home
 CC=gcc
 UNAME_S := $(shell uname -s)
 PLATFORM=$(UNAME_S)
@@ -12,16 +14,8 @@ CFLAGS += -I. $(shell pkg-config --cflags glfw3,freetype2)
 LDFLAGS+=$(shell pkg-config --static --libs glfw3,freetype2)
 
 ifeq ($(UNAME_S),Darwin)
-    VULKAN_INCLUDE?=$(HOME)/VulkanSDK/1.2.198.1/macOS/include
-    VULKAN_LIB?=$(HOME)/VulkanSDK/1.2.198.1/macOS/lib
-    VULKAN_BIN?=$(HOME)/VulkanSDK/1.2.198.1/macOS/bin
-
     LDFLAGS+=-framework OpenGl
-
-    CFLAGS += -I$(VULKAN_INCLUDE)
     CFLAGS += -DGL_SILENCE_DEPRECATION
-
-    GLSLC=$(VULKAN_BIN)/glslc
 endif
 
 ifneq (,$(findstring MINGW,$(UNAME_S)))
