@@ -24,7 +24,7 @@ static int create(
 {
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
     struct RenderImpl* r = b->r;
-    struct BufferImpl* buf = (struct BufferImpl*)buffer_acquire_(&b->base);
+    struct BufferImpl* buf = (struct BufferImpl*)buffer_acquire_(&b->base, size);
     int i;
 
     buf->size = size;

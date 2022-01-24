@@ -76,6 +76,7 @@ inline void buffer_update(
 struct BufferBase {
     int id;
     int valid;
+    int size;
 };
 
 struct BufferManagerBase {
@@ -85,9 +86,10 @@ struct BufferManagerBase {
     char* buffers;
     int n_buffers;
     int cap;
+    int64_t total_memory;
 };
 
-struct BufferBase* buffer_acquire_(struct BufferManagerBase* mgr);
+struct BufferBase* buffer_acquire_(struct BufferManagerBase* mgr, int size);
 void buffer_release_(struct BufferManager* mgr, int id);
 void* buffer_get_(struct BufferManager* mgr, int id);
 void buffer_mgr_free_(struct BufferManager* mgr);

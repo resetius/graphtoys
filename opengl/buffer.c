@@ -60,7 +60,7 @@ static int create(
     int size)
 {
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
-    struct BufferImpl* buf = (struct BufferImpl*)buffer_acquire_(&b->base);
+    struct BufferImpl* buf = (struct BufferImpl*)buffer_acquire_(&b->base, size);
     int btype = buffer_type(type);
     int mtype = memory_type(mem_type);
     buf->type = btype;
