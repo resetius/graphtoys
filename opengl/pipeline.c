@@ -71,6 +71,8 @@ struct PipelineImpl {
     enum GeometryType geometry;
 
     struct BufferManager* b; // TODO: remove me
+    int enable_cull;
+    GLenum cull_mode;
 };
 
 struct PipelineBuilderImpl {
@@ -100,6 +102,8 @@ struct PipelineBuilderImpl {
     enum GeometryType geometry;
 
     struct BufferManager* b; // TODO: remove me
+    int enable_cull;
+    GLenum cull_mode;
 };
 
 static int is_integer(enum DataType data_type) {
@@ -464,6 +468,10 @@ static void before(struct PipelineImpl* p) {
     if (p->geometry == GEOM_POINTS) {
         glEnable(GL_PROGRAM_POINT_SIZE);
     }
+    if (p->enable_cull) {
+        glEnable(GL_CULL_FACE);
+        glCullFace(p->cull_mode);
+    }
 }
 
 static void after(struct PipelineImpl* p) {
@@ -475,6 +483,9 @@ static void after(struct PipelineImpl* p) {
     }
     if (p->geometry == GEOM_POINTS) {
         glDisable(GL_PROGRAM_POINT_SIZE);
+    }
+    if (p->enable_cull) {
+        glDisable(GL_CULL_FACE);
     }
 }
 
@@ -545,6 +556,27 @@ static struct PipelineBuilder* enable_depth(struct PipelineBuilder* p1) {
 static struct PipelineBuilder* enable_blend(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     p->enable_blend = 1;
+    return p1;
+}
+
+struct PipelineBuilder* enable_cull(struct PipelineBuilder* p1, enum CullType cull) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    switch (cull) {
+    case CULL_FRONT:
+        p->enable_cull = 1;
+        p->cull_mode = GL_FRONT;
+        break;
+    case CULL_BACK:
+        p->enable_cull = 1;
+        p->cull_mode = GL_BACK;
+        break;
+    case CULL_BOTH:
+        p->enable_cull = 1;
+        p->cull_mode = GL_FRONT_AND_BACK;
+        break;
+    default:
+        assert(0);
+    }
     return p1;
 }
 
@@ -622,6 +654,9 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     pl->geometry = p->geometry;
     pl->b = p->b;
 
+    pl->enable_cull = p->enable_cull;
+    pl->cull_mode = p->cull_mode;
+
     free(p);
     return (struct Pipeline*)pl;
 }
@@ -651,6 +686,7 @@ struct PipelineBuilder* pipeline_builder_opengl(struct Render* r) {
 
         .enable_depth = enable_depth,
         .enable_blend = enable_blend,
+        .enable_cull = enable_cull,
 
         .geometry = geometry,
 

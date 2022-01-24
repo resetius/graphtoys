@@ -15,6 +15,12 @@ enum DataType {
     DATA_INT
 };
 
+enum CullType {
+    CULL_FRONT = 1,
+    CULL_BACK = 2,
+    CULL_BOTH = 3
+};
+
 struct Pipeline {
 
     void (*free)(struct Pipeline*);
@@ -121,8 +127,10 @@ struct PipelineBuilder {
 
     struct PipelineBuilder* (*enable_depth)(struct PipelineBuilder* p1);
     struct PipelineBuilder* (*enable_blend)(struct PipelineBuilder* p1);
+    struct PipelineBuilder* (*enable_cull)(struct PipelineBuilder* p1, enum CullType cull);
 
     struct PipelineBuilder* (*geometry)(struct PipelineBuilder* p1, enum GeometryType type);
 
     struct Pipeline* (*build)(struct PipelineBuilder*); // free
 };
+

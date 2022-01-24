@@ -106,6 +106,7 @@ struct PipelineBuilderImpl {
     int enable_blend;
 
     enum GeometryType geometry;
+    VkCullModeFlagBits cull_mode;
 
     struct BufferManager* b; // TODO: remove me
 };
@@ -767,6 +768,25 @@ static struct PipelineBuilder* enable_blend(struct PipelineBuilder* p1) {
     return p1;
 }
 
+static struct PipelineBuilder* enable_cull(struct PipelineBuilder* p1, enum CullType cull) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    switch (cull) {
+    case CULL_FRONT:
+        p->cull_mode = VK_CULL_MODE_FRONT_BIT;
+        break;
+    case CULL_BACK:
+        p->cull_mode = VK_CULL_MODE_BACK_BIT;
+        break;
+    case CULL_BOTH:
+        p->cull_mode = VK_CULL_MODE_FRONT_AND_BACK;
+        break;
+    default:
+        assert(0);
+        break;
+    }
+    return p1;
+}
+
 static struct PipelineBuilder* set_bmgr(struct PipelineBuilder* p1, struct BufferManager* b)
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
@@ -834,7 +854,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .rasterizerDiscardEnable = VK_FALSE,
         .polygonMode = VK_POLYGON_MODE_FILL,
         .lineWidth = 1.0f,
-        .cullMode = VK_CULL_MODE_BACK_BIT, //VK_CULL_MODE_NONE, // VK_CULL_MODE_BACK_BIT,
+        .cullMode = p->cull_mode,
         .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE, //VK_FRONT_FACE_CLOCKWISE,
         .depthBiasEnable = VK_FALSE,
         .depthBiasConstantFactor = 0.0f,
@@ -1086,6 +1106,7 @@ struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r) {
         .end_buffer = end_buffer,
         .enable_depth = enable_depth,
         .enable_blend = enable_blend,
+        .enable_cull = enable_cull,
         .begin_sampler = begin_sampler,
         .end_sampler = end_sampler,
         .geometry = set_geometry,
