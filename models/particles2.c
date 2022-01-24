@@ -381,8 +381,6 @@ struct Object* CreateParticles2(struct Render* r, struct Config* cfg) {
 
                 vels[n+3] = 0;
                 n += 4;
-
-                n += 4;
             }
         }
 
