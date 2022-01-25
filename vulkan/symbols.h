@@ -45,6 +45,7 @@ L2_FUNC(vkCreateSemaphore);
 L2_FUNC(vkCreateCommandPool);
 L2_FUNC(vkAllocateCommandBuffers);
 L2_FUNC(vkBeginCommandBuffer);
+L2_FUNC(vkResetCommandBuffer);
 L2_FUNC(vkCmdPipelineBarrier);
 L2_FUNC(vkCmdClearColorImage);
 L2_FUNC(vkEndCommandBuffer);
