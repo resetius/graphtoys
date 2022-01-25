@@ -22,7 +22,8 @@
 
 void vk_load_global() {
 #define L0_FUNC(name) \
-    assert((name = (PFN_##name)glfwGetInstanceProcAddress(NULL, #name)));
+    name = (PFN_##name)glfwGetInstanceProcAddress(NULL, #name); \
+    assert(name);
 
 #include "symbols.h"
 
@@ -31,7 +32,8 @@ void vk_load_global() {
 
 void vk_load_instance(VkInstance instance) {
 #define L1_FUNC(name) \
-    assert((name = (PFN_##name)glfwGetInstanceProcAddress(instance, #name)));
+    name = (PFN_##name)glfwGetInstanceProcAddress(instance, #name); \
+    assert(name);
 
 #include "symbols.h"
 
@@ -40,7 +42,8 @@ void vk_load_instance(VkInstance instance) {
 
 void vk_load_device(VkDevice device) {
 #define L2_FUNC(name) \
-    assert((name = (PFN_##name)vkGetDeviceProcAddr(device, #name)));
+    name = (PFN_##name)vkGetDeviceProcAddr(device, #name); \
+    assert(name)
 
 #include "symbols.h"
 
