@@ -14,6 +14,7 @@ struct RenderConfig {
     // 1 - on
     // 2 - adaptive
     int vsync;
+    int show_fps;
 };
 
 struct Render {

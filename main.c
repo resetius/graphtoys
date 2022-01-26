@@ -111,6 +111,7 @@ static void fill_render_config(struct RenderConfig* r, struct Config* cfg) {
         r->vsync = 0;
     }
     printf("vsync: %d\n", r->vsync);
+    r->show_fps = strcmp(cfg_gets_def(cfg, "render:fps", "off"), "on") == 0;
 }
 
 int main(int argc, char** argv)
@@ -125,7 +126,7 @@ int main(int argc, char** argv)
     struct RenderConfig rcfg;
     float t1, t2;
     long long frames = 0;
-    int enable_labels = 1;
+    int enable_labels = 0;
     struct ObjectAndConstructor constructors[] = {
         {"torus", CreateTorus},
         {"triangle", CreateTriangle},
@@ -168,6 +169,7 @@ int main(int argc, char** argv)
     cfg = cfg_new("main.ini", argc, argv);
     cfg_print(cfg);
     fill_render_config(&rcfg, cfg);
+    enable_labels = rcfg.show_fps;
 
     if (!strcmp(rcfg.api, "opengl")) {
         render = rend_opengl_new(rcfg);
