@@ -13,6 +13,7 @@
 #include "renderpass.h"
 #include "swapchain.h"
 #include "render_impl.h"
+#include "stats.h"
 
 struct BufferManager* buf_mgr_vulkan_new(struct Render* r);
 void vk_load_global();
@@ -26,6 +27,7 @@ static void free_(struct Render* r1) {
     rt_destroy(&r->rt);
     rp_destroy(&r->rp);
     sc_destroy(&r->sc);
+    vk_stats_free(r->stats);
 
     for (i = 0; i < r->n_infl_fences; i++) {
         vkDestroyFence(r->log_dev, r->infl_fences[i], NULL);
@@ -347,6 +349,8 @@ static void init_(struct Render* r1) {
     r->viewport = viewport;
     VkRect2D scissor = {{0, 0}, r->sc.extent};
     r->scissor = scissor;
+
+    r->stats = vk_stats_new(r);
 }
 
 static void set_viewport_(struct Render* r1, int w, int h) {

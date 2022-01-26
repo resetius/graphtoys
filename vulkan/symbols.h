@@ -22,6 +22,8 @@ L1_FUNC(vkCreateDevice);
 L1_FUNC(vkGetDeviceProcAddr);
 L1_FUNC(vkDestroyInstance);
 L1_FUNC(vkEnumerateDeviceExtensionProperties);
+L1_FUNC(vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR);
+L1_FUNC(vkGetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);
 L1_FUNC(vkGetPhysicalDeviceSurfaceCapabilitiesKHR);
 L1_FUNC(vkGetPhysicalDeviceSurfaceFormatsKHR);
 L1_FUNC(vkGetPhysicalDeviceSurfacePresentModesKHR);

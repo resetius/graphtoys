@@ -47,6 +47,7 @@ SOURCES=main.c\
 	vulkan/rendertarget.c\
 	vulkan/swapchain.c\
 	vulkan/tools.c\
+	vulkan/stats.c\
 	lib/config.c\
 	lib/object.c\
 	lib/ref.c\
