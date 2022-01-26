@@ -371,9 +371,6 @@ static struct PipelineBuilder* begin_sampler(struct PipelineBuilder*p1, int bind
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     struct RenderImpl* r = p->r;
 
-    VkPhysicalDeviceProperties properties;
-    vkGetPhysicalDeviceProperties(r->phy_dev, &properties);
-
     VkSamplerCreateInfo samplerInfo = {
         .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
         .magFilter = VK_FILTER_LINEAR,
@@ -382,7 +379,7 @@ static struct PipelineBuilder* begin_sampler(struct PipelineBuilder*p1, int bind
         .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
         .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
         .anisotropyEnable = VK_FALSE,
-        .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
+        .maxAnisotropy = r->properties.limits.maxSamplerAnisotropy,
         .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
         .unnormalizedCoordinates = VK_FALSE,
         .compareEnable = VK_FALSE,

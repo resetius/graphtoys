@@ -43,6 +43,10 @@ struct RenderImpl {
     // GLFW specific
     GLFWwindow* window;
 
+    // gpu
+    VkPhysicalDeviceFeatures features;
+    VkPhysicalDeviceMemoryProperties memory_properties;
+    VkPhysicalDeviceProperties properties;
     //
 
     struct SwapChain sc;

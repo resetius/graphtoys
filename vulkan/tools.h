@@ -3,7 +3,7 @@
 #include "vk.h"
 
 void create_buffer(
-    VkPhysicalDevice physicalDevice,
+    VkPhysicalDeviceMemoryProperties props,
     VkDevice logicalDevice,
     VkDeviceSize size,
     VkBufferUsageFlags usage,
@@ -21,7 +21,7 @@ void copy_buffer(
 
 
 void create_image(
-    VkPhysicalDevice physicalDevice,
+    VkPhysicalDeviceMemoryProperties props,
     VkDevice device,
     uint32_t width,
     uint32_t height,

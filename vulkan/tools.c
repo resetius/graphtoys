@@ -4,15 +4,11 @@
 
 #include "tools.h"
 
-static uint32_t findMemoryTypeIndex(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+static uint32_t findMemoryTypeIndex(VkPhysicalDeviceMemoryProperties* props, uint32_t typeFilter, VkMemoryPropertyFlags flags)
 {
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+    for (uint32_t i = 0; i < props->memoryTypeCount; i++) {
         if ((typeFilter & (1 << i)) &&
-            (memProperties.memoryTypes[i].propertyFlags &
-             properties)
-            == properties)
+            (props->memoryTypes[i].propertyFlags & flags) == flags)
         {
             return i;
         }
@@ -24,7 +20,7 @@ static uint32_t findMemoryTypeIndex(VkPhysicalDevice physicalDevice, uint32_t ty
 }
 
 void create_buffer(
-    VkPhysicalDevice physicalDevice,
+    VkPhysicalDeviceMemoryProperties props,
     VkDevice logicalDevice,
     VkDeviceSize size,
     VkBufferUsageFlags usage,
@@ -52,7 +48,7 @@ void create_buffer(
     VkMemoryAllocateInfo allocInfo = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
         .allocationSize = memrequirements.size,
-        .memoryTypeIndex = findMemoryTypeIndex(physicalDevice, memrequirements.memoryTypeBits, properties)
+        .memoryTypeIndex = findMemoryTypeIndex(&props, memrequirements.memoryTypeBits, properties)
     };
 
     if (vkAllocateMemory(logicalDevice, &allocInfo, NULL, bufferMemory) != VK_SUCCESS) {
@@ -140,7 +136,7 @@ void copy_buffer(
 
 
 void create_image(
-    VkPhysicalDevice physicalDevice,
+    VkPhysicalDeviceMemoryProperties props,
     VkDevice device,
     uint32_t width,
     uint32_t height,
@@ -179,7 +175,7 @@ void create_image(
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
         .allocationSize = memRequirements.size,
         .memoryTypeIndex = findMemoryTypeIndex(
-            physicalDevice, memRequirements.memoryTypeBits, properties)
+            &props, memRequirements.memoryTypeBits, properties)
     };
 
     if (vkAllocateMemory(device, &allocInfo, NULL, imageMemory) != VK_SUCCESS) {

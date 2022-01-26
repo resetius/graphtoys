@@ -59,7 +59,7 @@ struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm) {
     }
 
     create_buffer(
-        r->phy_dev, r->log_dev,
+        r->memory_properties, r->log_dev,
         imageSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -77,7 +77,7 @@ struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm) {
     vkUnmapMemory(r->log_dev, stagingBufferMemory);
 
     create_image(
-        r->phy_dev, r->log_dev,
+        r->memory_properties, r->log_dev,
         bitmap.width,
         bitmap.rows,
         VK_FORMAT_R8_UNORM,

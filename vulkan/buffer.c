@@ -46,7 +46,7 @@ static int create(
 
     for (i = 0; i < buf->n_buffers; i++) {
         create_buffer(
-            r->phy_dev, r->log_dev,
+            r->memory_properties, r->log_dev,
             buf->size,
             vk_type,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -68,7 +68,7 @@ static int create(
             buf->memory[i] = stagingBufferMemory;
         } else {
             create_buffer(
-                r->phy_dev, r->log_dev,
+                r->memory_properties, r->log_dev,
                 size,
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT|vk_type,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,

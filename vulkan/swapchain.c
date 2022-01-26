@@ -183,7 +183,7 @@ void sc_init(struct SwapChain* sc, struct RenderImpl* r) {
 
 
     create_image(
-        r->phy_dev,
+        r->memory_properties,
         r->log_dev,
         sc->extent.width,
         sc->extent.height,

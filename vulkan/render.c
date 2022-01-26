@@ -216,13 +216,15 @@ static void init_(struct Render* r1) {
 
     printf("Devices:\n");
     for (i = 0; i < deviceCount; i++) {
-        VkPhysicalDeviceProperties props;
-        vkGetPhysicalDeviceProperties(devices[i], &props);
-        printf("Name: '%s'\n", props.deviceName);
+        vkGetPhysicalDeviceProperties(devices[i], &r->properties);
+        printf("Name: '%s'\n", r->properties.deviceName);
         // TODO: check device
         r->phy_dev = devices[i];
         break;
     }
+
+    vkGetPhysicalDeviceFeatures(r->phy_dev, &r->features);
+	vkGetPhysicalDeviceMemoryProperties(r->phy_dev, &r->memory_properties);
 
     find_queue_families(r);
     printf("graphics_family: %d, present_family: %d\n",
@@ -400,8 +402,7 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg) {
     for (i = 0; i < extensionCount; i++) {
         extensionNames[i] = glfwExtensionNames[i];
     }
-    extensionNames[i++] = "VK_KHR_get_physical_device_properties2"; // mac?
-    //extensionNames[i++] = "VK_KHR_Maintenance1"; // flip viewport, see https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport/
+    extensionNames[i++] = "VK_KHR_get_physical_device_properties2";
     extensionCount = i;
     VkApplicationInfo appInfo = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
