@@ -8,7 +8,7 @@ UNAME_S := $(shell uname -s)
 PLATFORM=$(UNAME_S)
 CFLAGS?=-g -O2 -Wall
 # Ubuntu: apt-get install shaderc
-# Mingw: pacman -S mingw-w64-x86_64-spirv-tools mingw-w64-x86_64-vulkan-headers
+# Mingw: pacman -S mingw-w64-x86_64-shaderc mingw-w64-x86_64-spirv-tools mingw-w64-x86_64-vulkan-headers
 GLSLC=glslc
 CFLAGS += -I. $(shell pkg-config --cflags glfw3,freetype2)
 
