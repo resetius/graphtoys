@@ -181,7 +181,9 @@ int main(int argc, char** argv)
     }
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+    char caption[256];
+    snprintf(caption, sizeof(caption), "GraphToys (%s)", rcfg.api);
+    window = glfwCreateWindow(640, 480, caption, NULL, NULL);
     if (!window)
     {
         glfwTerminate();
