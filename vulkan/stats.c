@@ -13,15 +13,21 @@ struct VkStats {
 struct VkStats* vk_stats_new(struct RenderImpl* r) {
     struct VkStats* v = calloc(1, sizeof(*v));
     v->r = r;
+
+    if (!device_ext_is_enabled(&r->device, "VK_KHR_performance_query")) {
+        printf("VK_KHR_performance_query is disabled, performance counters are not available\n");
+        return v;
+    }
+
     v->has_timestamps = r->properties.limits.timestampComputeAndGraphics;
     v->timestamp_period = r->properties.limits.timestampPeriod;
     printf("has_timestamps: %d\n", v->has_timestamps);
     printf("timestamp_period: %f\n", v->timestamp_period);
 
-    //uint32_t n_counters = 0;
-    //vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(
-    //    r->phy_dev, r->graphics_family, &n_counters, 0, 0);
-    //printf("n_counters: %d\n", n_counters);
+    uint32_t n_counters = 0;
+    vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(
+        r->phy_dev, r->graphics_family, &n_counters, 0, 0);
+    printf("n_counters: %d\n", n_counters);
     return v;
 }
 

@@ -10,6 +10,7 @@
 #include "renderpass.h"
 #include "rendertarget.h"
 #include "drawcommandbuffer.h"
+#include "device.h"
 
 struct Texture {
     VkImage tex;
@@ -37,6 +38,7 @@ struct RenderImpl {
     int present_family;
     int compute_family;
     // Logical Device
+    struct Device device;
     VkDevice log_dev;
     VkQueue g_queue;
     VkQueue p_queue;

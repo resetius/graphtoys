@@ -10,6 +10,7 @@
 
 #include <render/render.h>
 
+#include "device.h"
 #include "renderpass.h"
 #include "swapchain.h"
 #include "render_impl.h"
@@ -192,9 +193,10 @@ static void init_(struct Render* r1) {
     uint32_t deviceCount = 0;
     const char* deviceExtensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        "VK_KHR_portability_subset"
+        "VK_KHR_portability_subset",
+        "VK_KHR_performance_query",
     };
-    uint32_t nDeviceExtensions = 1;
+    uint32_t nDeviceExtensions = sizeof(deviceExtensions)/sizeof(const char*);
     VkPhysicalDevice devices[100];
     VkDeviceQueueCreateInfo queueCreateInfo[2];
     uint32_t nQueueCreateInfo = 2;
@@ -241,6 +243,7 @@ static void init_(struct Render* r1) {
         queueCreateInfo[1].queueFamilyIndex = r->present_family;
     }
 
+    // TODO: hide into Device
     for (i = 0; i < nQueueCreateInfo; i++) {
         VkDeviceQueueCreateInfo info = {
             .queueFamilyIndex = queueCreateInfo[i].queueFamilyIndex,
@@ -251,38 +254,8 @@ static void init_(struct Render* r1) {
         queueCreateInfo[i] = info;
     }
 
-    uint32_t allDevExts = 0;
-    vkEnumerateDeviceExtensionProperties(r->phy_dev, NULL, &allDevExts, NULL);
-    VkExtensionProperties* exts = malloc(allDevExts*sizeof(VkExtensionProperties));
-    vkEnumerateDeviceExtensionProperties(r->phy_dev, NULL, &allDevExts, exts);
-    printf("Supported device extensions:\n");
-    for (int i = 0; i < allDevExts; i++) {
-        if (!strcmp(exts[i].extensionName, "VK_KHR_portability_subset")) {
-            nDeviceExtensions = 2; // enable it
-        }
-        printf("'%s'\n", exts[i].extensionName);
-    }
-    printf("\n");
-    free(exts);
-
-    VkPhysicalDeviceFeatures deviceFeatures = {
-        .samplerAnisotropy = VK_TRUE
-    };
-
-    VkDeviceCreateInfo createInfo = {
-        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-        .pQueueCreateInfos = queueCreateInfo,
-        .queueCreateInfoCount = nQueueCreateInfo,
-        .pEnabledFeatures = &deviceFeatures, //
-        .enabledExtensionCount = nDeviceExtensions,
-        .ppEnabledExtensionNames = deviceExtensions,
-        .enabledLayerCount = 0
-    };
-
-    if (vkCreateDevice(r->phy_dev, &createInfo, NULL, &r->log_dev) != VK_SUCCESS) {
-        fprintf(stderr, "Cannot create logical device\n");
-        exit(-1);
-    }
+    device_new(&r->device, r->phy_dev, deviceExtensions, nDeviceExtensions, queueCreateInfo, nQueueCreateInfo);
+    r->log_dev = r->device.dev; // TODO
 
     vk_load_device(r->log_dev);
 
