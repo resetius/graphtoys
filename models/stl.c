@@ -43,13 +43,16 @@ struct Stl {
     struct UniformBlock uniform;
     struct Pipeline* pl;
     struct Pipeline* plt;
+    struct BufferManager* b;
     //mat4x4 m;
     float ax, ay, az;
     vec4 light;
     quat q;
 
     int model;
+    int uniform_id;
     int dot;
+    int dot_uniform_id;
 };
 
 static struct Vertex* init (int* nvertices) {
@@ -189,7 +192,7 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_mul_vec4(t->uniform.light, v, t->light);
 
     t->pl->start(t->pl);
-    t->pl->uniform_update(t->pl, 0, &t->uniform, 0, sizeof(t->uniform));
+    buffer_update(t->b, t->uniform_id, &t->uniform, 0, sizeof(t->uniform));
     t->pl->draw(t->pl, t->model);
 
     mat4x4 m1;
@@ -201,7 +204,7 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_mul(mvp, p, mv);
 
     t->plt->start(t->plt);
-    t->plt->uniform_update(t->plt, 0, mvp, 0, sizeof(mvp));
+    buffer_update(t->b, t->dot_uniform_id, mvp, 0, sizeof(mvp));
     t->plt->draw(t->plt, t->dot);
 }
 
@@ -308,6 +311,7 @@ static void zoom_out(struct Object* obj, int mods) {
 static void t_free(struct Object* obj) {
     struct Stl* t = (struct Stl*)obj;
     t->pl->free(t->pl);
+    t->b->free(t->b);
     free(t);
 }
 
@@ -357,15 +361,17 @@ struct Object* CreateStl(struct Render* r) {
     vec4_dup(t->light, light);
 
     vertices = init(&nvertices);
+    t->b = r->buffer_manager(r);
 
     struct PipelineBuilder* pl = r->pipeline(r);
-    t->pl = pl->begin_program(pl)
+    t->pl = pl
+        ->set_bmgr(pl, t->b)
+        ->begin_program(pl)
         ->add_vs(pl, vertex_shader)
         ->add_fs(pl, fragment_shader)
         ->end_program(pl)
 
-        ->begin_uniform(pl, 0, "MatrixBlock", sizeof(struct UniformBlock))
-        ->end_uniform(pl)
+        ->uniform_add(pl, 0, "MatrixBlock")
 
         ->begin_buffer(pl, sizeof(struct Vertex))
         ->buffer_attribute(pl, 3, 3, DATA_FLOAT, offsetof(struct Vertex, col))
@@ -377,6 +383,9 @@ struct Object* CreateStl(struct Render* r) {
         ->enable_depth(pl)
 
         ->build(pl);
+
+    t->uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
+    t->pl->uniform_assign(t->pl, 0, t->uniform_id);
 
     t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, nvertices*sizeof(struct Vertex));
 
@@ -391,13 +400,14 @@ struct Object* CreateStl(struct Render* r) {
     };
 
     struct PipelineBuilder* plt = r->pipeline(r);
-    t->plt = plt->begin_program(plt)
+    t->plt = plt
+        ->set_bmgr(pl, t->b)
+        ->begin_program(plt)
         ->add_vs(plt, vertex_shadert)
         ->add_fs(plt, fragment_shadert)
         ->end_program(plt)
 
-        ->begin_uniform(plt, 0, "MatrixBlock", sizeof(mat4x4))
-        ->end_uniform(plt)
+        ->uniform_add(plt, 0, "MatrixBlock")
 
         ->begin_buffer(plt, sizeof(struct Vertex))
         ->buffer_attribute(plt, 2, 3, DATA_FLOAT, offsetof(struct Vertex, col))
@@ -409,6 +419,9 @@ struct Object* CreateStl(struct Render* r) {
         ->enable_depth(plt)
 
         ->build(plt);
+
+    t->dot_uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(mat4x4));
+    t->plt->uniform_assign(t->plt, 0, t->dot_uniform_id);
 
     t->dot = t->plt->buffer_create(t->plt, BUFFER_ARRAY, MEMORY_STATIC, 0, pp, sizeof(pp));
 

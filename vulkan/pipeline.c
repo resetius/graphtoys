@@ -60,6 +60,7 @@ struct PipelineImpl {
     VkDescriptorSetLayout texLayout;
 
     struct BufferManager* b; // TODO: remove me
+    int owns; // TODO: remove me
 };
 
 struct Sampler {
@@ -109,6 +110,7 @@ struct PipelineBuilderImpl {
     VkCullModeFlagBits cull_mode;
 
     struct BufferManager* b; // TODO: remove me
+    int owns; // TODO: remove me
 };
 
 static uint32_t primitive_topology(enum GeometryType geometry) {
@@ -473,6 +475,7 @@ static struct PipelineBuilder* begin_uniform(
     struct BufferImpl base;
     if (!p->b) {
         p->b = r->base.buffer_manager((struct Render*)p->r); // TODO: remove me
+        p->owns = 1;
     }
     int id = p->b->create(p->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, size);
     memcpy(&base, p->b->get(p->b, id), sizeof(base));
@@ -721,13 +724,17 @@ static void pipeline_free(struct Pipeline* p1) {
 
     vkDeviceWaitIdle(r->log_dev);
 
-    for (i = 0; i < p->n_uniforms; i++) {
-        p->b->destroy(p->b, p->uniforms[i].base.base.id);
+    if (p->owns) {
+        for (i = 0; i < p->n_uniforms; i++) {
+            p->b->destroy(p->b, p->uniforms[i].base.base.id);
+        }
     }
     free(p->uniforms); p->uniforms = NULL; p->n_uniforms = 0;
 
-    for (i = 0; i < p->n_buffers; i++) {
-        p->b->destroy(p->b, p->buffers[i].base.base.id);
+    if (p->owns) {
+        for (i = 0; i < p->n_buffers; i++) {
+            p->b->destroy(p->b, p->buffers[i].base.base.id);
+        }
     }
     free(p->buffers); p->n_buffers = 0;
     p->buffers = NULL;
@@ -1076,6 +1083,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     memcpy(pl->buf_descr, p->buffers, p->n_buffers*sizeof(struct BufferDescriptor));
     pl->n_buf_descr = p->n_buffers;
     pl->b = p->b;
+    pl->owns = p->owns;
 
     builder_free(p);
 
