@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "drawcommandbuffer.h"
+#include "commandbuffer.h"
 #include "render_impl.h"
 
-void dcb_init(struct DrawCommandBuffer* d, struct RenderImpl* r) {
+void cb_init(struct DrawCommandBuffer* d, struct RenderImpl* r) {
     VkCommandPoolCreateInfo cpInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .queueFamilyIndex = r->graphics_family,
@@ -33,12 +33,12 @@ void dcb_init(struct DrawCommandBuffer* d, struct RenderImpl* r) {
     d->dev = r->log_dev;
 }
 
-void dcb_destroy(struct DrawCommandBuffer* d) {
+void cb_destroy(struct DrawCommandBuffer* d) {
     free(d->buffers);
 	vkDestroyCommandPool(d->dev, d->pool, NULL);
 }
 
-void dcb_begin(struct DrawCommandBuffer* d, VkCommandBuffer buffer) {
+void cb_begin(struct DrawCommandBuffer* d, VkCommandBuffer buffer) {
     VkCommandBufferBeginInfo cbBeginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
@@ -51,7 +51,7 @@ void dcb_begin(struct DrawCommandBuffer* d, VkCommandBuffer buffer) {
 	}
 }
 
-void dcb_end(struct DrawCommandBuffer* d, VkCommandBuffer buffer) {
+void cb_end(struct DrawCommandBuffer* d, VkCommandBuffer buffer) {
     if (vkEndCommandBuffer(buffer) != VK_SUCCESS) {
         fprintf(stderr, "Failed to record command buffer");
         exit(-1);

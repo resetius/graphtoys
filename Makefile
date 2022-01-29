@@ -41,7 +41,7 @@ SOURCES=main.c\
 	vulkan/buffer.c\
 	vulkan/char.c\
     vulkan/device.c\
-	vulkan/drawcommandbuffer.c\
+	vulkan/commandbuffer.c\
 	vulkan/pipeline.c\
 	vulkan/render.c\
 	vulkan/renderpass.c\

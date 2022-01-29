@@ -24,7 +24,7 @@ void vk_load_device(VkDevice device);
 static void free_(struct Render* r1) {
     int i;
     struct RenderImpl* r = (struct RenderImpl*)r1;
-    dcb_destroy(&r->dcb);
+    cb_destroy(&r->cb);
     rt_destroy(&r->rt);
     rp_destroy(&r->rp);
     sc_destroy(&r->sc);
@@ -52,7 +52,7 @@ static void draw_begin_(struct Render* r1) {
         vkDeviceWaitIdle(r->log_dev);
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(r->phy_dev, r->surface, &r->caps);
 
-        dcb_destroy(&r->dcb);
+        cb_destroy(&r->cb);
         rt_destroy(&r->rt);
         rp_destroy(&r->rp);
         sc_destroy(&r->sc);
@@ -60,7 +60,7 @@ static void draw_begin_(struct Render* r1) {
         sc_init(&r->sc, r);
         rp_init(&r->rp, r->log_dev, r->sc.im_format, r->sc.depth_format);
         rt_init(&r->rt, r);
-        dcb_init(&r->dcb, r);
+        cb_init(&r->cb, r);
         r->update_viewport = 0;
         VkRect2D scissor = {{0, 0}, r->sc.extent};
         r->scissor = scissor;
@@ -81,9 +81,9 @@ static void draw_begin_(struct Render* r1) {
     }
     r->images_infl[r->image_index] = r->infl_fences[r->current_frame];
 
-    r->buffer = r->dcb.buffers[r->image_index];
+    r->buffer = r->cb.buffers[r->image_index];
 
-    dcb_begin(&r->dcb, r->buffer);
+    cb_begin(&r->cb, r->buffer);
 
     vkCmdSetViewport(r->buffer, 0, 1, &r->viewport);
     vkCmdSetScissor(r->buffer, 0, 1, &r->scissor);
@@ -111,7 +111,7 @@ static void draw_end_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
 
     rp_end(&r->rp, r->buffer);
-    dcb_end(&r->dcb, r->buffer);
+    cb_end(&r->cb, r->buffer);
 
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
@@ -285,7 +285,7 @@ static void init_(struct Render* r1) {
     printf("Renderpass initialized\n");
     rt_init(&r->rt, r);
     printf("Rendertarget initialized\n");
-    dcb_init(&r->dcb, r);
+    cb_init(&r->cb, r);
     printf("Drawcommandbuffer initialized\n");
 
     r->n_infl_fences = sizeof(r->infl_fences)/sizeof(VkFence);

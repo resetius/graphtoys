@@ -54,7 +54,7 @@ struct RenderImpl {
     struct SwapChain sc;
     struct RenderPass rp;
     struct RenderTarget rt;
-    struct DrawCommandBuffer dcb;
+    struct CommandBuffer cb;
 
     //
     uint32_t image_index;
