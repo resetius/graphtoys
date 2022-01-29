@@ -25,6 +25,8 @@ struct Mandelbrot {
     struct Object base;
     struct UniformBlock uniform;
     struct Pipeline* pl;
+    struct BufferManager* b;
+    int uniform_id;
     vec3 T;
     int model;
 };
@@ -83,7 +85,7 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     memcpy(t->uniform.T, t->T, sizeof(t->T));
 
     t->pl->start(t->pl);
-    t->pl->uniform_update(t->pl, 0, &t->uniform, 0, sizeof(t->uniform));
+    buffer_update(t->b, t->uniform_id, &t->uniform, 0, sizeof(t->uniform));
     t->pl->draw(t->pl, t->model);
 }
 
@@ -129,21 +131,26 @@ struct Object* CreateMandelbrot(struct Render* r) {
     };
 
     t->base = base;
+    t->b = r->buffer_manager(r);
 
     struct PipelineBuilder* pl = r->pipeline(r);
-    t->pl = pl->begin_program(pl)
+    t->pl = pl
+        ->set_bmgr(pl, t->b)
+        ->begin_program(pl)
         ->add_vs(pl, vertex_shader)
         ->add_fs(pl, fragment_shader)
         ->end_program(pl)
 
-        ->begin_uniform(pl, 0, "MatrixBlock", sizeof(struct UniformBlock))
-        ->end_uniform(pl)
+        ->uniform_add(pl, 0, "MatrixBlock")
 
         ->begin_buffer(pl, sizeof(struct Vertex))
         ->buffer_attribute(pl, 1, 3, DATA_FLOAT, offsetof(struct Vertex, pos))
         ->end_buffer(pl)
 
         ->build(pl);
+
+    t->uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
+    pl_uniform_assign(t->pl, 0, t->uniform_id);
 
     t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, nvertices*sizeof(struct Vertex));
 
