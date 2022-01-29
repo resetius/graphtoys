@@ -4,11 +4,11 @@
 #include "commandbuffer.h"
 #include "render_impl.h"
 
-void cb_init(struct DrawCommandBuffer* d, struct RenderImpl* r) {
+void cb_init(struct CommandBuffer* d, struct RenderImpl* r) {
     VkCommandPoolCreateInfo cpInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .queueFamilyIndex = r->graphics_family,
-        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
+        .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
     };
 
     if (vkCreateCommandPool(r->log_dev, &cpInfo, NULL, &d->pool) != VK_SUCCESS) {
@@ -33,15 +33,31 @@ void cb_init(struct DrawCommandBuffer* d, struct RenderImpl* r) {
     d->dev = r->log_dev;
 }
 
-void cb_destroy(struct DrawCommandBuffer* d) {
+VkCommandBuffer cb_acquire(struct CommandBuffer* d) {
+    VkCommandBuffer buffer;
+    VkCommandBufferAllocateInfo info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = d->pool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = (uint32_t)d->n_buffers
+    };
+
+    if (vkAllocateCommandBuffers(d->dev, &info, &buffer) != VK_SUCCESS) {
+        fprintf(stderr, "Failed to allocate command buffers\n");
+        exit(-1);
+    }
+    return buffer;
+}
+
+void cb_destroy(struct CommandBuffer* d) {
     free(d->buffers);
 	vkDestroyCommandPool(d->dev, d->pool, NULL);
 }
 
-void cb_begin(struct DrawCommandBuffer* d, VkCommandBuffer buffer) {
+void cb_begin(struct CommandBuffer* d, VkCommandBuffer buffer) {
     VkCommandBufferBeginInfo cbBeginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
         .pInheritanceInfo = NULL
     };
 
@@ -51,9 +67,13 @@ void cb_begin(struct DrawCommandBuffer* d, VkCommandBuffer buffer) {
 	}
 }
 
-void cb_end(struct DrawCommandBuffer* d, VkCommandBuffer buffer) {
+void cb_end(struct CommandBuffer* d, VkCommandBuffer buffer) {
     if (vkEndCommandBuffer(buffer) != VK_SUCCESS) {
         fprintf(stderr, "Failed to record command buffer");
         exit(-1);
     }
+}
+
+void cb_reset(struct CommandBuffer* d) {
+    vkResetCommandPool(d->dev, d->pool, 0);
 }

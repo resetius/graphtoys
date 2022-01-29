@@ -9,8 +9,9 @@
 #include "swapchain.h"
 #include "renderpass.h"
 #include "rendertarget.h"
-#include "drawcommandbuffer.h"
+#include "commandbuffer.h"
 #include "device.h"
+#include "frame.h"
 
 struct Texture {
     VkImage tex;
@@ -54,20 +55,15 @@ struct RenderImpl {
     struct SwapChain sc;
     struct RenderPass rp;
     struct RenderTarget rt;
-    struct CommandBuffer cb;
+    struct Frame frames[5];
+    struct Frame* frame;
 
     //
     uint32_t image_index;
-    uint32_t current_frame;
     VkCommandBuffer buffer;
 
-    //
-    VkFence infl_fences[10];
-    VkFence images_infl[10];
-    int n_infl_fences;
-
-    VkSemaphore imageAvailableSemaphore[10];
-    VkSemaphore renderFinishedSemaphore[10];
+    VkSemaphore recycled_semaphores[10];
+    int n_recycled_semaphores;
 
     //
     VkViewport viewport;

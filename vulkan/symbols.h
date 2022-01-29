@@ -45,6 +45,7 @@ L2_FUNC(vkDeviceWaitIdle);
 L2_FUNC(vkDestroyDevice);
 L2_FUNC(vkCreateSemaphore);
 L2_FUNC(vkCreateCommandPool);
+L2_FUNC(vkResetCommandPool);
 L2_FUNC(vkAllocateCommandBuffers);
 L2_FUNC(vkBeginCommandBuffer);
 L2_FUNC(vkResetCommandBuffer);

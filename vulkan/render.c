@@ -24,16 +24,17 @@ void vk_load_device(VkDevice device);
 static void free_(struct Render* r1) {
     int i;
     struct RenderImpl* r = (struct RenderImpl*)r1;
-    cb_destroy(&r->cb);
     rt_destroy(&r->rt);
     rp_destroy(&r->rp);
     sc_destroy(&r->sc);
     vk_stats_free(r->stats);
 
-    for (i = 0; i < r->n_infl_fences; i++) {
-        vkDestroyFence(r->log_dev, r->infl_fences[i], NULL);
-        vkDestroySemaphore(r->log_dev, r->imageAvailableSemaphore[i], NULL);
-        vkDestroySemaphore(r->log_dev, r->renderFinishedSemaphore[i], NULL);
+    for (i = 0; i < r->sc.n_images; i++) {
+        frame_destroy(&r->frames[i]);
+    }
+
+    for (i = 0; i < r->n_recycled_semaphores; i++) {
+        vkDestroySemaphore(r->log_dev, r->recycled_semaphores[i], NULL);
     }
 
     vkDestroyDevice(r->log_dev, NULL);
@@ -52,7 +53,6 @@ static void draw_begin_(struct Render* r1) {
         vkDeviceWaitIdle(r->log_dev);
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(r->phy_dev, r->surface, &r->caps);
 
-        cb_destroy(&r->cb);
         rt_destroy(&r->rt);
         rp_destroy(&r->rp);
         sc_destroy(&r->sc);
@@ -60,30 +60,33 @@ static void draw_begin_(struct Render* r1) {
         sc_init(&r->sc, r);
         rp_init(&r->rp, r->log_dev, r->sc.im_format, r->sc.depth_format);
         rt_init(&r->rt, r);
-        cb_init(&r->cb, r);
         r->update_viewport = 0;
         VkRect2D scissor = {{0, 0}, r->sc.extent};
         r->scissor = scissor;
     }
 
-    vkWaitForFences(r->log_dev, 1, &r->infl_fences[r->current_frame], VK_TRUE, UINT64_MAX);
+    VkSemaphore acquire_sem = r->recycled_semaphores[--r->n_recycled_semaphores];
 
     vkAcquireNextImageKHR(
         r->log_dev,
         r->sc.swapchain,
-        (uint64_t)-1,
-        r->imageAvailableSemaphore[r->current_frame],
+        UINT64_MAX,
+        acquire_sem,
         VK_NULL_HANDLE,
         &r->image_index);
 
-    if (r->images_infl[r->image_index] != VK_NULL_HANDLE) {
-        vkWaitForFences(r->log_dev, 1, &r->images_infl[r->image_index], VK_TRUE, UINT64_MAX);
+    r->frame = &r->frames[r->image_index];
+    if (r->frame->acquire_image != VK_NULL_HANDLE) {
+        r->recycled_semaphores[r->n_recycled_semaphores++] = r->frame->acquire_image;
     }
-    r->images_infl[r->image_index] = r->infl_fences[r->current_frame];
+    r->frame->acquire_image = acquire_sem;
 
-    r->buffer = r->cb.buffers[r->image_index];
+    vkWaitForFences(r->log_dev, 1, &r->frame->fence, VK_TRUE, UINT64_MAX);
+    vkResetFences(r->log_dev, 1, &r->frame->fence);
 
-    cb_begin(&r->cb, r->buffer);
+    r->buffer = frame_cb(r->frame);
+
+    cb_begin(&r->frame->cb, r->buffer);
 
     vkCmdSetViewport(r->buffer, 0, 1, &r->viewport);
     vkCmdSetScissor(r->buffer, 0, 1, &r->scissor);
@@ -111,7 +114,7 @@ static void draw_end_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
 
     rp_end(&r->rp, r->buffer);
-    cb_end(&r->cb, r->buffer);
+    cb_end(&r->frame->cb, r->buffer);
 
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
@@ -121,27 +124,23 @@ static void draw_end_(struct Render* r1) {
         .pCommandBuffers = &r->buffer,
         .pWaitDstStageMask = waitStages,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &r->imageAvailableSemaphore[r->current_frame],
+        .pWaitSemaphores = &r->frame->acquire_image,
         .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &r->renderFinishedSemaphore[r->current_frame]
+        .pSignalSemaphores = &r->frame->render_finished
     };
 
-    vkResetFences(r->log_dev, 1, &r->infl_fences[r->current_frame]);
-
-    vkQueueSubmit(r->g_queue, 1, &submitInfo, r->infl_fences[r->current_frame]);
+    vkQueueSubmit(r->g_queue, 1, &submitInfo, r->frame->fence);
 
     VkPresentInfoKHR presentInfo = {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &r->renderFinishedSemaphore[r->current_frame],
+        .pWaitSemaphores = &r->frame->render_finished,
         .swapchainCount = 1,
         .pSwapchains = &r->sc.swapchain,
         .pImageIndices = &r->image_index
     };
 
     vkQueuePresentKHR(r->p_queue, &presentInfo);
-
-    r->current_frame = (1+r->current_frame) % r->sc.n_images;
 }
 
 static void set_window_(struct Render* r1, void* w) {
@@ -285,28 +284,18 @@ static void init_(struct Render* r1) {
     printf("Renderpass initialized\n");
     rt_init(&r->rt, r);
     printf("Rendertarget initialized\n");
-    cb_init(&r->cb, r);
-    printf("Drawcommandbuffer initialized\n");
 
-    r->n_infl_fences = sizeof(r->infl_fences)/sizeof(VkFence);
     VkSemaphoreCreateInfo semaphoreInfo = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
 
-	VkFenceCreateInfo fenceCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-        .flags = VK_FENCE_CREATE_SIGNALED_BIT
-    };
+    r->n_recycled_semaphores = sizeof(r->recycled_semaphores)/sizeof(VkSemaphore);
+    for (int i = 0; i < r->n_recycled_semaphores; i++) {
+    	vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->recycled_semaphores[i]);
+    }
 
-	for (int i = 0; i < r->n_infl_fences; i++) {
-    	vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->imageAvailableSemaphore[i]);
-	    vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->renderFinishedSemaphore[i]);
-
-		if (vkCreateFence(r->log_dev, &fenceCreateInfo, NULL, &r->infl_fences[i]) != VK_SUCCESS) {
-
-            fprintf(stderr, "Failed to create synchronization objects per frame\n");
-            exit(-1);
-        }
+    for (int i = 0; i < r->sc.n_images; i++) {
+        frame_init(&r->frames[i], r);
     }
 
     int w = r->sc.extent.width;
