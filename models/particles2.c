@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <time.h>
 
 #include <render/render.h>
 #include <render/pipeline.h>
@@ -250,8 +249,6 @@ struct Object* CreateParticles2(struct Render* r, struct Config* cfg) {
 
     struct ParticlesData data;
     particles_data_init(&data, cfg);
-
-    srand(time(NULL));
 
     t->z = 1.0f;
     t->particles = data.n_particles;

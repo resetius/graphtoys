@@ -2,19 +2,19 @@
 
 layout( local_size_x = 1024 ) in;
 
-layout(std430, binding=1) buffer Pos {
+layout(std430, binding=0) buffer Pos {
     vec4 Position[];
 };
 
-layout(std430, binding=2) buffer Vel {
+layout(std430, binding=1) buffer Vel {
     vec4 Velocity[];
 };
 
-layout(std430, binding=3) buffer Tmp {
+layout(std430, binding=2) buffer Tmp {
     vec4 Accel[];
 };
 
-layout(std430, binding=4) buffer NewPos {
+layout(std430, binding=3) buffer NewPos {
     vec4 NewPosition[];
 };
 
