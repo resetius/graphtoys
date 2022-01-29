@@ -401,7 +401,7 @@ struct Object* CreateStl(struct Render* r) {
 
     struct PipelineBuilder* plt = r->pipeline(r);
     t->plt = plt
-        ->set_bmgr(pl, t->b)
+        ->set_bmgr(plt, t->b)
         ->begin_program(plt)
         ->add_vs(plt, vertex_shadert)
         ->add_fs(plt, fragment_shadert)
