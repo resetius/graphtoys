@@ -33,7 +33,7 @@ static int create(
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
 
-    uint32_t vk_type = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    uint32_t vk_type = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
     if (type == BUFFER_UNIFORM) {
         vk_type = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -41,14 +41,14 @@ static int create(
     }
 
     if (type == BUFFER_SHADER_STORAGE) {
-        vk_type |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        vk_type = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     }
 
     for (i = 0; i < buf->n_buffers; i++) {
         create_buffer(
             r->memory_properties, r->log_dev,
             buf->size,
-            vk_type,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT | vk_type,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             //VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             &stagingBuffer,

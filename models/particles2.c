@@ -408,10 +408,10 @@ struct Object* CreateParticles2(struct Render* r, struct Config* cfg) {
 
     t->uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
 
-    t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, coords, size);
-    t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, vels, size);
-    t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, accel, size);
-    t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, coords, size);
+    t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, coords, size);
+    t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, vels, size);
+    t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, accel, size);
+    t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, coords, size);
 
     t->indices_vao = t->pl->buffer_assign(t->pl, 0, t->indices);
 
