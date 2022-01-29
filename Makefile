@@ -26,6 +26,7 @@ SOURCES=main.c\
 	models/torus.c\
 	models/mandelbrot.c\
 	models/mandelbulb.c\
+	models/particles_data.c\
 	models/particles.c\
 	models/particles2.c\
 	models/stl.c\
