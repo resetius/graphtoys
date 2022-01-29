@@ -4,11 +4,8 @@
 
 struct RenderImpl;
 struct CommandBuffer {
-    struct RenderImpl* r;
     VkDevice dev;
     VkCommandPool pool;
-    VkCommandBuffer* buffers;
-    int n_buffers;
 };
 
 void cb_init(struct CommandBuffer* d, struct RenderImpl* r);

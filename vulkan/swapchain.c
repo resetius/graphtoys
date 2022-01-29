@@ -36,28 +36,22 @@ static VkSurfaceFormatKHR choose_format(VkSurfaceFormatKHR* formats, int n) {
 	return formats[0];
 }
 
-static VkPresentModeKHR choose_mode(VkPresentModeKHR* modes, int n_modes, VkPresentModeKHR prefer) {
-
-	VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
-    int i;
-
-    for (i = 0; i < n_modes; i++) {
-        VkPresentModeKHR* mode = &modes[i];
-        if (*mode == prefer) {
-            return *mode;
+static VkPresentModeKHR choose_mode(VkPresentModeKHR* modes, int n_modes, int vsync) {
+    if (!vsync) {
+        int i;
+        for (i = 0; i < n_modes; i++) {
+            if (modes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
+                return VK_PRESENT_MODE_MAILBOX_KHR;
+            }
+        }
+        for (i = 0; i < n_modes; i++) {
+            if (modes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+                return VK_PRESENT_MODE_IMMEDIATE_KHR;
+            }
         }
     }
 
-    for (i = 0; i < n_modes; i++) {
-        VkPresentModeKHR* mode = &modes[i];
-        if (*mode == VK_PRESENT_MODE_MAILBOX_KHR) {
-            return *mode;
-        } else if (*mode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-			bestMode = *mode;
-		}
-	}
-
-    return bestMode;
+    return VK_PRESENT_MODE_FIFO_KHR;
 }
 
 static VkExtent2D choose_extent(const VkSurfaceCapabilitiesKHR* caps) {
@@ -121,11 +115,13 @@ void sc_init(struct SwapChain* sc, struct RenderImpl* r) {
     VkPresentModeKHR presentMode = choose_mode(
         r->modes,
         r->n_modes,
-        r->cfg.vsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR);
+        r->cfg.vsync);
 
     VkExtent2D extent = choose_extent(&r->caps);
 
-    uint32_t imageCount = r->caps.minImageCount;
+    uint32_t imageCount = r->cfg.triple_buffer
+        ? 3
+        : r->caps.minImageCount;
 
     if (r->caps.maxImageCount > 0 && imageCount > r->caps.maxImageCount) {
         imageCount = r->caps.maxImageCount;

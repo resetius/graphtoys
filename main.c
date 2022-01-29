@@ -112,6 +112,7 @@ static void fill_render_config(struct RenderConfig* r, struct Config* cfg) {
     }
     printf("vsync: %d\n", r->vsync);
     r->show_fps = strcmp(cfg_gets_def(cfg, "render:fps", "off"), "on") == 0;
+    r->triple_buffer = strcmp(cfg_gets_def(cfg, "render:triple_buffer", "off"), "on") == 0;
 }
 
 int main(int argc, char** argv)

@@ -7,7 +7,6 @@ void frame_init(struct Frame* frame, struct RenderImpl* r) {
     memset(frame, 0, sizeof(*frame));
     cb_init(&frame->cb, r);
     frame->cmd = cb_acquire(&frame->cb);
-
     VkFenceCreateInfo info = {
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
         .flags = VK_FENCE_CREATE_SIGNALED_BIT

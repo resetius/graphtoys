@@ -300,7 +300,6 @@ static void init_(struct Render* r1) {
     for (int i = 0; i < r->n_recycled_semaphores; i++) {
     	vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->recycled_semaphores[i]);
     }
-
     for (int i = 0; i < r->sc.n_images; i++) {
         frame_init(&r->frames[i], r);
     }

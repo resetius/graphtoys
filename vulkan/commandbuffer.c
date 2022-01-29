@@ -16,20 +16,6 @@ void cb_init(struct CommandBuffer* d, struct RenderImpl* r) {
         exit(-1);
     }
 
-    d->n_buffers = r->sc.n_images;
-    d->buffers = malloc(d->n_buffers*sizeof(VkCommandBuffer));
-
-    VkCommandBufferAllocateInfo cbInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = d->pool,
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = (uint32_t)d->n_buffers
-    };
-
-    if (vkAllocateCommandBuffers(r->log_dev, &cbInfo, d->buffers) != VK_SUCCESS) {
-        fprintf(stderr, "Failed to allocate command buffers\n");
-        exit(-1);
-    }
     d->dev = r->log_dev;
 }
 
@@ -39,7 +25,7 @@ VkCommandBuffer cb_acquire(struct CommandBuffer* d) {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
         .commandPool = d->pool,
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = (uint32_t)d->n_buffers
+        .commandBufferCount = 1
     };
 
     if (vkAllocateCommandBuffers(d->dev, &info, &buffer) != VK_SUCCESS) {
@@ -50,7 +36,6 @@ VkCommandBuffer cb_acquire(struct CommandBuffer* d) {
 }
 
 void cb_destroy(struct CommandBuffer* d) {
-    free(d->buffers);
 	vkDestroyCommandPool(d->dev, d->pool, NULL);
 }
 
