@@ -99,9 +99,9 @@ static VkFormat find_supported_format(
 void sc_init(struct SwapChain* sc, struct RenderImpl* r) {
     //sc->depth_format = VK_FORMAT_D24_UNORM_S8_UINT; // TODO: detect format
     VkFormat formats [] = {
+        VK_FORMAT_D24_UNORM_S8_UINT,
         VK_FORMAT_D32_SFLOAT,
         VK_FORMAT_D32_SFLOAT_S8_UINT,
-        VK_FORMAT_D24_UNORM_S8_UINT
     };
 
     sc->depth_format = find_supported_format(
