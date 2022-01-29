@@ -40,13 +40,13 @@ static VkPresentModeKHR choose_mode(VkPresentModeKHR* modes, int n_modes, int vs
     if (!vsync) {
         int i;
         for (i = 0; i < n_modes; i++) {
-            if (modes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
-                return VK_PRESENT_MODE_MAILBOX_KHR;
+            if (modes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+                return VK_PRESENT_MODE_IMMEDIATE_KHR;
             }
         }
         for (i = 0; i < n_modes; i++) {
-            if (modes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-                return VK_PRESENT_MODE_IMMEDIATE_KHR;
+            if (modes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
+                return VK_PRESENT_MODE_MAILBOX_KHR;
             }
         }
     }
