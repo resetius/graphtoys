@@ -65,8 +65,7 @@ struct Pipeline {
     void (*start_compute)(struct Pipeline* p1, int sx, int sy, int sz);
 
     void (*start)(struct Pipeline* p1);
-    void (*draw)(struct Pipeline* p1, int buffer_id);
-};
+    void (*draw)(struct Pipeline* p1, int buffer_id);};
 
 void pl_free(struct Pipeline*);
 void pl_uniform_update(struct Pipeline*, int id, const void* data, int offset, int size);
@@ -113,15 +112,6 @@ struct PipelineBuilder {
         int binding,
         const char* name);
 
-    // deprecated
-    struct PipelineBuilder* (*begin_uniform)(
-        struct PipelineBuilder*,
-        int binding,
-        const char* blockName,
-        int size);
-    // deprecated
-    struct PipelineBuilder* (*end_uniform)(struct PipelineBuilder*);
-
     struct PipelineBuilder* (*begin_sampler)(struct PipelineBuilder* p1, int binding);
     struct PipelineBuilder* (*end_sampler)(struct PipelineBuilder* p1);
 
@@ -133,4 +123,3 @@ struct PipelineBuilder {
 
     struct Pipeline* (*build)(struct PipelineBuilder*); // free
 };
-

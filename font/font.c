@@ -28,8 +28,10 @@ struct FontImpl {
     struct Char* chars[65536];
     struct UniformBlock uniform;
     struct Pipeline* pl;
+    struct BufferManager* b;
     int current_id;
     int max_letters;
+    int uniform_id;
 };
 
 static void char_load(struct Render* r, struct Char* chars[], FT_Face face, wchar_t ch) {
@@ -105,8 +107,13 @@ struct Font* font_new(struct Render* r, int char_w, int char_h, int dev_w, int d
         .size = font_font_frag_spv_size,
     };
 
+    t->b = r->buffer_manager(r);
+
     struct PipelineBuilder* p = r->pipeline(r);
-    struct Pipeline* pl = p->begin_program(p)
+    struct Pipeline* pl = p
+        ->set_bmgr(p, t->b)
+
+        ->begin_program(p)
         ->add_vs(p, vertex_shader)
         ->add_fs(p, fragment_shader)
         ->end_program(p)
@@ -116,8 +123,7 @@ struct Font* font_new(struct Render* r, int char_w, int char_h, int dev_w, int d
         ->buffer_attribute(p, 1, 4, DATA_FLOAT, 0)
         ->end_buffer(p)
 
-        ->begin_uniform(p, 0, "MatrixBlock", sizeof(t->uniform))
-        ->end_uniform(p)
+        ->uniform_add(p, 0, "MatrixBlock")
 
         ->begin_sampler(p, 0)
         ->end_sampler(p)
@@ -134,9 +140,8 @@ struct Font* font_new(struct Render* r, int char_w, int char_h, int dev_w, int d
 
     t->pl = pl;
 
-    //pl->use_descriptor();
-    //pl->use_buffer();
-    //pl->submit();
+    t->uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(t->uniform));
+    pl_uniform_assign(t->pl, 0, t->uniform_id);
 
     FT_Done_Face(face);
     FT_Done_FreeType(library);
@@ -259,10 +264,7 @@ void label_render(struct Label* l)
     p[3][2] = 0;
     mat4x4_mul(mvp, p, m);
 
-    //prog_use(f->p);
-    //prog_set_mat4x4(f->p, "MVP", &mvp);
-
-    f->pl->uniform_update(f->pl, 0, mvp, 0, sizeof(mvp));
+    buffer_update(f->b, f->uniform_id, mvp, 0, sizeof(mvp));
     f->pl->start(f->pl);
 
     for (i = 0; i < l->len; i++) {

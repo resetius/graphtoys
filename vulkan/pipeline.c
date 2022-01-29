@@ -449,48 +449,6 @@ static struct PipelineBuilder* uniform_add(
     return uniform_or_storage_add(p1, binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 }
 
-static struct PipelineBuilder* begin_uniform(
-    struct PipelineBuilder*p1,
-    int binding,
-    const char* name,
-    int size)
-{
-    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    struct RenderImpl* r = p->r;
-
-    // TODO: checkptr
-    // TODO: uniformBuffer per image index
-    p->cur_uniform = &p->uniforms[p->n_uniforms++];
-
-    VkDescriptorSetLayoutBinding uboLayoutBinding = {
-        .binding = binding,
-        .descriptorCount = 1,
-        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .pImmutableSamplers = NULL,
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT // TODO
-    };
-
-    p->cur_uniform->layoutBinding = uboLayoutBinding;
-
-    struct BufferImpl base;
-    if (!p->b) {
-        p->b = r->base.buffer_manager((struct Render*)p->r); // TODO: remove me
-        p->owns = 1;
-    }
-    int id = p->b->create(p->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, size);
-    memcpy(&base, p->b->get(p->b, id), sizeof(base));
-    p->cur_uniform->base = base;
-
-    return p1;
-}
-
-static struct PipelineBuilder* end_uniform(struct PipelineBuilder *p1)
-{
-    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    p->cur_uniform = NULL;
-    return p1;
-}
-
 static struct PipelineBuilder* begin_program(struct PipelineBuilder* p) {
     return p;
 }
@@ -1098,8 +1056,6 @@ struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r) {
 
         .storage_add = storage_add,
         .uniform_add = uniform_add,
-        .begin_uniform = begin_uniform,
-        .end_uniform = end_uniform,
         .begin_program = begin_program,
         .end_program = end_program,
         .add_vs = add_vs,

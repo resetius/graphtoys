@@ -142,40 +142,6 @@ static GLint gl_data_type(enum DataType data_type) {
     return result;
 }
 
-static struct PipelineBuilder* begin_uniform(
-    struct PipelineBuilder*p1,
-    int binding,
-    const char* name,
-    int size)
-{
-    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    assert(p->n_programs > 0);
-    int program = prog_handle(p->programs[p->n_programs-1]);
-    GLuint index = glGetUniformBlockIndex(program, name);
-    glUniformBlockBinding(program, index, binding);
-
-    struct BufferImpl base;
-    if (!p->b) {
-        p->b = buf_mgr_opengl_new(p->r); // TODO: remove me
-        p->owns = 1;
-    }
-    int id = p->b->create(p->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, size);
-    memcpy(&base, p->b->get(p->b, id), sizeof(base));
-
-    glBindBufferBase(GL_UNIFORM_BUFFER, binding, base.buffer);
-
-    struct UniformBlock block = {
-        .base = base,
-        .id = id,
-        .name = name,
-        .binding = binding,
-        .index = index,
-    };
-    p->cur_uniform = &p->uniforms[p->n_uniforms++];
-    *p->cur_uniform = block;
-    return p1;
-}
-
 static struct PipelineBuilder* uniform_add(
     struct PipelineBuilder*p1,
     int binding,
@@ -210,13 +176,6 @@ static struct PipelineBuilder* storage_add(
         .binding = binding,
     };
     p->uniforms[p->n_uniforms++] = block;
-    return p1;
-}
-
-static struct PipelineBuilder* end_uniform(struct PipelineBuilder *p1)
-{
-    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    p->cur_uniform = NULL;
     return p1;
 }
 
@@ -683,8 +642,6 @@ struct PipelineBuilder* pipeline_builder_opengl(struct Render* r) {
 
         .storage_add = storage_add,
         .uniform_add = uniform_add,
-        .begin_uniform = begin_uniform,
-        .end_uniform = end_uniform,
 
         .begin_buffer = begin_buffer,
         .buffer_attribute = buffer_attribute,
