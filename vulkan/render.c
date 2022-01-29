@@ -50,16 +50,23 @@ static void draw_begin_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
 
     if (r->update_viewport) {
+        int i;
         vkDeviceWaitIdle(r->log_dev);
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(r->phy_dev, r->surface, &r->caps);
 
         rt_destroy(&r->rt);
         rp_destroy(&r->rp);
         sc_destroy(&r->sc);
+        for (i = 0; i < r->sc.n_images; i++) {
+            frame_destroy(&r->frames[i]);
+        }
 
         sc_init(&r->sc, r);
         rp_init(&r->rp, r->log_dev, r->sc.im_format, r->sc.depth_format);
         rt_init(&r->rt, r);
+        for (i = 0; i < r->sc.n_images; i++) {
+            frame_init(&r->frames[i], r);
+        }
         r->update_viewport = 0;
         VkRect2D scissor = {{0, 0}, r->sc.extent};
         r->scissor = scissor;
