@@ -45,6 +45,8 @@ struct Particles {
     int dirty;
 };
 
+const int clear_frames = 5;
+
 // TODO: copy-paste
 static void transform(struct Particles* t) {
     vec3 ox = {1,0,0};
@@ -78,7 +80,7 @@ static void transform(struct Particles* t) {
     quat_mul(t->q, t->q, qz);
 
     t->ax = t->ay = t->az = 0;
-    t->dirty = 4;
+    t->dirty = clear_frames;
 }
 
 static void move_left(struct Object* obj, int mods) {
@@ -111,7 +113,7 @@ static void move_down(struct Object* obj, int mods) {
 
 static void zoom_in(struct Object* obj, int mods) {
     struct Particles* t = (struct Particles*)obj;
-    t->dirty = 4;
+    t->dirty = clear_frames;
     if (mods & 1) {
         t->z /= 2;
         printf("%f\n", t->z);
@@ -123,7 +125,7 @@ static void zoom_in(struct Object* obj, int mods) {
 
 static void zoom_out(struct Object* obj, int mods) {
     struct Particles* t = (struct Particles*)obj;
-    t->dirty = 4;
+    t->dirty = clear_frames;
     if (mods & 1) {
         t->z *= 2;
         printf("%f\n", t->z);
@@ -403,7 +405,7 @@ struct Object* CreateParticles2(struct Render* r, struct Config* cfg) {
 */
     size = t->particles*4*sizeof(float);
 
-    t->dirty = 4;
+    t->dirty = clear_frames;
     t->indices = t->b->create(t->b, BUFFER_ARRAY, MEMORY_STATIC, indices, t->particles*sizeof(int));
 
     t->uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
