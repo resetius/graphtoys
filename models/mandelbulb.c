@@ -21,6 +21,8 @@ struct UniformBlock {
 struct Mandelbulb {
     struct Object base;
     vec3 T;
+    struct BufferManager* b;
+    int uniform_id;
 
     int cur_type;
     int n_types;
@@ -108,6 +110,7 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
 static void t_free(struct Object* obj) {
     struct Mandelbulb* t = (struct Mandelbulb*)obj;
     t->pl->free(t->pl);
+    t->b->free(t->b);
     free(t);
 }
 
@@ -151,23 +154,29 @@ struct Object* CreateMandelbulb(struct Render* r) {
         .size = models_mandelbulb_frag_spv_size,
     };
 
+    t->b = r->buffer_manager(r);
     t->base = base;
     t->T[0] = t->T[1] = 0.0; t->T[2] = 2.0;
 
     struct PipelineBuilder* p = r->pipeline(r);
-    t->pl = p->begin_program(p)
+    t->pl = p
+        ->set_bmgr(p, t->b)
+
+        ->begin_program(p)
         ->add_vs(p, vertex_shader)
         ->add_fs(p, fragment_shader)
         ->end_program(p)
 
-        ->begin_uniform(p, 0, "MatrixBlock", sizeof(struct UniformBlock))
-        ->end_uniform(p)
+        ->uniform_add(p, 0, "MatrixBlock")
 
         ->begin_buffer(p, sizeof(struct Vertex))
         ->buffer_attribute(p, 1, 3, DATA_FLOAT, offsetof(struct Vertex, pos))
         ->end_buffer(p)
 
         ->build(p);
+
+    t->uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
+    pl_uniform_assign(t->pl, 0, t->uniform_id);
 
     t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, n_vertices*sizeof(struct Vertex));
 

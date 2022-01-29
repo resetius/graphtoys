@@ -92,6 +92,7 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
 static void t_free(struct Object* obj) {
     struct Mandelbrot* t = (struct Mandelbrot*)obj;
     t->pl->free(t->pl);
+    t->b->free(t->b);
     free(t);
 }
 
