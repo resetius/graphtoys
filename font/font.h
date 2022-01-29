@@ -18,6 +18,8 @@ struct Label {
     int w;
     int h;
     int id;
+
+    int dirty;
 };
 
 struct Font* font_new(struct Render* r,

@@ -168,6 +168,7 @@ struct Label* label_new(struct Font* f) {
     struct Label* l = calloc(1, sizeof(*l));
     l->f = f;
     l->id = f1->current_id ++;
+    l->dirty = 5;
     return l;
 }
 
@@ -249,6 +250,7 @@ void label_set_pos(struct Label* l, int x, int y) {
 void label_set_screen(struct Label* l, int w, int h) {
     l->w = w;
     l->h = h;
+    l->dirty = 5;
 }
 
 void label_render(struct Label* l)
@@ -264,7 +266,9 @@ void label_render(struct Label* l)
     p[3][2] = 0;
     mat4x4_mul(mvp, p, m);
 
-    buffer_update(f->b, f->uniform_id, mvp, 0, sizeof(mvp));
+    if (l->dirty--) {
+        buffer_update(f->b, f->uniform_id, mvp, 0, sizeof(mvp));
+    }
     f->pl->start(f->pl);
 
     for (i = 0; i < l->len; i++) {
