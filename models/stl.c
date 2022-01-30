@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <lib/formats/stl.h>
 #include <lib/object.h>
 #include "stl.h"
 #include <render/program.h>
@@ -24,12 +25,6 @@
 // z = r sin phi
 // psi in [0,2pi)
 // phi in [-pi,pi)
-
-struct Vertex {
-    vec3 col;
-    vec3 norm;
-    vec3 pos;
-};
 
 struct UniformBlock {
     mat4x4 mv;
@@ -54,84 +49,6 @@ struct Stl {
     int dot;
     int dot_uniform_id;
 };
-
-static struct Vertex* init (int* nvertices) {
-    FILE* f = fopen("skull_art.stl", "rb");
-    //FILE* f = fopen("tricky_kittens.stl", "rb");
-    //FILE* f = fopen("rocklobster_solid.stl", "rb");
-    //FILE* f = fopen("Doraemon_Lucky_Cat.stl", "rb");
-    char header[100];
-    int n_triangles;
-    int i,j,k;
-    struct Vertex* res;
-    float min_x, max_x;
-    float min_y, max_y;
-    float min_z, max_z;
-    min_x = min_y = min_z =  1e10;
-    max_x = max_y = max_z = -1e10;
-
-    fread(header, 1, 80, f);
-    header[80] = 0;
-    printf("header: '%s'\n", header);
-    fread(&n_triangles, 4, 1, f);
-
-    *nvertices = n_triangles*3;
-    printf("ntriangles: %d\n", n_triangles);
-
-    res = calloc(*nvertices, sizeof(struct Vertex));
-
-    k = 0;
-    for (i = 0; i < n_triangles; i++) {
-        float nx, ny, nz;
-        int attrs = 0;
-        fread(&nx, 4, 1, f);
-        fread(&ny, 4, 1, f);
-        fread(&nz, 4, 1, f);
-
-        for (j = 0; j < 3; j++) {
-            float x, y, z;
-            fread(&x, 4, 1, f);
-            fread(&y, 4, 1, f);
-            fread(&z, 4, 1, f);
-
-            struct Vertex v = {
-                {1.0, 1.0, 0.0},
-                {nx, ny, nz},
-                {x, y, z},
-            };
-            res[k++] = v;
-
-            min_x = fmin(min_x, x);
-            min_y = fmin(min_y, y);
-            min_z = fmin(min_z, z);
-            max_x = fmax(max_x, x);
-            max_y = fmax(max_y, y);
-            max_z = fmax(max_z, z);
-        }
-        fread(&attrs, 2, 1, f);
-        int r = attrs & 0x1f;
-        int g = (attrs>>5) & 0x1f;
-        int b = (attrs>>10) & 0x1f;
-        float scale = 1./((1<<5)-1);
-        vec3 col = {(float)r*scale, (float)g*scale, (float)b*scale};
-        //printf("%f %f %f\n", col[0], col[1], col[2]);
-        //memcpy(res[k-1].col, col, sizeof(col));
-        attrs = 0;
-        fseek(f, attrs, SEEK_CUR);
-    }
-
-    float scale = 8./(fmax(max_x,fmax(max_y,max_z))-fmin(min_x,fmin(min_y,min_z)));
-    for (i = 0; i < k; i++) {
-        res[i].pos[0] -= 0.5*(max_x+min_x);
-        res[i].pos[1] -= 0.5*(max_y+min_y);
-        res[i].pos[2] -= 0.5*(max_z+min_z);
-        vec3_scale(res[i].pos, res[i].pos, scale);
-    }
-
-    fclose(f);
-    *nvertices = k;
-    return res;
-}
 
 static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     struct Stl* t = (struct Stl*)obj;
@@ -328,7 +245,7 @@ struct Object* CreateStl(struct Render* r) {
         .zoom_out = zoom_out,
     };
 
-    struct Vertex* vertices;
+    struct StlVertex* vertices;
     int nvertices;
 
     struct ShaderCode vertex_shader = {
@@ -360,7 +277,12 @@ struct Object* CreateStl(struct Render* r) {
     vec4 light = {0, 0, 0, 1};
     vec4_dup(t->light, light);
 
-    vertices = init(&nvertices);
+    const char* fn = "skull_art.stl";
+    //FILE* f = fopen("tricky_kittens.stl", "rb");
+    //FILE* f = fopen("rocklobster_solid.stl", "rb");
+    //FILE* f = fopen("Doraemon_Lucky_Cat.stl", "rb");
+
+    vertices = stl_load(fn, &nvertices);
     t->b = r->buffer_manager(r);
 
     struct PipelineBuilder* pl = r->pipeline(r);
@@ -373,10 +295,10 @@ struct Object* CreateStl(struct Render* r) {
 
         ->uniform_add(pl, 0, "MatrixBlock")
 
-        ->begin_buffer(pl, sizeof(struct Vertex))
-        ->buffer_attribute(pl, 3, 3, DATA_FLOAT, offsetof(struct Vertex, col))
-        ->buffer_attribute(pl, 2, 3, DATA_FLOAT, offsetof(struct Vertex, norm))
-        ->buffer_attribute(pl, 1, 3, DATA_FLOAT, offsetof(struct Vertex, pos))
+        ->begin_buffer(pl, sizeof(struct StlVertex))
+        ->buffer_attribute(pl, 3, 3, DATA_FLOAT, offsetof(struct StlVertex, col))
+        ->buffer_attribute(pl, 2, 3, DATA_FLOAT, offsetof(struct StlVertex, norm))
+        ->buffer_attribute(pl, 1, 3, DATA_FLOAT, offsetof(struct StlVertex, pos))
 
         ->end_buffer(pl)
 
@@ -387,9 +309,9 @@ struct Object* CreateStl(struct Render* r) {
     t->uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
     t->pl->uniform_assign(t->pl, 0, t->uniform_id);
 
-    t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, nvertices*sizeof(struct Vertex));
+    t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, nvertices*sizeof(struct StlVertex));
 
-    struct Vertex pp[] = {
+    struct StlVertex pp[] = {
         {{1.0, 0.0, 1.0}, {0.0, 0.0, 0.0}, { -1,  1, 0}},
         {{1.0, 0.0, 1.0}, {0.0, 0.0, 0.0}, { -1, -1, 0}},
         {{1.0, 0.0, 1.0}, {0.0, 0.0, 0.0}, {  1, -1, 0}},
@@ -409,9 +331,9 @@ struct Object* CreateStl(struct Render* r) {
 
         ->uniform_add(plt, 0, "MatrixBlock")
 
-        ->begin_buffer(plt, sizeof(struct Vertex))
-        ->buffer_attribute(plt, 2, 3, DATA_FLOAT, offsetof(struct Vertex, col))
-        ->buffer_attribute(plt, 1, 3, DATA_FLOAT, offsetof(struct Vertex, pos))
+        ->begin_buffer(plt, sizeof(struct StlVertex))
+        ->buffer_attribute(plt, 2, 3, DATA_FLOAT, offsetof(struct StlVertex, col))
+        ->buffer_attribute(plt, 1, 3, DATA_FLOAT, offsetof(struct StlVertex, pos))
 
         ->end_buffer(plt)
 

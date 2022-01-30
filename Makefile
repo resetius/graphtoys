@@ -51,6 +51,7 @@ SOURCES=main.c\
 	vulkan/tools.c\
 	vulkan/stats.c\
 	vulkan/frame.c\
+	lib/formats/stl.c\
 	lib/config.c\
 	lib/object.c\
 	lib/ref.c\
