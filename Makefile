@@ -52,10 +52,12 @@ SOURCES=main.c\
 	vulkan/stats.c\
 	vulkan/frame.c\
 	lib/formats/stl.c\
+	lib/formats/gltf.c\
 	lib/config.c\
 	lib/object.c\
 	lib/ref.c\
-	font/font.c
+	font/font.c\
+	contrib/json/json.c
 
 SHADERS=models/triangle.frag\
 	models/triangle.vert\
@@ -75,7 +77,7 @@ GENERATED1=$(patsubst %.frag,%.frag.h,$(SHADERS))
 GENERATED=$(patsubst %.vert,%.vert.h,$(GENERATED1))
 GENERATED+=$(patsubst %.ttf,%.ttf.h,$(FONTS))
 
-All: main.exe tools/stlprint.exe tools/cfgprint.exe
+All: main.exe tools/stlprint.exe tools/cfgprint.exe tools/gltfprint.exe
 
 clean:
 	rm -f *.exe
@@ -92,6 +94,9 @@ tools/stlprint.exe: tools/stlprint.o
 	$(CC) $^ -o $@
 
 tools/cfgprint.exe: tools/cfgprint.o lib/config.o
+	$(CC) $^ -o $@
+
+tools/gltfprint.exe: tools/gltfprint.o lib/formats/gltf.o contrib/json/json.o
 	$(CC) $^ -o $@
 
 %.d: %.c Makefile
