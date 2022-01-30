@@ -81,7 +81,8 @@ All: main.exe tools/stlprint.exe tools/cfgprint.exe tools/gltfprint.exe
 
 clean:
 	rm -f *.exe
-	rm -f $(OBJECTS) $(DEPS)
+	rm -f $(OBJECTS)
+	rm -rf .deps
 	rm -f $(GENERATED)
 
 main.exe: $(OBJECTS)
@@ -99,10 +100,11 @@ tools/cfgprint.exe: tools/cfgprint.o lib/config.o
 tools/gltfprint.exe: tools/gltfprint.o lib/formats/gltf.o contrib/json/json.o
 	$(CC) $^ $(LDFLAGS) -o $@
 
-%.d: %.c Makefile
+.deps/%.d: %.c Makefile
+	mkdir -p `dirname $@`
 	$(CC) $(CFLAGS) -M -MG -MT '$(patsubst %.c,%.o,$<)' $< -MF $@
 
-%.o: %.c %.d Makefile
+%.o: %.c .deps/%.d Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %.ttf.h: %.ttf tools/rcc.exe
@@ -129,6 +131,7 @@ tools/gltfprint.exe: tools/gltfprint.o lib/formats/gltf.o contrib/json/json.o
 %.comp.spv: %.comp
 	$(GLSLC) -DGLSLC -fauto-bind-uniforms $< -o $@
 
+INC_DEPS=$(foreach var,$(DEPS), .deps/$(var))
 ifneq ($(MAKECMDGOALS),clean)
--include $(DEPS)
+-include $(INC_DEPS)
 endif
