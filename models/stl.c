@@ -232,7 +232,7 @@ static void t_free(struct Object* obj) {
     free(t);
 }
 
-struct Object* CreateStl(struct Render* r) {
+struct Object* CreateStl(struct Render* r, struct Config* cfg) {
     struct Stl* t = calloc(1, sizeof(struct Stl));
     struct Object base = {
         .draw = t_draw,
@@ -277,7 +277,7 @@ struct Object* CreateStl(struct Render* r) {
     vec4 light = {0, 0, 0, 1};
     vec4_dup(t->light, light);
 
-    const char* fn = "skull_art.stl";
+    const char* fn = cfg_gets_def(cfg, "name", "skull_art.stl");
     //FILE* f = fopen("tricky_kittens.stl", "rb");
     //FILE* f = fopen("rocklobster_solid.stl", "rb");
     //FILE* f = fopen("Doraemon_Lucky_Cat.stl", "rb");
