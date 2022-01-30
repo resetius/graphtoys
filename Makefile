@@ -97,7 +97,7 @@ tools/cfgprint.exe: tools/cfgprint.o lib/config.o
 	$(CC) $^ -o $@
 
 tools/gltfprint.exe: tools/gltfprint.o lib/formats/gltf.o contrib/json/json.o
-	$(CC) $^ -o $@
+	$(CC) $^ $(LDFLAGS) -o $@
 
 %.d: %.c Makefile
 	$(CC) $(CFLAGS) -M -MG -MT '$(patsubst %.c,%.o,$<)' $< -MF $@

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <contrib/json/json.h>
+#include <lib/verify.h>
 
 static void load_scene(struct GltfScene* scene, json_value* value) {
     for (json_object_entry* entry = value->u.object.values;
@@ -48,7 +49,7 @@ void gltf_load(struct Gltf* gltf, const char* fn) {
     size = ftell(f);
     buf = malloc(size+1);
     fseek(f, 0, SEEK_SET);
-    fread(buf, 1, size, f);
+    verify(fread(buf, 1, size, f) == size);
     buf[size] = 0;
 
     fclose(f);

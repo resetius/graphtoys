@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <lib/verify.h>
 #include "stl.h"
 
 struct StlVertex* stl_load(const char* fname, int* nvertices) {
@@ -19,10 +20,10 @@ struct StlVertex* stl_load(const char* fname, int* nvertices) {
     min_x = min_y = min_z =  1e10;
     max_x = max_y = max_z = -1e10;
 
-    fread(header, 1, 80, f);
+    verify(fread(header, 1, 80, f) == 80);
     header[80] = 0;
     printf("header: '%s'\n", header);
-    fread(&n_triangles, 4, 1, f);
+    verify(fread(&n_triangles, 4, 1, f) == 1);
 
     *nvertices = n_triangles*3;
     printf("ntriangles: %d\n", n_triangles);
@@ -33,15 +34,15 @@ struct StlVertex* stl_load(const char* fname, int* nvertices) {
     for (i = 0; i < n_triangles; i++) {
         float nx, ny, nz;
         int attrs = 0;
-        fread(&nx, 4, 1, f);
-        fread(&ny, 4, 1, f);
-        fread(&nz, 4, 1, f);
+        verify(fread(&nx, 4, 1, f) == 1);
+        verify(fread(&ny, 4, 1, f) == 1);
+        verify(fread(&nz, 4, 1, f) == 1);
 
         for (j = 0; j < 3; j++) {
             float x, y, z;
-            fread(&x, 4, 1, f);
-            fread(&y, 4, 1, f);
-            fread(&z, 4, 1, f);
+            verify(fread(&x, 4, 1, f) == 1);
+            verify(fread(&y, 4, 1, f) == 1);
+            verify(fread(&z, 4, 1, f) == 1);
 
             struct StlVertex v = {
                 {1.0, 1.0, 0.0},
@@ -57,7 +58,7 @@ struct StlVertex* stl_load(const char* fname, int* nvertices) {
             max_y = fmax(max_y, y);
             max_z = fmax(max_z, z);
         }
-        fread(&attrs, 2, 1, f);
+        verify(fread(&attrs, 2, 1, f) == 1);
         int r = attrs & 0x1f;
         int g = (attrs>>5) & 0x1f;
         int b = (attrs>>10) & 0x1f;
