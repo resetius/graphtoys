@@ -153,6 +153,11 @@ static void init_(struct Render* r1) {
     }
 
     glfwSwapInterval(r->cfg.vsync != 0); // vsync
+    GLint n_extensions = 0;
+    glGetIntegerv(GL_NUM_EXTENSIONS, &n_extensions);
+    for (int i = 0; i < n_extensions; i++) {
+        printf("Ext: '%s'\n", glGetStringi(GL_EXTENSIONS, i));
+    }
 }
 
 struct PipelineBuilder* pipeline_builder_opengl(struct Render*);
