@@ -261,9 +261,11 @@ int main(int argc, char** argv)
         /* Poll for and process events */
         glfwPollEvents();
         t2 = glfwGetTime();
+        frames ++;
+
         if (t2 - t1 > 1.0) {
-            double fp = (frames+1)/(t2-t1);
-            double ms = 1000.*(t2-t1)/(frames+1);
+            double fp = frames/(t2-t1);
+            double ms = 1000.*(t2-t1)/frames;
             if (enable_labels) {
                 label_set_vtext(fps, "FPS:%.2f, %.1fms", fp, ms);
             }
@@ -271,8 +273,6 @@ int main(int argc, char** argv)
             frames = 0;
             t1 = t2;
         }
-        frames ++;
-        //break;
     }
 
     ovec_free(&app.objs);
