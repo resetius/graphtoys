@@ -51,6 +51,7 @@ SOURCES=main.c\
 	vulkan/tools.c\
 	vulkan/stats.c\
 	vulkan/frame.c\
+	lib/formats/base64.c\
 	lib/formats/stl.c\
 	lib/formats/gltf.c\
 	lib/config.c\
@@ -97,7 +98,7 @@ tools/stlprint.exe: tools/stlprint.o
 tools/cfgprint.exe: tools/cfgprint.o lib/config.o
 	$(CC) $^ -o $@
 
-tools/gltfprint.exe: tools/gltfprint.o lib/formats/gltf.o contrib/json/json.o
+tools/gltfprint.exe: tools/gltfprint.o lib/formats/base64.o lib/formats/gltf.o contrib/json/json.o
 	$(CC) $^ $(LDFLAGS) -o $@
 
 .deps/%.d: %.c Makefile

@@ -21,6 +21,9 @@ int main(int argc, char** argv) {
         for (int j = 0; j < gltf.scenes[i].n_nodes; j++) {
             printf("Node: %d\n", gltf.scenes[i].nodes[j]);
         }
+        for (int j = 0; j < gltf.n_buffers; j++) {
+            printf("Buffer: %d\n", gltf.buffers[j].size);
+        }
     }
 
     gltf_destroy(&gltf);

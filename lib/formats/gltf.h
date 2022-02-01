@@ -16,7 +16,7 @@ struct GltfBuffer {
     int size;
 };
 
-struct GltfMeterial {
+struct GltfMaterial {
     char name[256];
     // TODO
 };
