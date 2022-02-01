@@ -22,7 +22,7 @@
         fprintf(                                    \
             stderr,                                 \
             "%s: verify(%s) failed at %s:%d\n"      \
-            , #opts                                 \
+            , opts                                 \
             , #expr                                 \
             , __FILE__, __LINE__);                  \
         abort();                                    \
