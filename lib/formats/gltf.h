@@ -13,7 +13,8 @@ struct GltfAccessor {
 
 struct GltfBuffer {
     char* data;
-    int size;
+    int64_t size;
+    int buffer;
 };
 
 struct GltfMaterial {
@@ -49,6 +50,8 @@ struct GltfScene {
 };
 
 struct Gltf {
+    struct GltfAccessor accessors[100];
+    int n_accessors;
     struct GltfScene scenes[100];
     int n_scenes;
     struct GltfNode nodes[100];

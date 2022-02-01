@@ -100,6 +100,68 @@ static void load_buffers(struct Gltf* gltf, json_value* value) {
     }
 }
 
+static void load_accessor(struct GltfAccessor* acc, json_value* value) {
+    for (json_object_entry* entry = value->u.object.values;
+         entry != value->u.object.values+value->u.object.length; entry++)
+    {
+        if (!strcmp(entry->name, "bufferView") && entry->value->type == json_integer) {
+            acc->view = entry->value->u.integer;
+        } else if (!strcmp(entry->name, "componentType") && entry->value->type == json_integer) {
+            acc->component_type = entry->value->u.integer;
+        } else if (!strcmp(entry->name, "count") && entry->value->type == json_integer) {
+            acc->count = entry->value->u.integer;
+        } else if (!strcmp(entry->name, "type") && entry->value->type == json_string) {
+            if (!strcmp(entry->value->u.string.ptr, "SCALAR")) {
+                acc->components = 1;
+            } else if (!strcmp(entry->value->u.string.ptr, "VEC2")) {
+                acc->components = 2;
+            } else if (!strcmp(entry->value->u.string.ptr, "VEC3")) {
+                acc->components = 3;
+            } else if (!strcmp(entry->value->u.string.ptr, "VEC4")) {
+                acc->components = 4;
+            }
+        } else if (!strcmp(entry->name, "max") && entry->value->type == json_array) {
+            // TODO
+        } else if (!strcmp(entry->name, "min") && entry->value->type == json_array) {
+            // TODO
+        }
+    }
+}
+
+static void load_accessors(struct Gltf* gltf, json_value* value) {
+    for (json_value** entry = value->u.array.values;
+         entry != value->u.array.values+value->u.array.length; entry++)
+    {
+        if ((*entry)->type == json_object) {
+            load_accessor(&gltf->accessors[gltf->n_accessors++], *entry);
+        }
+    }
+}
+
+static void load_view(struct GltfBuffer* buf, json_value* value) {
+    for (json_object_entry* entry = value->u.object.values;
+         entry != value->u.object.values+value->u.object.length; entry++)
+    {
+        if (!strcmp(entry->name, "buffer") && entry->value->type == json_integer) {
+            buf->buffer = entry->value->u.integer;
+        } else if (!strcmp(entry->name, "byteLength") && entry->value->type == json_integer) {
+            buf->size = entry->value->u.integer;
+        } else if (!strcmp(entry->name, "byteOffset") && entry->value->type == json_integer) {
+            buf->data = (char*)entry->value->u.integer;
+        }
+    }
+}
+
+static void load_views(struct Gltf* gltf, json_value* value) {
+    for (json_value** entry = value->u.array.values;
+         entry != value->u.array.values+value->u.array.length; entry++)
+    {
+        if ((*entry)->type == json_object) {
+            load_view(&gltf->views[gltf->n_views++], *entry);
+        }
+    }
+}
+
 void gltf_load(struct Gltf* gltf, const char* fn) {
     FILE* f = fopen(fn, "rb");
     char* buf;
@@ -140,12 +202,18 @@ void gltf_load(struct Gltf* gltf, const char* fn) {
             // TODO
         } else if (!strcmp(entry->name, "buffers") && entry->value->type == json_array) {
             load_buffers(gltf, entry->value);
-        } else if (!strcmp(entry->name, "bufferViews")) {
-
+        } else if (!strcmp(entry->name, "bufferViews") && entry->value->type == json_array) {
+            load_views(gltf, entry->value);
         } else if (!strcmp(entry->name, "asset")) {
             // skip
-        } else if (!strcmp(entry->name, "accessors")) {
+        } else if (!strcmp(entry->name, "accessors") && entry->value->type == json_array) {
+            load_accessors(gltf, entry->value);
         }
+    }
+
+    for (int i = 0; i < gltf->n_views; i++) {
+        verify(gltf->views[i].buffer < gltf->n_buffers);
+        gltf->views[i].data += (int64_t)gltf->buffers[gltf->views[i].buffer].data;
     }
 
 end:
@@ -155,5 +223,8 @@ end:
 }
 
 void gltf_destroy(struct Gltf* gltf) {
-
+    int i;
+    for (i = 0; i < gltf->n_buffers; i++) {
+        free(gltf->buffers[i].data);
+    }
 }
