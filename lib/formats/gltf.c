@@ -92,7 +92,7 @@ static void load_buffer(struct GltfBuffer* buffer, json_value* value) {
         } else if (!strcmp(entry->name, "uri") && entry->value->type == json_string) {
             int64_t size;
             buffer->data = load_uri(entry->value, &size);
-            printf("'%s'\n%d %d\n", entry->value->u.string.ptr, size, buffer->size);
+            //printf("'%s'\n%d %d\n", entry->value->u.string.ptr, size, buffer->size);
             verify(size == buffer->size);
         } else {
             printf("Unknown buffer key: '%s'\n", entry->name);

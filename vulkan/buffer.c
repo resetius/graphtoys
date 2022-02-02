@@ -44,6 +44,10 @@ static int create(
         vk_type = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     }
 
+    if (type == BUFFER_INDEX) {
+        vk_type = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    }
+
     for (i = 0; i < buf->n_buffers; i++) {
         create_buffer(
             r->memory_properties, r->log_dev,

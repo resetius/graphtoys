@@ -51,6 +51,10 @@ struct Model {
     vec4 light;
     quat q;
 
+    int n_vertices;
+    int index_byte_size;
+    int index;
+
     int model;
     int uniform_id;
     int dot;
@@ -117,7 +121,8 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
 
     t->pl->start(t->pl);
     buffer_update(t->b, t->uniform_id, &t->uniform, 0, sizeof(t->uniform));
-    t->pl->draw(t->pl, t->model);
+    //t->pl->draw(t->pl, t->model);
+    t->pl->draw_indexed(t->pl, t->model, t->index, t->index_byte_size);
 
     mat4x4 m1;
     mat4x4_identity(m1);
@@ -289,11 +294,15 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
     //FILE* f = fopen("rocklobster_solid.stl", "rb");
     //FILE* f = fopen("Doraemon_Lucky_Cat.stl", "rb");
 
+
+    t->b = r->buffer_manager(r);
+
     struct Gltf gltf;
     gltf_load(&gltf, fn);
 
     // TODO
     nvertices = gltf.accessors[gltf.meshes[0].primitives[0].indices].count;
+    int npos = gltf.accessors[gltf.meshes[0].primitives[0].position].count;
     vertices = malloc(nvertices*sizeof(struct Vertex));
 
     //int* indices =
@@ -306,23 +315,26 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
     // todo: INT, SHORT, UNSIGNED ...
     unsigned short* indices = (unsigned short*)gltf.views[ind_view].data;
 
-    printf("nvertices: %d\n", nvertices);
+    t->index = buffer_create(t->b, BUFFER_INDEX, MEMORY_STATIC, indices, gltf.views[ind_view].size);
+    t->index_byte_size = gltf.accessors[gltf.meshes[0].primitives[0].indices].component_type == 5123
+        ? 2: 4;
+
+    //printf("> nvertices: %d %d\n", nvertices, gltf.views[ind_view].size);
     int k = 0;
-    for (int j = 0; j < nvertices; j ++) {
+    for (int i = 0; i < npos; i ++) {
         // TODO: components
         int stride = 3*sizeof(float);
-        int i = indices[j]; printf("-> %d\n", i);
         memcpy(vertices[k].pos, &gltf.views[pos_view].data[i*stride], stride);
         memcpy(vertices[k].norm, &gltf.views[norm_view].data[i*stride], stride);
         vertices[k].col[0] = 1.0;
         vertices[k].col[1] = 0.0;
         vertices[k].col[2] = 1.0;
 
-        printf("%f %f %f %f %f %f %d\n",
-               vertices[k].pos[0], vertices[k].pos[1], vertices[k].pos[2],
-               vertices[k].norm[0], vertices[k].norm[1], vertices[k].norm[2],
-               indices[j]
-            );
+        //printf("%f %f %f %f %f %f %d\n",
+        //       vertices[k].pos[0], vertices[k].pos[1], vertices[k].pos[2],
+        //       vertices[k].norm[0], vertices[k].norm[1], vertices[k].norm[2],
+        //       indices[i]
+        //    );
         k++;
     }
 
@@ -330,8 +342,6 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
 
 
     gltf_destroy(&gltf);
-
-    t->b = r->buffer_manager(r);
 
     struct PipelineBuilder* pl = r->pipeline(r);
     t->pl = pl

@@ -26,6 +26,9 @@ static GLenum buffer_type(enum BufferType type) {
     case BUFFER_UNIFORM:
         ret = GL_UNIFORM_BUFFER;
         break;
+    case BUFFER_INDEX:
+        ret = GL_ELEMENT_ARRAY_BUFFER;
+        break;
     default:
         assert(0);
         break;

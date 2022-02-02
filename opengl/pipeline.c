@@ -443,6 +443,29 @@ static void draw(struct Pipeline* p1, int id) {
     after(p);
 }
 
+static void draw_indexed(struct Pipeline* p1, int id, int index, int index_byte_size) {
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    before(p);
+    glBindVertexArray(p->buffers[id].vao);
+
+    struct BufferImpl* ibuf = p->b->get(p->b, id);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuf->buffer);
+    assert(index_byte_size == 2 || index_byte_size == 4);
+
+    int n_vertices = ibuf->size / index_byte_size;
+
+    //printf("Draw: %d\n", n_vertices);
+    GLenum type = index_byte_size == 2
+        ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
+    if (p->geometry == GEOM_POINTS) {
+        glDrawElements(GL_POINTS, n_vertices, type, NULL);
+    } else {
+        glDrawElements(GL_TRIANGLES, n_vertices, type, NULL);
+    }
+
+    after(p);
+}
+
 static struct PipelineBuilder* enable_depth(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     p->enable_depth = 1;
@@ -523,6 +546,7 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .start = start,
         .start_compute = start_compute,
         .draw = draw,
+        .draw_indexed = draw_indexed,
         .use_texture = use_texture
     };
     pl->base = base;

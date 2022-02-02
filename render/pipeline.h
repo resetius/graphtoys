@@ -46,6 +46,7 @@ struct Pipeline {
 
     void (*start)(struct Pipeline* p1);
     void (*draw)(struct Pipeline* p1, int buffer_id);
+    void (*draw_indexed)(struct Pipeline* p1, int buffer_id, int buffer_index_id, int index_byte_size);
 };
 
 void pl_free(struct Pipeline*);

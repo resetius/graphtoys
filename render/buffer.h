@@ -6,6 +6,7 @@ enum BufferType {
     BUFFER_ARRAY, // vao
     BUFFER_SHADER_STORAGE,
     BUFFER_UNIFORM,
+    BUFFER_INDEX
 };
 
 enum BufferMemoryType {

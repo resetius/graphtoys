@@ -336,6 +336,63 @@ static void draw(struct Pipeline* p1, int id) {
     }
 }
 
+static void draw_indexed(struct Pipeline* p1, int id, int index, int index_byte_size) {
+    struct PipelineImpl* p = (struct PipelineImpl*)p1;
+    struct RenderImpl* r = p->r;
+
+    VkCommandBuffer buffer = r->buffer;
+
+    assert(index_byte_size == 2 || index_byte_size == 4);
+
+    if (id < p->n_buffers) {
+        VkDeviceSize offset = 0;
+        struct Buffer* buf = &p->buffers[id];
+        struct BufferImpl* ibuf = (struct BufferImpl*)p->b->get(p->b, index);
+        int n_vertices = ibuf->size / index_byte_size;
+
+        //printf("Draw %d %d\n", id, n_vertices);
+
+        VkDescriptorSet curSet = currentDescriptorSet(p);
+        VkDescriptorSet textureDescriptorSet = NULL;
+        int n_sets = 1;
+        if (p->currentDescriptorSet) {
+            textureDescriptorSet = *p->currentDescriptorSet;
+            n_sets = 2;
+        }
+        VkDescriptorSet use [] = { curSet, textureDescriptorSet };
+
+        vkCmdBindDescriptorSets(
+            buffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            p->pipelineLayout,
+            0,
+            n_sets,
+            use, 0, NULL);
+        //printf("bytes: %d\n", index_byte_size);
+        vkCmdBindIndexBuffer(
+            buffer, ibuf->buffer[0], 0,
+            index_byte_size == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+
+        vkCmdBindVertexBuffers(
+            buffer,
+            buf->binding,
+            1,
+            &buf->base.buffer[0],
+            &offset);
+
+        //printf("Use %p\n", p->currentDescriptorSet);
+
+        //printf("vertices: %d\n", buf->n_vertices);
+        vkCmdDrawIndexed(
+            buffer,
+            n_vertices, // vertices
+            1, // instance count -- just the 1
+            0,
+            0, // vertex offet -- any offsets to add
+            0);// first instance -- since no instancing, is set to 0
+    }
+}
+
 static struct PipelineBuilder* begin_sampler(struct PipelineBuilder*p1, int binding)
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
@@ -735,7 +792,8 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .start_compute = start_compute,
         .start = start,
         .use_texture = use_texture,
-        .draw = draw
+        .draw = draw,
+        .draw_indexed = draw_indexed,
     };
     pl->base = base;
     pl->r = r;
