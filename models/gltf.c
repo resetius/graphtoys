@@ -240,6 +240,7 @@ static void zoom_out(struct Object* obj, int mods) {
 static void t_free(struct Object* obj) {
     struct Model* t = (struct Model*)obj;
     t->pl->free(t->pl);
+    t->lamp->free(t->lamp);
     t->b->free(t->b);
     free(t);
 }

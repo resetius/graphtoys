@@ -64,8 +64,8 @@ void buffer_release_(struct BufferManager* mgr, int id) {
 void buffer_mgr_free_(struct BufferManager* mgr) {
     struct BufferManagerBase* b = (struct BufferManagerBase*)mgr;
     int i;
-    for (i = 0; i < b->n_buffers; i++) {
-        b->iface.release(&b->iface, b->iface.get(&b->iface, i));
+    for (i = b->n_buffers - 1; i >= 0; i--) {
+        buffer_release_(mgr, i);
     }
     free(b->buffers);
     free(b);
