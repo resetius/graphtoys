@@ -66,6 +66,8 @@ struct Gltf {
     struct GltfBuffer views[100];
     int n_views;
     int def;
+
+    char fsbase[1024];
 };
 
 void gltf_load(struct Gltf*, const char* fn);

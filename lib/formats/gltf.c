@@ -69,7 +69,7 @@ static void load_nodes(struct Gltf* gltf, json_value* value) {
     }
 }
 
-static char* load_uri(json_value* value, int64_t* size) {
+static char* load_uri(struct Gltf* gltf, json_value* value, int64_t* size) {
     const char* base64_type = "data:application/octet-stream;base64,";
     int base64_type_len = strlen(base64_type);
     *size = 0;
@@ -79,11 +79,23 @@ static char* load_uri(json_value* value, int64_t* size) {
             value->u.string.length-base64_type_len,
             size);
     } else {
-        return NULL;
+        int l = strlen(gltf->fsbase);
+        FILE* f;
+        char* output;
+        strncat(gltf->fsbase, value->u.string.ptr, sizeof(gltf->fsbase)-l-1);
+        verify(f = fopen(gltf->fsbase, "rb"));
+        fseek(f, 0, SEEK_END);
+        *size = ftell(f);
+        fseek(f, 0, SEEK_SET);
+
+        output = malloc(*size);
+        verify(fread(output, 1, *size, f) == *size);
+        fclose(f);
+        return output;
     }
 }
 
-static void load_buffer(struct GltfBuffer* buffer, json_value* value) {
+static void load_buffer(struct Gltf* gltf, struct GltfBuffer* buffer, json_value* value) {
     for (json_object_entry* entry = value->u.object.values;
          entry != value->u.object.values+value->u.object.length; entry++)
     {
@@ -91,7 +103,7 @@ static void load_buffer(struct GltfBuffer* buffer, json_value* value) {
             buffer->size = entry->value->u.integer;
         } else if (!strcmp(entry->name, "uri") && entry->value->type == json_string) {
             int64_t size;
-            buffer->data = load_uri(entry->value, &size);
+            buffer->data = load_uri(gltf, entry->value, &size);
             //printf("'%s'\n%d %d\n", entry->value->u.string.ptr, size, buffer->size);
             verify(size == buffer->size);
         } else {
@@ -105,7 +117,7 @@ static void load_buffers(struct Gltf* gltf, json_value* value) {
          entry != value->u.array.values+value->u.array.length; entry++)
     {
         if ((*entry)->type == json_object) {
-            load_buffer(&gltf->buffers[gltf->n_buffers++], *entry);
+            load_buffer(gltf, &gltf->buffers[gltf->n_buffers++], *entry);
         } else {
             printf("Bad buffers type\n");
         }
@@ -277,6 +289,12 @@ void gltf_load(struct Gltf* gltf, const char* fn) {
     buf[size] = 0;
 
     fclose(f);
+
+    strncpy(gltf->fsbase, fn, sizeof(gltf->fsbase)-1);
+    char* p = strrchr(gltf->fsbase, '/');
+    if (*p) {
+        *(p+1) = 0;
+    }
 
     json_value* value = json_parse(buf, size);
     if (value->type != json_object) {
