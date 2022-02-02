@@ -346,30 +346,6 @@ static void uniform_update(struct Pipeline* p1, int id, const void* data, int of
     p->b->update(p->b, p->uniforms[id].id, data, offset, size);
 }
 
-// TODO: remove
-static void buffer_update_(struct Pipeline* p1, int id, const void* data, int offset, int size)
-{
-    struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    // TODO: check is dynamic
-    assert(id < p->n_buffers);
-    p->b->update(p->b, p->buffers[id].id, data, offset, size);
-}
-
-void buffer_copy(struct Pipeline* p1, int dst, int src) {
-//    struct PipelineImpl* p = (struct PipelineImpl*)p1;
-//    assert(dst < p->n_buffers);
-//    assert(src < p->n_buffers);
-//    struct Buffer* src_buf = &p->buffers[src];
-//    struct Buffer* dst_buf = &p->buffers[dst];
-
-    assert(0);
-
-//    glBindBuffer(GL_SHADER_STORAGE_BUFFER, src_buf->vbo);
-//    glBindBuffer(GL_ARRAY_BUFFER, dst_buf->vbo);
-//    glCopyBufferSubData(GL_SHADER_STORAGE_BUFFER, GL_ARRAY_BUFFER, 0, 0, src_buf->size);
-}
-
-
 static void storage_swap(struct Pipeline* p1, int dst, int src) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     assert(dst < p->n_uniforms);
@@ -548,8 +524,6 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .uniform_assign = uniform_assign,
         .uniform_update = uniform_update,
         .buffer_assign = buffer_assign,
-        .buffer_copy = buffer_copy,
-        .buffer_update = buffer_update_,
         .storage_swap = storage_swap,
         .start = start,
         .start_compute = start_compute,

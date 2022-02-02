@@ -8,10 +8,6 @@ void pl_uniform_update(struct Pipeline* pl, int id, const void* data, int offset
     pl->uniform_update(pl, id, data, offset, size);
 }
 
-void pl_buffer_update(struct Pipeline* pl, int od, const void* data, int offset, int size) {
-    pl->buffer_update(pl, od, data, offset, size);
-}
-
 void pl_storage_assign(struct Pipeline* p1, int storage_id, int buffer_id)
 {
     p1->storage_assign(p1, storage_id, buffer_id);

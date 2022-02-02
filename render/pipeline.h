@@ -37,17 +37,6 @@ struct Pipeline {
         int offset,
         int size);
 
-    // deprecated
-    void (*buffer_update)(
-        struct Pipeline*,
-        int buffer_od,
-        const void* data,
-        int offset,
-        int size);
-
-    // deprecated
-    void (*buffer_copy)(struct Pipeline* p1,
-                        int dst, int src);
     void (*storage_swap)(struct Pipeline* p1,
                          int dst, int src);
 
@@ -61,7 +50,6 @@ struct Pipeline {
 
 void pl_free(struct Pipeline*);
 void pl_uniform_update(struct Pipeline*, int id, const void* data, int offset, int size);
-void pl_buffer_update(struct Pipeline*, int od, const void* data, int offset, int size);
 void pl_storage_assign(struct Pipeline* p1, int storage_id, int buffer_id);
 void pl_uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id);
 int pl_buffer_assign(struct Pipeline* p1, int descriptor_id, int buffer_id);
