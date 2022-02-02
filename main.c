@@ -19,6 +19,8 @@
 #include <models/particles.h>
 #include <models/particles2.h>
 
+struct Object* CreateGltf(struct Render* r, struct Config* cfg);
+
 struct App {
     struct DrawContext ctx;
     struct ObjectVec objs;
@@ -136,6 +138,7 @@ int main(int argc, char** argv)
         {"stl", CreateStl},
         {"particles", CreateParticles},
         {"particles2", CreateParticles2},
+        {"gltf", CreateGltf},
         {"test", NULL},
         {NULL, NULL}
     };

@@ -22,6 +22,7 @@ endif
 LDFLAGS+=$(VULKAN_LOADER)
 
 SOURCES=main.c\
+	models/gltf.c\
 	models/triangle.c\
 	models/torus.c\
 	models/mandelbrot.c\
