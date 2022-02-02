@@ -178,27 +178,6 @@ static void buffer_update_(struct Pipeline* p1, int id, const void* data, int of
     p->b->update(p->b, buf->base.base.id, data, offset, size);
 }
 
-static int buffer_create_(struct Pipeline* p1, enum BufferType type, enum BufferMemoryType mem_type, int binding, const void* data, int size)
-{
-    struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    assert(binding < p->n_buf_descr);
-    struct BufferDescriptor* descr = &p->buf_descr[binding];
-    if (p->n_buffers >= p->buf_cap) {
-        p->buf_cap = (p->buf_cap+1)*2;
-        p->buffers = realloc(p->buffers, p->buf_cap*sizeof(struct Buffer));
-    }
-    int buffer_id = p->n_buffers++;
-    struct Buffer* buf = &p->buffers[buffer_id];
-    buf->stride = descr->stride;
-    buf->n_vertices = size / descr->stride;
-    buf->binding = binding;
-
-    int id = p->b->create(p->b, type, mem_type, data, size);
-    memcpy(&buf->base, p->b->get(p->b, id), sizeof(buf->base));
-
-    return buffer_id;
-}
-
 static void use_texture(struct Pipeline* p1, void* texture) {
     struct PipelineImpl* pl = (struct PipelineImpl*)p1;
     struct RenderImpl* r = pl->r;
@@ -774,7 +753,6 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .storage_assign = uniform_assign,
         .uniform_assign = uniform_assign,
         .buffer_update = buffer_update_,
-        .buffer_create = buffer_create_,
         .free = pipeline_free,
         .start_compute = start_compute,
         .start = start,

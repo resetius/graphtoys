@@ -23,6 +23,11 @@ struct UniformBlock {
     mat4x4 mvp;
 };
 
+struct BufferPair {
+    int id;
+    int vao;
+};
+
 struct FontImpl {
     //struct Program* p;
     struct Char* chars[65536];
@@ -187,7 +192,7 @@ void label_set_text(struct Label* l, const char* s1) {
     if (l->cap < len) {
         l->cap = len+1;
         l->text = realloc(l->text, l->cap*sizeof(uint32_t));
-        l->buf = realloc(l->buf, l->cap*sizeof(int));
+        l->buf = realloc(l->buf, l->cap*sizeof(struct BufferPair));
     }
 
     int k = 0;
@@ -221,7 +226,8 @@ void label_set_text(struct Label* l, const char* s1) {
             l->text[k] = symbol | 0x80000000;
         }
         if (k >= l->len) {
-            l->buf[k] = f->pl->buffer_create(f->pl, BUFFER_ARRAY, MEMORY_DYNAMIC, 0, NULL, 6*4*4);
+            l->buf[k].id = buffer_create(f->b, BUFFER_ARRAY, MEMORY_DYNAMIC, NULL, 6*4*4);
+            l->buf[k].vao = pl_buffer_assign(f->pl, 0, l->buf[k].id);
         }
 
         k++;
@@ -301,10 +307,10 @@ void label_render(struct Label* l)
                 { xpos + w, ypos + h, 1.0, 0.0 }
             };
             if (changed) {
-                f->pl->buffer_update(f->pl, l->buf[i], vertices, 0, sizeof(vertices));
+                buffer_update(f->b, l->buf[i].id, vertices, 0, sizeof(vertices));
             }
             f->pl->use_texture(f->pl, ch->texture(ch));
-            f->pl->draw(f->pl, l->buf[i]);
+            f->pl->draw(f->pl, l->buf[i].vao);
         }
         if (!ch) {
             continue;

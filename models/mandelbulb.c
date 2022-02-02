@@ -178,7 +178,8 @@ struct Object* CreateMandelbulb(struct Render* r) {
     t->uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
     pl_uniform_assign(t->pl, 0, t->uniform_id);
 
-    t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, n_vertices*sizeof(struct Vertex));
+    int model_buffer_id = buffer_create(t->b, BUFFER_ARRAY, MEMORY_STATIC, vertices, n_vertices*sizeof(struct Vertex));
+    t->model = pl_buffer_assign(t->pl, 0, model_buffer_id);
 
     t->n_types = 4;
     t->cur_type = 0;

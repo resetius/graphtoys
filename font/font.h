@@ -6,10 +6,12 @@
 
 struct Font;
 
+struct BufferPair;
+
 struct Label {
     struct Font* f;
     uint32_t* text;
-    int* buf;
+    struct BufferPair* buf;
     int len;
     int cap;
 

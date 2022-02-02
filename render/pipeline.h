@@ -51,27 +51,17 @@ struct Pipeline {
     void (*storage_swap)(struct Pipeline* p1,
                          int dst, int src);
 
-    // deprecated
-    int (*buffer_create)(
-        struct Pipeline* p1,
-        enum BufferType type,
-        enum BufferMemoryType mem_type,
-        int descriptor,
-        const void* data,
-        int size); // -> buffer id
-
     void (*use_texture)(struct Pipeline* p1, void* texture);
 
     void (*start_compute)(struct Pipeline* p1, int sx, int sy, int sz);
 
     void (*start)(struct Pipeline* p1);
-    void (*draw)(struct Pipeline* p1, int buffer_id);};
+    void (*draw)(struct Pipeline* p1, int buffer_id);
+};
 
 void pl_free(struct Pipeline*);
 void pl_uniform_update(struct Pipeline*, int id, const void* data, int offset, int size);
 void pl_buffer_update(struct Pipeline*, int od, const void* data, int offset, int size);
-int pl_buffer_create(struct Pipeline*, enum BufferType type, enum BufferMemoryType mtype,
-                      int binding, const void* data, int size);
 void pl_storage_assign(struct Pipeline* p1, int storage_id, int buffer_id);
 void pl_uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id);
 int pl_buffer_assign(struct Pipeline* p1, int descriptor_id, int buffer_id);

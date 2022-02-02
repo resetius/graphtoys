@@ -355,48 +355,6 @@ static void buffer_update_(struct Pipeline* p1, int id, const void* data, int of
     p->b->update(p->b, p->buffers[id].id, data, offset, size);
 }
 
-// TODO: maybe buffer_vertex_create and remove type?
-static int buffer_create_(
-    struct Pipeline* p1,
-    enum BufferType type,
-    enum BufferMemoryType mem_type,
-    int binding, const void* data, int size)
-{
-    struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    assert(binding < p->n_buf_descrs);
-    struct BufferDescriptor* descr = &p->buf_descr[binding];
-    if (p->n_buffers >= p->buf_cap) {
-        p->buf_cap = (p->buf_cap+1)*2;
-        p->buffers = realloc(p->buffers, p->buf_cap*sizeof(struct Buffer));
-    }
-    int buffer_id = p->n_buffers++;
-    struct Buffer* buf = &p->buffers[buffer_id];
-    memset(buf, 0, sizeof(*buf));
-    buf->id = p->b->create(p->b, type, mem_type, data, size);
-    memcpy(&buf->base, p->b->get(p->b, buf->id), sizeof(buf->base));
-
-    buf->stride = descr->stride;
-    buf->n_vertices = size / descr->stride;
-    buf->descriptor = binding;
-
-    glBindBuffer(GL_ARRAY_BUFFER, buf->base.buffer);
-    glGenVertexArrays(1, &buf->vao);
-    glBindVertexArray(buf->vao);
-
-    for (int j = 0; j < descr->n_attrs; j++) {
-        int location = descr->attrs[j].location;
-        glEnableVertexAttribArray(location);
-        glVertexAttribPointer(
-            location, descr->attrs[j].channels, GL_FLOAT, GL_FALSE,
-            descr->stride,
-            (const void*)descr->attrs[j].offset);
-    }
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
-    return buffer_id;
-}
-
 void buffer_copy(struct Pipeline* p1, int dst, int src) {
 //    struct PipelineImpl* p = (struct PipelineImpl*)p1;
 //    assert(dst < p->n_buffers);
@@ -592,7 +550,6 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .buffer_assign = buffer_assign,
         .buffer_copy = buffer_copy,
         .buffer_update = buffer_update_,
-        .buffer_create = buffer_create_,
         .storage_swap = storage_swap,
         .start = start,
         .start_compute = start_compute,

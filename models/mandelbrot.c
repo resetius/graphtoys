@@ -153,8 +153,8 @@ struct Object* CreateMandelbrot(struct Render* r) {
     t->uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
     pl_uniform_assign(t->pl, 0, t->uniform_id);
 
-    t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, nvertices*sizeof(struct Vertex));
-
+    int model_buffer_id = buffer_create(t->b, BUFFER_ARRAY, MEMORY_STATIC, vertices, nvertices*sizeof(struct Vertex));
+    t->model = pl_buffer_assign(t->pl, 0, model_buffer_id);
     t->T[0] = t->T[1] = 0.0; t->T[2] = 2.0;
 
     return (struct Object*)t;

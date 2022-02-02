@@ -309,7 +309,8 @@ struct Object* CreateStl(struct Render* r, struct Config* cfg) {
     t->uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
     t->pl->uniform_assign(t->pl, 0, t->uniform_id);
 
-    t->model = t->pl->buffer_create(t->pl, BUFFER_ARRAY, MEMORY_STATIC, 0, vertices, nvertices*sizeof(struct StlVertex));
+    int model_buffer_id = buffer_create(t->b, BUFFER_ARRAY, MEMORY_STATIC, vertices, nvertices*sizeof(struct StlVertex));
+    t->model = pl_buffer_assign(t->pl, 0, model_buffer_id);
 
     struct StlVertex pp[] = {
         {{1.0, 0.0, 1.0}, {0.0, 0.0, 0.0}, { -1,  1, 0}},
@@ -345,8 +346,8 @@ struct Object* CreateStl(struct Render* r, struct Config* cfg) {
     t->dot_uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(mat4x4));
     t->plt->uniform_assign(t->plt, 0, t->dot_uniform_id);
 
-    t->dot = t->plt->buffer_create(t->plt, BUFFER_ARRAY, MEMORY_STATIC, 0, pp, sizeof(pp));
-
+    int dot_buffer_id = buffer_create(t->b, BUFFER_ARRAY, MEMORY_STATIC, pp, sizeof(pp));
+    t->dot = pl_buffer_assign(t->plt, 0, dot_buffer_id);
     free(vertices);
 
     return (struct Object*)t;

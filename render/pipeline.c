@@ -12,11 +12,6 @@ void pl_buffer_update(struct Pipeline* pl, int od, const void* data, int offset,
     pl->buffer_update(pl, od, data, offset, size);
 }
 
-int pl_buffer_create(struct Pipeline* pl, enum BufferType type, enum BufferMemoryType mtype,
-                      int binding, const void* data, int size) {
-    return pl->buffer_create(pl, type, mtype, binding, data, size);
-}
-
 void pl_storage_assign(struct Pipeline* p1, int storage_id, int buffer_id)
 {
     p1->storage_assign(p1, storage_id, buffer_id);
