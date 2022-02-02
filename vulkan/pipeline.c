@@ -60,7 +60,6 @@ struct PipelineImpl {
     VkDescriptorSetLayout texLayout;
 
     struct BufferManager* b; // TODO: remove me
-    int owns; // TODO: remove me
 };
 
 struct Sampler {
@@ -110,7 +109,6 @@ struct PipelineBuilderImpl {
     VkCullModeFlagBits cull_mode;
 
     struct BufferManager* b; // TODO: remove me
-    int owns; // TODO: remove me
 };
 
 static uint32_t primitive_topology(enum GeometryType geometry) {
@@ -652,18 +650,8 @@ static void pipeline_free(struct Pipeline* p1) {
 
     vkDeviceWaitIdle(r->log_dev);
 
-    if (p->owns) {
-        for (i = 0; i < p->n_uniforms; i++) {
-            p->b->destroy(p->b, p->uniforms[i].base.base.id);
-        }
-    }
     free(p->uniforms); p->uniforms = NULL; p->n_uniforms = 0;
 
-    if (p->owns) {
-        for (i = 0; i < p->n_buffers; i++) {
-            p->b->destroy(p->b, p->buffers[i].base.base.id);
-        }
-    }
     free(p->buffers); p->n_buffers = 0;
     p->buffers = NULL;
 
@@ -1009,7 +997,6 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     memcpy(pl->buf_descr, p->buffers, p->n_buffers*sizeof(struct BufferDescriptor));
     pl->n_buf_descr = p->n_buffers;
     pl->b = p->b;
-    pl->owns = p->owns;
 
     builder_free(p);
 

@@ -71,7 +71,6 @@ struct PipelineImpl {
     enum GeometryType geometry;
 
     struct BufferManager* b; // TODO: remove me
-    int owns; // TODO: remove me
 
     int enable_cull;
     GLenum cull_mode;
@@ -104,7 +103,6 @@ struct PipelineBuilderImpl {
     enum GeometryType geometry;
 
     struct BufferManager* b; // TODO: remove me
-    int owns; // TODO: remove me
 
     int enable_cull;
     GLenum cull_mode;
@@ -258,9 +256,6 @@ static void pipeline_free(struct Pipeline* p1) {
     free(p->programs);
 
     for (i = 0; i < p->n_buffers; i++) {
-        if (p->owns) {
-            p->b->destroy(p->b, p->buffers[i].id); // TODO: remove me
-        }
         if (p->buffers[i].vao) {
             glDeleteVertexArrays(1, &p->buffers[i].vao);
         }
@@ -551,7 +546,6 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     pl->enable_blend = p->enable_blend;
     pl->geometry = p->geometry;
     pl->b = p->b;
-    pl->owns = p->owns;
 
     pl->enable_cull = p->enable_cull;
     pl->cull_mode = p->cull_mode;
