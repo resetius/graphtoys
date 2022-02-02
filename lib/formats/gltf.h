@@ -23,10 +23,12 @@ struct GltfMaterial {
 };
 
 struct GltfPrimitive {
+    // attributes
     int normal;
     int position;
     int texcoord[10];
     int n_texcoords;
+
     int indices;
     int material;
 };
