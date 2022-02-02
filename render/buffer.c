@@ -50,7 +50,7 @@ void buffer_release_(struct BufferManager* mgr, int id) {
     b->iface.release(&b->iface, &b->buffers[id*b->buffer_size]);
 
     b->total_memory -= ((struct BufferBase*)&b->buffers[id*b->buffer_size])->size;
-    printf("(%p) buffer memory: %lld\n", b, (long long)b->total_memory);
+    printf("(%p) free buffer memory: %lld\n", b, (long long)b->total_memory);
 
     memcpy(&b->buffers[id*b->buffer_size], &base, sizeof(base));
 

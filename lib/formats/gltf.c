@@ -132,6 +132,8 @@ static void load_accessor(struct GltfAccessor* acc, json_value* value) {
             acc->view = entry->value->u.integer;
         } else if (!strcmp(entry->name, "componentType") && entry->value->type == json_integer) {
             acc->component_type = entry->value->u.integer;
+        } else if (!strcmp(entry->name, "byteOffset") && entry->value->type == json_integer) {
+            acc->offset = entry->value->u.integer;
         } else if (!strcmp(entry->name, "count") && entry->value->type == json_integer) {
             acc->count = entry->value->u.integer;
         } else if (!strcmp(entry->name, "type") && entry->value->type == json_string) {
@@ -146,6 +148,8 @@ static void load_accessor(struct GltfAccessor* acc, json_value* value) {
             } else {
                 printf("Unknown type: %s\n", entry->value->u.string.ptr);
             }
+        } else if (!strcmp(entry->name, "name") && entry->value->type == json_string) {
+            strncpy(acc->name, entry->value->u.string.ptr, sizeof(acc->name)-1);
         } else if (!strcmp(entry->name, "max") && entry->value->type == json_array) {
             // TODO
             printf("Max unsupported yet\n");
@@ -170,7 +174,7 @@ static void load_accessors(struct Gltf* gltf, json_value* value) {
     }
 }
 
-static void load_view(struct GltfBuffer* buf, json_value* value) {
+static void load_view(struct GltfView* buf, json_value* value) {
     for (json_object_entry* entry = value->u.object.values;
          entry != value->u.object.values+value->u.object.length; entry++)
     {
@@ -180,6 +184,10 @@ static void load_view(struct GltfBuffer* buf, json_value* value) {
             buf->size = entry->value->u.integer;
         } else if (!strcmp(entry->name, "byteOffset") && entry->value->type == json_integer) {
             buf->data = (char*)entry->value->u.integer;
+        } else if (!strcmp(entry->name, "byteStride") && entry->value->type == json_integer) {
+            buf->stride = entry->value->u.integer;
+        } else if (!strcmp(entry->name, "name") && entry->value->type == json_string) {
+            strncpy(buf->name, entry->value->u.string.ptr, sizeof(buf->data)-1);
         } else {
             printf("Unknown view key: '%s'\n", entry->name);
         }
@@ -272,14 +280,15 @@ static void load_meshes(struct Gltf* gltf, json_value* value) {
     }
 }
 
-void gltf_load(struct Gltf* gltf, const char* fn) {
+struct Gltf* gltf_load(const char* fn) {
+    struct Gltf* gltf = calloc(1, sizeof(*gltf));
     FILE* f = fopen(fn, "rb");
     char* buf;
     int64_t size;
     memset(gltf, 0, sizeof(*gltf));
     if (!f) {
         printf("Cannot open '%s'\n", fn);
-        return;
+        return NULL;
     }
     fseek(f, 0, SEEK_END);
     size = ftell(f);
@@ -343,6 +352,8 @@ end:
     json_value_free(value);
 
     free(buf);
+
+    return gltf;
 }
 
 void gltf_destroy(struct Gltf* gltf) {
@@ -350,4 +361,5 @@ void gltf_destroy(struct Gltf* gltf) {
     for (i = 0; i < gltf->n_buffers; i++) {
         free(gltf->buffers[i].data);
     }
+    free(gltf);
 }

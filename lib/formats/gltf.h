@@ -4,6 +4,8 @@
 #include <stdint.h>
 
 struct GltfAccessor {
+    char name[256];
+    int64_t offset;
     int view;
     int component_type;
     int count;
@@ -16,6 +18,14 @@ struct GltfBuffer {
     char* data;
     int64_t size;
     int buffer;
+};
+
+struct GltfView {
+    char name[256];
+    char* data;
+    int buffer;
+    int stride;
+    int64_t size;
 };
 
 struct GltfMaterial {
@@ -53,22 +63,22 @@ struct GltfScene {
 };
 
 struct Gltf {
-    struct GltfAccessor accessors[100];
+    struct GltfAccessor accessors[1024];
     int n_accessors;
-    struct GltfScene scenes[100];
+    struct GltfScene scenes[1024];
     int n_scenes;
-    struct GltfNode nodes[100];
+    struct GltfNode nodes[1024];
     int n_nodes;
-    struct GltfMesh meshes[100];
+    struct GltfMesh meshes[1024];
     int n_meshes;
-    struct GltfBuffer buffers[100];
+    struct GltfBuffer buffers[1024];
     int n_buffers;
-    struct GltfBuffer views[100];
+    struct GltfView views[1024];
     int n_views;
     int def;
 
     char fsbase[1024];
 };
 
-void gltf_load(struct Gltf*, const char* fn);
+struct Gltf* gltf_load(const char* fn);
 void gltf_destroy(struct Gltf*);

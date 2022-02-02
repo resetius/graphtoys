@@ -245,6 +245,19 @@ static void t_free(struct Object* obj) {
     free(t);
 }
 
+#include <glad/gl.h>
+#include <lib/verify.h>
+
+static int el_size(int type) {
+    switch (type) {
+    case GL_FLOAT: return 4;
+    case GL_UNSIGNED_SHORT: return 2;
+    case GL_UNSIGNED_INT: return 4;
+    };
+    verify(type == -1);
+    return -1;
+}
+
 struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
     struct Model* t = calloc(1, sizeof(struct Model));
     struct Object base = {
@@ -298,35 +311,55 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
 
     t->b = r->buffer_manager(r);
 
-    struct Gltf gltf;
-    gltf_load(&gltf, fn);
+    struct Gltf* gltf = gltf_load(fn);
 
     // TODO
-    nvertices = gltf.accessors[gltf.meshes[0].primitives[0].indices].count;
-    int npos = gltf.accessors[gltf.meshes[0].primitives[0].position].count;
-    vertices = malloc(nvertices*sizeof(struct Vertex));
+    int mesh = 5;
+    nvertices = gltf->accessors[gltf->meshes[mesh].primitives[0].indices].count;
+    int npos = gltf->accessors[gltf->meshes[mesh].primitives[0].position].count;
+
+    vertices = malloc(npos*sizeof(struct Vertex));
 
     //int* indices =
 
-    int ind_view = gltf.accessors[gltf.meshes[0].primitives[0].indices].view;
-    int pos_view = gltf.accessors[gltf.meshes[0].primitives[0].position].view;
-    int norm_view = gltf.accessors[gltf.meshes[0].primitives[0].normal].view;
+    int ind_view = gltf->accessors[gltf->meshes[mesh].primitives[0].indices].view;
+    int pos_view = gltf->accessors[gltf->meshes[mesh].primitives[0].position].view;
+    int norm_view = gltf->accessors[gltf->meshes[mesh].primitives[0].normal].view;
+
+    int pos_components = gltf->accessors[gltf->meshes[mesh].primitives[0].position].components;
+    int norm_components = gltf->accessors[gltf->meshes[mesh].primitives[0].normal].components;
+    int pos_type = gltf->accessors[gltf->meshes[mesh].primitives[0].position].component_type;
+    int norm_type = gltf->accessors[gltf->meshes[mesh].primitives[0].normal].component_type;
+    char* pos_data = gltf->views[pos_view].data +
+        gltf->accessors[gltf->meshes[mesh].primitives[0].position].offset;
+    char* norm_data = gltf->views[norm_view].data +
+        gltf->accessors[gltf->meshes[mesh].primitives[0].normal].offset;
+
+    int pos_size = pos_components*el_size(pos_type);
+    int norm_size = norm_components*el_size(norm_type);
+    int pos_stride = gltf->views[pos_view].stride
+            ? gltf->views[pos_view].stride
+            : pos_size;
+    int norm_stride =
+        gltf->views[norm_view].stride
+            ? gltf->views[norm_view].stride
+            : norm_size;
 
     printf("indview: %d\n", ind_view);
-    // todo: INT, SHORT, UNSIGNED ...
-    unsigned short* indices = (unsigned short*)gltf.views[ind_view].data;
+    unsigned short* indices = (unsigned short*)gltf->views[ind_view].data;
 
-    t->index = buffer_create(t->b, BUFFER_INDEX, MEMORY_STATIC, indices, gltf.views[ind_view].size);
-    t->index_byte_size = gltf.accessors[gltf.meshes[0].primitives[0].indices].component_type == 5123
+    t->index = buffer_create(t->b, BUFFER_INDEX, MEMORY_STATIC, indices, gltf->views[ind_view].size);
+    t->index_byte_size = gltf->accessors[gltf->meshes[mesh].primitives[0].indices].component_type == 5123
         ? 2: 4;
 
-    //printf("> nvertices: %d %d\n", nvertices, gltf.views[ind_view].size);
+    printf("> nvertices: %d %d %d\n", npos, nvertices, gltf->views[ind_view].size);
+    printf("> pos size/stride: %d %d\n", pos_size, pos_stride);
+    printf("> norm size/stride: %d %d\n", norm_size, norm_stride);
+
     int k = 0;
     for (int i = 0; i < npos; i ++) {
-        // TODO: components
-        int stride = 3*sizeof(float);
-        memcpy(vertices[k].pos, &gltf.views[pos_view].data[i*stride], stride);
-        memcpy(vertices[k].norm, &gltf.views[norm_view].data[i*stride], stride);
+        memcpy(vertices[k].pos, &pos_data[i*pos_stride], pos_size);
+        memcpy(vertices[k].norm, &norm_data[i*norm_stride], norm_size);
         vertices[k].col[0] = 1.0;
         vertices[k].col[1] = 0.0;
         vertices[k].col[2] = 1.0;
@@ -342,7 +375,7 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
     // TODO: use indices
 
 
-    gltf_destroy(&gltf);
+    gltf_destroy(gltf);
 
     struct PipelineBuilder* pl = r->pipeline(r);
     t->pl = pl
@@ -368,7 +401,7 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
     t->uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
     t->pl->uniform_assign(t->pl, 0, t->uniform_id);
 
-    int model_buffer_id = buffer_create(t->b, BUFFER_ARRAY, MEMORY_STATIC, vertices, nvertices*sizeof(struct Vertex));
+    int model_buffer_id = buffer_create(t->b, BUFFER_ARRAY, MEMORY_STATIC, vertices, k*sizeof(struct Vertex));
     t->model = pl_buffer_assign(t->pl, 0, model_buffer_id);
 
     struct Vertex pp[] = {
