@@ -58,6 +58,10 @@ char* base64_decode(const char* input, int64_t size, int64_t* output_size) {
         output[len++] = (part >> 0*8) & 0xFF;
     }
 
+    while (size > 0 && input[size-1] == '=') {
+        len--; size --;
+    }
+
     *output_size = len;
     return output;
 }
@@ -101,6 +105,7 @@ static void test_dec(const char* str, const char* dst) {
     char* out = base64_decode(str, strlen(str), &size);
     printf("'%s'\n", out);
     verify(!strcmp(out, dst));
+    verify(size == strlen(dst));
     free(out);
 }
 
