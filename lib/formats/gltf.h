@@ -1,6 +1,7 @@
 #pragma once
 
 #include <lib/linmath.h>
+#include <stdint.h>
 
 struct GltfAccessor {
     int view;

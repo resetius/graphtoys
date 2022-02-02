@@ -112,7 +112,7 @@ static void test_enc(const char* str, const char* dst) {
     free(out);
 }
 
-int base64_test() {
+int base64_test(int argc, char** argv) {
     test_dec("dGVzdA==", "test");
     test_dec("bG9uZyBsb25nIGxvbmcgdGV4dCB0ZXN0", "long long long text test");
     test_dec("0YDRg9GB0YHQutC40Lkg0YLQtdC60YHRgg==", "русский текст");
