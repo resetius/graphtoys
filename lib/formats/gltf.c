@@ -256,7 +256,7 @@ static void load_primitives(struct GltfMesh* mesh, json_value* value) {
     for (json_value** entry = value->u.array.values;
          entry != value->u.array.values+value->u.array.length; entry++)
     {
-        if ((*entry)->type == json_object) {
+        if ((*entry)->type == json_object && mesh->n_primitives < sizeof(mesh->primitives)/sizeof(mesh->primitives[0])) {
             load_primitive(&mesh->primitives[mesh->n_primitives++], *entry);
         } else {
             printf("Unknown primitives  type\n");
