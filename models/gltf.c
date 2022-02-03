@@ -314,7 +314,7 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
     struct Gltf* gltf = gltf_load(fn);
 
     // TODO
-    int mesh = 5;
+    int mesh = 0;
     nvertices = gltf->accessors[gltf->meshes[mesh].primitives[0].indices].count;
     int npos = gltf->accessors[gltf->meshes[mesh].primitives[0].position].count;
 
@@ -328,6 +328,7 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
 
     int pos_components = gltf->accessors[gltf->meshes[mesh].primitives[0].position].components;
     int norm_components = gltf->accessors[gltf->meshes[mesh].primitives[0].normal].components;
+    int ind_type = gltf->accessors[gltf->meshes[mesh].primitives[0].indices].component_type;
     int pos_type = gltf->accessors[gltf->meshes[mesh].primitives[0].position].component_type;
     int norm_type = gltf->accessors[gltf->meshes[mesh].primitives[0].normal].component_type;
     char* pos_data = gltf->views[pos_view].data +
@@ -337,6 +338,7 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
 
     int pos_size = pos_components*el_size(pos_type);
     int norm_size = norm_components*el_size(norm_type);
+    int ind_size = nvertices*el_size(ind_type);
     int pos_stride = gltf->views[pos_view].stride
             ? gltf->views[pos_view].stride
             : pos_size;
@@ -346,13 +348,13 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
             : norm_size;
 
     printf("indview: %d\n", ind_view);
-    unsigned short* indices = (unsigned short*)gltf->views[ind_view].data;
+    char* indices = gltf->views[ind_view].data+gltf->accessors[gltf->meshes[mesh].primitives[0].indices].offset;
 
-    t->index = buffer_create(t->b, BUFFER_INDEX, MEMORY_STATIC, indices, gltf->views[ind_view].size);
+    t->index = buffer_create(t->b, BUFFER_INDEX, MEMORY_STATIC, indices, ind_size);
     t->index_byte_size = gltf->accessors[gltf->meshes[mesh].primitives[0].indices].component_type == 5123
         ? 2: 4;
 
-    printf("> nvertices: %d %d %d\n", npos, nvertices, gltf->views[ind_view].size);
+    printf("> nvertices: %d %d %d\n", npos, nvertices, ind_size);
     printf("> pos size/stride: %d %d\n", pos_size, pos_stride);
     printf("> norm size/stride: %d %d\n", norm_size, norm_stride);
 
