@@ -161,12 +161,6 @@ static void uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id)
            sizeof(p->uniforms[uniform_id].base));
 }
 
-static void uniform_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
-{
-    struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    p->b->update(p->b, p->uniforms[id].base.base.id, data, offset, size);
-}
-
 static void use_texture(struct Pipeline* p1, void* texture) {
     struct PipelineImpl* pl = (struct PipelineImpl*)p1;
     struct RenderImpl* r = pl->r;
@@ -785,7 +779,6 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct Pipeline base = {
         .buffer_assign = buffer_assign,
         .storage_swap = storage_swap,
-        .uniform_update = uniform_update,
         .storage_assign = uniform_assign,
         .uniform_assign = uniform_assign,
         .free = pipeline_free,

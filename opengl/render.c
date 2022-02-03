@@ -43,10 +43,6 @@ message_callback( GLenum source,
              source, type, severity, message );
 }
 
-static struct Program* rend_prog_new_(struct Render* r) {
-    return prog_opengl_new();
-};
-
 static void* char_texture_(struct Char* ch) {
     return & (((struct CharImpl*)ch)->tex_id);
 }

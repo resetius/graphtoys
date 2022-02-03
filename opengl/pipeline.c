@@ -334,13 +334,6 @@ static void uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id)
            sizeof(p->uniforms[uniform_id].base));
 }
 
-static void uniform_update(struct Pipeline* p1, int id, const void* data, int offset, int size)
-{
-    struct PipelineImpl* p = (struct PipelineImpl*)p1;
-    assert(id < p->n_uniforms);
-    p->b->update(p->b, p->uniforms[id].id, data, offset, size);
-}
-
 static void storage_swap(struct Pipeline* p1, int dst, int src) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     assert(dst < p->n_uniforms);
@@ -540,7 +533,6 @@ static struct Pipeline* build(struct PipelineBuilder* p1) {
         .free = pipeline_free,
         .storage_assign = uniform_assign,
         .uniform_assign = uniform_assign,
-        .uniform_update = uniform_update,
         .buffer_assign = buffer_assign,
         .storage_swap = storage_swap,
         .start = start,

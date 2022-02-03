@@ -103,7 +103,7 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     memcpy(&t->uniform.next, &t->cur_type, 4);
 
     t->pl->start(t->pl);
-    t->pl->uniform_update(t->pl, 0, &t->uniform, 0, sizeof(t->uniform));
+    buffer_update(t->b, t->uniform_id, &t->uniform, 0, sizeof(t->uniform));
     t->pl->draw(t->pl, t->model);
 }
 
