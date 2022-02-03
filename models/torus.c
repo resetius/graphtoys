@@ -5,7 +5,6 @@
 
 #include <lib/object.h>
 #include "torus.h"
-#include <render/program.h>
 #include <render/pipeline.h>
 #include <render/buffer.h>
 #include <lib/linmath.h>

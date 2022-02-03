@@ -5,7 +5,6 @@
 
 #include <freetype/freetype.h>
 
-#include <render/program.h>
 #include <render/pipeline.h>
 #include <render/char.h>
 #include <render/render.h>

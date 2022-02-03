@@ -6,7 +6,6 @@
 #include <lib/formats/stl.h>
 #include <lib/object.h>
 #include "stl.h"
-#include <render/program.h>
 #include <render/pipeline.h>
 #include <lib/linmath.h>
 

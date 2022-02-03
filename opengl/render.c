@@ -7,7 +7,6 @@
 #include <glad/gl.h>
 
 #include <render/render.h>
-#include <render/program.h>
 #include <render/char.h>
 #include <render/pipeline.h>
 
@@ -168,7 +167,6 @@ struct Render* rend_opengl_new(struct RenderConfig cfg)
     struct Render base = {
         .free = rend_free_,
         .char_new = rend_char_new_,
-        .prog_new = rend_prog_new_,
         .set_view_entity = set_view_entity_,
         .draw_begin = draw_begin_,
         .draw_end = draw_end_,

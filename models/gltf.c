@@ -8,7 +8,6 @@
 #include <lib/linmath.h>
 #include <lib/config.h>
 
-#include <render/program.h>
 #include <render/pipeline.h>
 
 #include <models/stl.frag.h>
