@@ -63,17 +63,23 @@ struct GltfScene {
 };
 
 struct Gltf {
-    struct GltfAccessor accessors[1024];
+    struct GltfAccessor* accessors;
+    int cap_accessors;
     int n_accessors;
-    struct GltfScene scenes[1024];
+    struct GltfScene* scenes;
+    int cap_scenes;
     int n_scenes;
-    struct GltfNode nodes[1024];
+    struct GltfNode* nodes;
+    int cap_nodes;
     int n_nodes;
-    struct GltfMesh meshes[1024];
+    struct GltfMesh* meshes;
+    int cap_meshes;
     int n_meshes;
-    struct GltfBuffer buffers[1024];
+    struct GltfBuffer* buffers;
+    int cap_buffers;
     int n_buffers;
-    struct GltfView views[1024];
+    struct GltfView* views;
+    int cap_views;
     int n_views;
     int def;
 

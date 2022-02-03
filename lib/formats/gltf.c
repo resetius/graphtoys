@@ -7,6 +7,9 @@
 #include <contrib/json/json.h>
 #include <lib/verify.h>
 
+#define BACK(vec, cap, count) \
+    count>=cap ? ( cap=(1+cap)*2, vec = realloc(vec, cap*sizeof(vec[0])), memset(&vec[count], 0, sizeof(vec[count])), &vec[count++] ) : ( memset(&vec[count], 0, sizeof(vec[count])), &vec[count++] )
+
 static void load_scene(struct GltfScene* scene, json_value* value) {
     for (json_object_entry* entry = value->u.object.values;
          entry != value->u.object.values+value->u.object.length; entry++)
@@ -30,7 +33,7 @@ static void load_scenes(struct Gltf* gltf, json_value* value) {
          entry != value->u.array.values+value->u.array.length; entry++)
     {
         if ((*entry)->type == json_object) {
-            load_scene(&gltf->scenes[gltf->n_scenes ++], *entry);
+            load_scene(BACK(gltf->scenes, gltf->cap_scenes, gltf->n_scenes), *entry);
         } else {
             printf("Bad scene type\n");
         }
@@ -62,7 +65,7 @@ static void load_nodes(struct Gltf* gltf, json_value* value) {
          entry != value->u.array.values+value->u.array.length; entry++)
     {
         if ((*entry)->type == json_object) {
-            load_node(&gltf->nodes[gltf->n_nodes++], *entry);
+            load_node(BACK(gltf->nodes, gltf->cap_nodes, gltf->n_nodes), *entry);
         } else {
             printf("Bad nodes type\n");
         }
@@ -87,7 +90,6 @@ static char* load_uri(struct Gltf* gltf, json_value* value, int64_t* size) {
         fseek(f, 0, SEEK_END);
         *size = ftell(f);
         fseek(f, 0, SEEK_SET);
-
         output = malloc(*size);
         verify(fread(output, 1, *size, f) == *size);
         fclose(f);
@@ -102,12 +104,20 @@ static void load_buffer(struct Gltf* gltf, struct GltfBuffer* buffer, json_value
         if (!strcmp(entry->name, "byteLength") && entry->value->type == json_integer) {
             buffer->size = entry->value->u.integer;
         } else if (!strcmp(entry->name, "uri") && entry->value->type == json_string) {
+            // later
+        } else {
+            printf("Unknown buffer key: '%s'\n", entry->name);
+        }
+    }
+
+    for (json_object_entry* entry = value->u.object.values;
+         entry != value->u.object.values+value->u.object.length; entry++)
+    {
+        if (!strcmp(entry->name, "uri") && entry->value->type == json_string) {
             int64_t size;
             buffer->data = load_uri(gltf, entry->value, &size);
             //printf("'%s'\n%d %d\n", entry->value->u.string.ptr, size, buffer->size);
             verify(size == buffer->size);
-        } else {
-            printf("Unknown buffer key: '%s'\n", entry->name);
         }
     }
 }
@@ -117,7 +127,7 @@ static void load_buffers(struct Gltf* gltf, json_value* value) {
          entry != value->u.array.values+value->u.array.length; entry++)
     {
         if ((*entry)->type == json_object) {
-            load_buffer(gltf, &gltf->buffers[gltf->n_buffers++], *entry);
+            load_buffer(gltf, BACK(gltf->buffers, gltf->cap_buffers, gltf->n_buffers), *entry);
         } else {
             printf("Bad buffers type\n");
         }
@@ -167,7 +177,7 @@ static void load_accessors(struct Gltf* gltf, json_value* value) {
          entry != value->u.array.values+value->u.array.length; entry++)
     {
         if ((*entry)->type == json_object) {
-            load_accessor(&gltf->accessors[gltf->n_accessors++], *entry);
+            load_accessor(BACK(gltf->accessors, gltf->cap_accessors, gltf->n_accessors), *entry);
         } else {
             printf("Unknown accessor type\n");
         }
@@ -199,7 +209,7 @@ static void load_views(struct Gltf* gltf, json_value* value) {
          entry != value->u.array.values+value->u.array.length; entry++)
     {
         if ((*entry)->type == json_object) {
-            load_view(&gltf->views[gltf->n_views++], *entry);
+            load_view(BACK(gltf->views, gltf->cap_views, gltf->n_views), *entry);
         } else {
             printf("Unknown views type\n");
         }
@@ -273,7 +283,7 @@ static void load_meshes(struct Gltf* gltf, json_value* value) {
          entry != value->u.array.values+value->u.array.length; entry++)
     {
         if ((*entry)->type == json_object) {
-            load_mesh(&gltf->meshes[gltf->n_meshes++], *entry);
+            load_mesh(BACK(gltf->meshes, gltf->cap_meshes, gltf->n_meshes), *entry);
         } else {
             printf("Unknown meshes type\n");
         }
@@ -361,5 +371,11 @@ void gltf_destroy(struct Gltf* gltf) {
     for (i = 0; i < gltf->n_buffers; i++) {
         free(gltf->buffers[i].data);
     }
+    free(gltf->accessors);
+    free(gltf->scenes);
+    free(gltf->nodes);
+    free(gltf->meshes);
+    free(gltf->views);
+    free(gltf->buffers);
     free(gltf);
 }
