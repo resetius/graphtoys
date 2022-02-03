@@ -63,9 +63,8 @@ void buffer_release_(struct BufferManager* mgr, int id) {
 
 void buffer_mgr_free_(struct BufferManager* mgr) {
     struct BufferManagerBase* b = (struct BufferManagerBase*)mgr;
-    int i;
-    for (i = b->n_buffers - 1; i >= 0; i--) {
-        buffer_release_(mgr, i);
+    while (b->n_buffers > 0) {
+        buffer_release_(mgr, b->n_buffers-1);
     }
     free(b->buffers);
     free(b);
