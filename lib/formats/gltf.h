@@ -54,6 +54,7 @@ struct GltfMesh {
 struct GltfNode {
     char name[256];
     int mesh;
+    int camera;
     quat rotation;
     vec3 scale;
     vec3 translation;

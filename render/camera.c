@@ -9,16 +9,21 @@ void cam_init(struct Camera* cam) {
     memcpy(cam->center, center, sizeof(center));
     memcpy(cam->up, up, sizeof(up));
 
-    mat4x4_look_at(cam->v, cam->eye, cam->center, cam->up);
-    mat4x4_perspective(cam->p, cam->fov, cam->aspect, cam->znear, cam->zfar);
+    cam->fov = 70*M_PI/180.;
+    cam->aspect = 1.77;
+    cam->znear = 0.3;
+    cam->zfar = 100000;
+}
+
+void cam_update(mat4x4 v, mat4x4 p, struct Camera* cam) {
+    mat4x4_look_at(v, cam->eye, cam->center, cam->up);
+    mat4x4_perspective(p, cam->fov, cam->aspect, cam->znear, cam->zfar);
 }
 
 void cam_rotate(struct Camera* cam, quat q) {
-    mat4x4 rot;
-    mat4x4_from_quat(rot, q);
-    mat4x4_mul(cam->v, cam->v, rot);
+    quat_mul_vec3(cam->center, cam->center, q);
 }
 
 void cam_translate(struct Camera* cam, vec3 t) {
-    mat4x4_translate_in_place(cam->v, t[0], t[1], t[2]);
+    memcpy(cam->eye, t, sizeof(cam->eye));
 }

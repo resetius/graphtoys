@@ -11,11 +11,10 @@ struct Camera {
     float aspect;
     float znear;
     float zfar;
-
-    mat4x4 v;
-    mat4x4 p;
 };
 
 void cam_init(struct Camera* cam);
+void cam_update(mat4x4 v, mat4x4 p, struct Camera* cam);
+
 void cam_rotate(struct Camera* cam, quat q);
 void cam_translate(struct Camera* cam, vec3 translation);

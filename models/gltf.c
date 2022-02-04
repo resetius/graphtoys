@@ -9,6 +9,7 @@
 #include <lib/config.h>
 
 #include <render/pipeline.h>
+#include <render/camera.h>
 
 #include <models/stl.frag.h>
 #include <models/stl.vert.h>
@@ -53,7 +54,8 @@ struct Model {
     struct Object base;
     struct Pipeline* lamp;
     struct BufferManager* b;
-    //mat4x4 m;
+    struct Camera cam;
+
     float ax, ay, az;
     vec4 light;
     quat q;
@@ -100,12 +102,8 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
 
     mat4x4 v, p, mv, mvp;
 
-    vec3 eye = {0.0f, -50.0f, 0.f};
-    vec3 center = {.0f, .0f, .0f};
-    vec3 up = {.0f, .0f, -.1f};
-
-    mat4x4_look_at(v, eye, center, up);
-    mat4x4_perspective(p, 70.*M_PI/180, ctx->ratio, 0.3f, 100000.f);
+    t->cam.aspect = ctx->ratio;
+    cam_update(v, p, &t->cam);
 
     for (int i = 0; i < t->n_nodes; i++) {
         if (!t->nodes[i].skip) {
@@ -401,17 +399,35 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
     vec4 light = {0, -40, 0, 1};
     vec4_dup(t->light, light);
 
-    const char* fn = cfg_gets_def(cfg, "name", "skull_art.stl");
-    //FILE* f = fopen("tricky_kittens.stl", "rb");
-    //FILE* f = fopen("rocklobster_solid.stl", "rb");
-    //FILE* f = fopen("Doraemon_Lucky_Cat.stl", "rb");
-
+    const char* fn = cfg_gets_def(cfg, "name", "./assets/khr/scenes/sponza/Sponza01.gltf");
 
     t->b = r->buffer_manager(r);
 
     struct Gltf* gltf = gltf_load(fn);
 
+    t->cam.fov = 70*M_PI/180;
+    t->cam.aspect = 1.77;
+    t->cam.znear = 0.3;
+    t->cam.zfar = 100000;
+
     for (int i = 0; i < gltf->n_nodes; i++) {
+
+        if (gltf->nodes[i].camera >= 0) {
+            // TODO: multiple cameras
+            struct GltfCamera* c = &gltf->cameras[gltf->nodes[i].camera];
+            if (c->is_perspective) {
+                printf("Load camera\n");
+                t->cam.fov = c->perspective.yfov;
+                t->cam.aspect = c->perspective.aspect;
+                t->cam.znear = c->perspective.znear;
+                t->cam.zfar = c->perspective.zfar;
+
+                cam_init(&t->cam);
+                cam_rotate(&t->cam, gltf->nodes[i].rotation);
+                cam_translate(&t->cam, gltf->nodes[i].translation);
+            }
+        }
+
         if (! (gltf->nodes[i].mesh >= 0 && gltf->meshes[gltf->nodes[i].mesh].n_primitives > 0) ) {
             continue;
         }
