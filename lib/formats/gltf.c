@@ -51,6 +51,7 @@ static void load_node(struct GltfNode* node, json_value* value) {
     quat_identity(node->rotation);
     node->scale[0] = node->scale[1] = node->scale[2] = 1.0;
     mat4x4_identity(node->matrix);
+    node->mesh = -1;
     for (json_object_entry* entry = value->u.object.values;
          entry != value->u.object.values+value->u.object.length; entry++)
     {
@@ -61,9 +62,9 @@ static void load_node(struct GltfNode* node, json_value* value) {
         } else if (!strcmp(entry->name, "rotation") && entry->value->type == json_array && entry->value->u.array.length == 4) {
             load_vec(entry->value, node->rotation, 4);
         } else if (!strcmp(entry->name, "scale") && entry->value->type == json_array && entry->value->u.array.length == 3) {
-            load_vec(entry->value, node->scale, 4);
+            load_vec(entry->value, node->scale, 3);
         } else if (!strcmp(entry->name, "translation") && entry->value->type == json_array && entry->value->u.array.length == 3) {
-            load_vec(entry->value, node->translation, 4);
+            load_vec(entry->value, node->translation, 3);
         } else {
             // TODO
             printf("Unknown node key: '%s'\n", entry->name);
