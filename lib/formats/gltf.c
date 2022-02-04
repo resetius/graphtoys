@@ -311,6 +311,68 @@ static void load_meshes(struct Gltf* gltf, json_value* value) {
     }
 }
 
+static void load_perspective(struct GltfCameraPerspective* cam, json_value* value) {
+    for (json_object_entry* entry = value->u.object.values;
+         entry != value->u.object.values+value->u.object.length; entry++)
+    {
+        if (!strcmp(entry->name, "aspectRatio")) {
+            cam->aspect = entry->value->u.dbl;
+        } else if (!strcmp(entry->name, "yfov")) {
+            cam->yfov = entry->value->u.dbl;
+        } else if (!strcmp(entry->name, "zfar")) {
+            cam->zfar = entry->value->u.dbl;
+        } else if (!strcmp(entry->name, "znear")) {
+            cam->znear = entry->value->u.dbl;
+        }
+    }
+}
+
+static void load_orthographic(struct GltfCameraOrthographic* cam, json_value* value) {
+    for (json_object_entry* entry = value->u.object.values;
+         entry != value->u.object.values+value->u.object.length; entry++)
+    {
+        if (!strcmp(entry->name, "xmag")) {
+            cam->xmag = entry->value->u.dbl;
+        } else if (!strcmp(entry->name, "ymag")) {
+            cam->ymag = entry->value->u.dbl;
+        } else if (!strcmp(entry->name, "zfar")) {
+            cam->zfar = entry->value->u.dbl;
+        } else if (!strcmp(entry->name, "znear")) {
+            cam->znear = entry->value->u.dbl;
+        }
+    }
+}
+
+static void load_camera(struct GltfCamera* camera, json_value* value) {
+    for (json_object_entry* entry = value->u.object.values;
+         entry != value->u.object.values+value->u.object.length; entry++)
+    {
+        if (!strcmp(entry->name, "name") && entry->value->type == json_string) {
+            strncpy(camera->name, entry->value->u.string.ptr, sizeof(camera->name)-1);
+        } else if (!strcmp(entry->name, "type") && entry->value->type == json_string) {
+            if (!strcmp(entry->value->u.string.ptr, "perspective")) {
+                camera->is_perspective = 1;
+            }
+        } else if (!strcmp(entry->name, "perspective") && entry->value->type == json_object) {
+            load_perspective(&camera->perspective, entry->value);
+        } else if (!strcmp(entry->name, "orthographic") && entry->value->type == json_object) {
+            load_orthographic(&camera->orthographic, entry->value);
+        }
+    }
+}
+
+static void load_cameras(struct Gltf* gltf, json_value* value) {
+    for (json_value** entry = value->u.array.values;
+         entry != value->u.array.values+value->u.array.length; entry++)
+    {
+        if ((*entry)->type == json_object) {
+            load_camera(BACK(gltf->cameras, gltf->cap_cameras, gltf->n_cameras), *entry);
+        } else {
+            printf("Unknown camera type\n");
+        }
+    }
+}
+
 struct Gltf* gltf_load(const char* fn) {
     struct Gltf* gltf = calloc(1, sizeof(*gltf));
     FILE* f = fopen(fn, "rb");
@@ -367,8 +429,10 @@ struct Gltf* gltf_load(const char* fn) {
             printf("Asset\n");
         } else if (!strcmp(entry->name, "accessors") && entry->value->type == json_array) {
             load_accessors(gltf, entry->value);
-        } else if (!strcmp(entry->name, "meshes")) {
+        } else if (!strcmp(entry->name, "meshes") && entry->value->type == json_array) {
             load_meshes(gltf, entry->value);
+        } else if (!strcmp(entry->name, "cameras") && entry->value->type == json_array) {
+            load_cameras(gltf, entry->value);
         } else {
             printf("Unsupported key: '%s'\n", entry->name);
         }

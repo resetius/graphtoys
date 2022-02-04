@@ -67,6 +67,27 @@ struct GltfScene {
     int n_nodes;
 };
 
+struct GltfCameraPerspective {
+    double aspect;
+    double yfov;
+    double zfar;
+    double znear;
+};
+
+struct GltfCameraOrthographic {
+    double xmag;
+    double ymag;
+    double zfar;
+    double znear;
+};
+
+struct GltfCamera {
+    char name[256];
+    int is_perspective;
+    struct GltfCameraPerspective perspective;
+    struct GltfCameraOrthographic orthographic;
+};
+
 struct Gltf {
     struct GltfAccessor* accessors;
     int cap_accessors;
@@ -86,6 +107,10 @@ struct Gltf {
     struct GltfView* views;
     int cap_views;
     int n_views;
+    struct GltfCamera* cameras;
+    int cap_cameras;
+    int n_cameras;
+
     int def;
 
     char fsbase[1024];
