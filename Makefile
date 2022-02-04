@@ -1,18 +1,20 @@
 .PHONY: All
 .DEFAULT_GOAL := All
 
+# SANITIZE=-fsanitize=address
+
 # for macos install vulkan sdk: https://vulkan.lunarg.com/sdk/home
 # for linux and windows (mingw) use package manager and install headers and glslc
 CC=gcc
 UNAME_S := $(shell uname -s)
 PLATFORM=$(UNAME_S)
-CFLAGS?=-g -O2 -Wall
+CFLAGS?=-g -O0 -Wall
 # Ubuntu: apt-get install shaderc
 # Mingw: pacman -S mingw-w64-x86_64-shaderc mingw-w64-x86_64-spirv-tools mingw-w64-x86_64-vulkan-headers
 GLSLC=glslc
-CFLAGS += -I. $(shell pkg-config --cflags glfw3,freetype2)
+CFLAGS += -I. $(shell pkg-config --cflags glfw3,freetype2) $(SANITIZE)
 
-LDFLAGS+=$(shell pkg-config --static --libs glfw3,freetype2)
+LDFLAGS+=$(shell pkg-config --static --libs glfw3,freetype2) $(SANITIZE)
 
 ifeq ($(UNAME_S),Darwin)
     LDFLAGS+=-framework OpenGl
@@ -90,13 +92,13 @@ main.exe: $(OBJECTS)
 	$(CC) $^ $(LDFLAGS) -o $@
 
 tools/rcc.exe: tools/rcc.o
-	$(CC) $^ -o $@
+	$(CC) $^ $(SANITIZE) -o $@
 
 tools/stlprint.exe: tools/stlprint.o
-	$(CC) $^ -o $@
+	$(CC) $^ $(SANITIZE) -o $@
 
 tools/cfgprint.exe: tools/cfgprint.o lib/config.o
-	$(CC) $^ -o $@
+	$(CC) $^ $(SANITIZE) -o $@
 
 tools/gltfprint.exe: tools/gltfprint.o lib/formats/base64.o lib/formats/gltf.o contrib/json/json.o
 	$(CC) $^ $(LDFLAGS) -o $@
