@@ -2,13 +2,14 @@
 .DEFAULT_GOAL := All
 
 # SANITIZE=-fsanitize=address
+# SANITIZE=-fsanitize=undefined
 
 # for macos install vulkan sdk: https://vulkan.lunarg.com/sdk/home
 # for linux and windows (mingw) use package manager and install headers and glslc
 CC=gcc
 UNAME_S := $(shell uname -s)
 PLATFORM=$(UNAME_S)
-CFLAGS?=-g -O0 -Wall
+CFLAGS?=-g -O2 -Wall
 # Ubuntu: apt-get install shaderc
 # Mingw: pacman -S mingw-w64-x86_64-shaderc mingw-w64-x86_64-spirv-tools mingw-w64-x86_64-vulkan-headers
 GLSLC=glslc
@@ -38,6 +39,7 @@ SOURCES=main.c\
 	opengl/render.c\
 	opengl/pipeline.c\
 	render/buffer.c\
+	render/camera.c\
 	render/pipeline.c\
 	render/render.c\
 	vulkan/loader.c\
