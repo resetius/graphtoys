@@ -432,6 +432,7 @@ static void draw(struct Pipeline* p1, int id) {
     } else {
         glDrawArrays(GL_TRIANGLES, 0, p->buffers[id].n_vertices);
     }
+    glBindVertexArray(0);
 
     after(p);
 }
@@ -445,7 +446,7 @@ static void draw_indexed(struct Pipeline* p1, int id, int index, int index_byte_
     }
     glBindVertexArray(p->buffers[id].vao);
 
-    struct BufferImpl* ibuf = p->b->get(p->b, id);
+    struct BufferImpl* ibuf = p->b->get(p->b, index);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuf->buffer);
     assert(index_byte_size == 2 || index_byte_size == 4 || index_byte_size == 1);
 
@@ -465,6 +466,8 @@ static void draw_indexed(struct Pipeline* p1, int id, int index, int index_byte_
     } else {
         glDrawElements(GL_TRIANGLES, n_vertices, type, NULL);
     }
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     after(p);
 }
