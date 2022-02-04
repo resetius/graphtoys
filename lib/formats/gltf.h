@@ -54,6 +54,10 @@ struct GltfNode {
     char name[256];
     int mesh;
     quat rotation;
+    vec3 scale;
+    vec3 translation;
+    mat4x4 matrix;
+    mat4x4 norm_matrix;
 };
 
 struct GltfScene {

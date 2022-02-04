@@ -129,7 +129,7 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
 
     //mat4x4_ortho(p, -ctx->ratio, ctx->ratio, -1.f, 1.f, 1.f, -1.f);
     //mat4x4_identity(p);
-    mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 100.f);
+    mat4x4_perspective(p, 70.*M_PI/180, ctx->ratio, 0.3f, 100.f);
     mat4x4_mul(mvp, p, mv);
 
     mat4x4 norm;

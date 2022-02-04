@@ -40,7 +40,17 @@ static void load_scenes(struct Gltf* gltf, json_value* value) {
     }
 }
 
+static void load_vec(json_value* value, float* vec, int size) {
+    int i;
+    for (i = 0; i < size; i++) {
+        vec[i] = value->u.array.values[i]->u.dbl;
+    }
+}
+
 static void load_node(struct GltfNode* node, json_value* value) {
+    quat_identity(node->rotation);
+    node->scale[0] = node->scale[1] = node->scale[2] = 1.0;
+    mat4x4_identity(node->matrix);
     for (json_object_entry* entry = value->u.object.values;
          entry != value->u.object.values+value->u.object.length; entry++)
     {
@@ -49,15 +59,27 @@ static void load_node(struct GltfNode* node, json_value* value) {
         } else if (!strcmp(entry->name, "name") && entry->value->type == json_string) {
             strncpy(node->name, entry->value->u.string.ptr, sizeof(node->name)-1);
         } else if (!strcmp(entry->name, "rotation") && entry->value->type == json_array && entry->value->u.array.length == 4) {
-            node->rotation[0] = entry->value->u.array.values[0]->u.dbl;
-            node->rotation[1] = entry->value->u.array.values[1]->u.dbl;
-            node->rotation[2] = entry->value->u.array.values[2]->u.dbl;
-            node->rotation[3] = entry->value->u.array.values[3]->u.dbl;
+            load_vec(entry->value, node->rotation, 4);
+        } else if (!strcmp(entry->name, "scale") && entry->value->type == json_array && entry->value->u.array.length == 3) {
+            load_vec(entry->value, node->scale, 4);
+        } else if (!strcmp(entry->name, "translation") && entry->value->type == json_array && entry->value->u.array.length == 3) {
+            load_vec(entry->value, node->translation, 4);
         } else {
             // TODO
             printf("Unknown node key: '%s'\n", entry->name);
         }
     }
+
+    mat4x4_from_quat(node->matrix, node->rotation);
+    mat4x4_translate_in_place(node->matrix,
+                              node->translation[0],
+                              node->translation[1],
+                              node->translation[2]);
+    mat4x4_scale_aniso(node->matrix, node->matrix,
+                       node->scale[0], node->scale[1], node->scale[2]);
+    mat4x4 norm_matrix;
+    mat4x4_invert(norm_matrix, node->matrix);
+    mat4x4_transpose(node->norm_matrix, norm_matrix);
 }
 
 static void load_nodes(struct Gltf* gltf, json_value* value) {
