@@ -279,8 +279,8 @@ static void load_primitives(struct GltfMesh* mesh, json_value* value) {
     for (json_value** entry = value->u.array.values;
          entry != value->u.array.values+value->u.array.length; entry++)
     {
-        if ((*entry)->type == json_object && mesh->n_primitives < sizeof(mesh->primitives)/sizeof(mesh->primitives[0])) {
-            load_primitive(&mesh->primitives[mesh->n_primitives++], *entry);
+        if ((*entry)->type == json_object) {
+            load_primitive(BACK(mesh->primitives, mesh->cap_primitives, mesh->n_primitives), *entry);
         } else {
             printf("Unknown primitives  type\n");
         }
@@ -393,6 +393,9 @@ void gltf_destroy(struct Gltf* gltf) {
     int i;
     for (i = 0; i < gltf->n_buffers; i++) {
         free(gltf->buffers[i].data);
+    }
+    for (i = 0; i < gltf->n_meshes; i++) {
+        free(gltf->meshes[i].primitives);
     }
     free(gltf->accessors);
     free(gltf->scenes);

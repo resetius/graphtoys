@@ -46,7 +46,8 @@ struct GltfPrimitive {
 
 struct GltfMesh {
     char name[256];
-    struct GltfPrimitive primitives[100];
+    struct GltfPrimitive* primitives;
+    int cap_primitives;
     int n_primitives;
 };
 
