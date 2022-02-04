@@ -1,3 +1,6 @@
 [submodule "contrib/json"]
 	path = contrib/json
 	url = https://github.com/json-parser/json-parser.git
+[submodule "assets/khr"]
+	path = assets/khr
+	url = https://github.com/KhronosGroup/Vulkan-Samples-Assets.git
