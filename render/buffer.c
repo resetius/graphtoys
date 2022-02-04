@@ -75,3 +75,23 @@ void* buffer_get_(struct BufferManager* mgr, int id) {
     assert(id < b->n_buffers);
     return &b->buffers[id*b->buffer_size];
 }
+
+int buffer_create(
+    struct BufferManager* b,
+    enum BufferType type,
+    enum BufferMemoryType mem_type,
+    const void* data,
+    int size)
+{
+    return b->create(b, type, mem_type, data, size);
+}
+
+void buffer_update(
+    struct BufferManager* b,
+    int id,
+    const void* data,
+    int offset,
+    int size)
+{
+    return b->update(b, id, data, offset, size);
+}

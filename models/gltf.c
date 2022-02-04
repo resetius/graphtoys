@@ -45,6 +45,8 @@ struct Node {
     int uniform_id;
 
     mat4x4 matrix;
+
+    int skip;
 };
 
 struct Model {
@@ -59,7 +61,8 @@ struct Model {
     int dot;
     int dot_uniform_id;
 
-    struct Node nodes[100];
+    struct Node* nodes;
+    int cap_nodes;
     int n_nodes;
 };
 
@@ -105,7 +108,9 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_perspective(p, 70.*M_PI/180, ctx->ratio, 0.3f, 100000.f);
 
     for (int i = 0; i < t->n_nodes; i++) {
-        draw_node(t, &t->nodes[i], v, p);
+        if (!t->nodes[i].skip) {
+            draw_node(t, &t->nodes[i], v, p);
+        }
     }
 
     mat4x4 m1;
@@ -223,8 +228,11 @@ static void zoom_out(struct Object* obj, int mods) {
 static void t_free(struct Object* obj) {
     struct Model* t = (struct Model*)obj;
     for (int i = 0; i < t->n_nodes; i++) {
-        t->nodes[i].pl->free(t->nodes[i].pl);
+        if (!t->nodes[i].skip) {
+            t->nodes[i].pl->free(t->nodes[i].pl);
+        }
     }
+    free(t->nodes);
     t->lamp->free(t->lamp);
     t->b->free(t->b);
     free(t);
@@ -248,12 +256,18 @@ static int el_size(int type) {
 void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i, struct Gltf* gltf, struct ShaderCode* vertex_shader, struct ShaderCode* fragment_shader) {
     // TODO
 
-
+    int has_norm = 1;
     int mesh = gltf->nodes[i].mesh;
     memcpy(n->matrix, gltf->nodes[i].matrix, sizeof(n->matrix));
 
     int nvertices = gltf->accessors[gltf->meshes[mesh].primitives[0].indices].count;
     int npos = gltf->accessors[gltf->meshes[mesh].primitives[0].position].count;
+
+    if (gltf->meshes[mesh].primitives[0].normal < 0) {
+        // TODO: skip
+        n->skip = 1;
+        return;
+    }
 
     struct Vertex* vertices = malloc(npos*sizeof(struct Vertex));
 
@@ -396,10 +410,17 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
     struct Gltf* gltf = gltf_load(fn);
 
     for (int i = 0; i < gltf->n_nodes; i++) {
-        if (gltf->nodes[i].mesh >= 0 && gltf->meshes[gltf->nodes[i].mesh].n_primitives > 0) {
-            load_node(r, t->b, &t->nodes[t->n_nodes++], i, gltf,
-                      &vertex_shader, &fragment_shader);
+        if (! (gltf->nodes[i].mesh >= 0 && gltf->meshes[gltf->nodes[i].mesh].n_primitives > 0) ) {
+            continue;
         }
+
+        if (t->n_nodes >= t->cap_nodes) {
+            t->cap_nodes = (1+t->cap_nodes)*2;
+            t->nodes = realloc(t->nodes, t->cap_nodes*sizeof(struct Node));
+        }
+
+        load_node(r, t->b, &t->nodes[t->n_nodes++], i, gltf,
+                  &vertex_shader, &fragment_shader);
     }
 
 
