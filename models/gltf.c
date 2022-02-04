@@ -260,6 +260,8 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
     int mesh = gltf->nodes[i].mesh;
     memcpy(n->matrix, gltf->nodes[i].matrix, sizeof(n->matrix));
 
+    n->skip = 0;
+
     int nvertices = gltf->accessors[gltf->meshes[mesh].primitives[0].indices].count;
     int npos = gltf->accessors[gltf->meshes[mesh].primitives[0].position].count;
 
