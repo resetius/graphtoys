@@ -183,12 +183,10 @@ static void load_accessor(struct GltfAccessor* acc, json_value* value) {
             }
         } else if (!strcmp(entry->name, "name") && entry->value->type == json_string) {
             strncpy(acc->name, entry->value->u.string.ptr, sizeof(acc->name)-1);
-        } else if (!strcmp(entry->name, "max") && entry->value->type == json_array) {
-            // TODO
-            printf("Max unsupported yet\n");
-        } else if (!strcmp(entry->name, "min") && entry->value->type == json_array) {
-            // TODO
-            printf("Max unsupported yet\n");
+        } else if (!strcmp(entry->name, "max") && entry->value->type == json_array && entry->value->u.array.length <= 4) {
+            load_vec(entry->value, acc->max, entry->value->u.array.length);
+        } else if (!strcmp(entry->name, "min") && entry->value->type == json_array && entry->value->u.array.length <= 4) {
+            load_vec(entry->value, acc->min, entry->value->u.array.length);
         } else {
             printf("Unknown accessor key: '%s'\n", entry->name);
         }
