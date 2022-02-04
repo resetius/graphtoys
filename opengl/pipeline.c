@@ -439,17 +439,27 @@ static void draw(struct Pipeline* p1, int id) {
 static void draw_indexed(struct Pipeline* p1, int id, int index, int index_byte_size) {
     struct PipelineImpl* p = (struct PipelineImpl*)p1;
     before(p);
+    if (index_byte_size < 2) {
+        // TODO
+        return;
+    }
     glBindVertexArray(p->buffers[id].vao);
 
     struct BufferImpl* ibuf = p->b->get(p->b, id);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuf->buffer);
-    assert(index_byte_size == 2 || index_byte_size == 4);
+    assert(index_byte_size == 2 || index_byte_size == 4 || index_byte_size == 1);
 
     int n_vertices = ibuf->size / index_byte_size;
 
     //printf("Draw: %d\n", n_vertices);
-    GLenum type = index_byte_size == 2
-        ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
+    GLenum type;
+    if (index_byte_size == 2) {
+        type = GL_UNSIGNED_SHORT;
+    } else if (index_byte_size == 4) {
+        type = GL_UNSIGNED_INT;
+    } else {
+        type = GL_UNSIGNED_BYTE;
+    }
     if (p->geometry == GEOM_POINTS) {
         glDrawElements(GL_POINTS, n_vertices, type, NULL);
     } else {

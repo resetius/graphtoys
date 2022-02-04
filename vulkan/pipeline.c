@@ -336,9 +336,9 @@ static void draw_indexed(struct Pipeline* p1, int id, int index, int index_byte_
 
     VkCommandBuffer buffer = r->buffer;
 
-    assert(index_byte_size == 2 || index_byte_size == 4);
+    assert(index_byte_size == 2 || index_byte_size == 4 || index_byte_size == 1);
 
-    if (id < p->n_buffers) {
+    if (id < p->n_buffers && index_byte_size > 1) {
         VkDeviceSize offset = 0;
         struct Buffer* buf = &p->buffers[id];
         struct BufferImpl* ibuf = (struct BufferImpl*)p->b->get(p->b, index);
@@ -363,9 +363,16 @@ static void draw_indexed(struct Pipeline* p1, int id, int index, int index_byte_
             n_sets,
             use, 0, NULL);
         //printf("bytes: %d\n", index_byte_size);
+        int type = VK_INDEX_TYPE_UINT32;
+        if (index_byte_size == 2) {
+            type = VK_INDEX_TYPE_UINT16;
+        } else if (index_byte_size == 1) {
+            type = VK_INDEX_TYPE_UINT8_EXT;
+        }
+
         vkCmdBindIndexBuffer(
             buffer, ibuf->buffer[0], 0,
-            index_byte_size == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+            type);
 
         vkCmdBindVertexBuffers(
             buffer,

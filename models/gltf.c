@@ -288,8 +288,7 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
     char* indices = gltf->views[ind_view].data+gltf->accessors[gltf->meshes[mesh].primitives[0].indices].offset;
 
     n->index = buffer_create(b, BUFFER_INDEX, MEMORY_STATIC, indices, ind_size);
-    n->index_byte_size = gltf->accessors[gltf->meshes[mesh].primitives[0].indices].component_type == 5123
-        ? 2: 4;
+    n->index_byte_size = el_size(gltf->accessors[gltf->meshes[mesh].primitives[0].indices].component_type);
 
     printf("> nvertices: %d %d %d\n", npos, nvertices, ind_size);
     printf("> pos size/stride: %d %d\n", pos_size, pos_stride);
@@ -397,7 +396,7 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
     struct Gltf* gltf = gltf_load(fn);
 
     for (int i = 0; i < gltf->n_nodes; i++) {
-        if (gltf->nodes[i].mesh >= 0) {
+        if (gltf->nodes[i].mesh >= 0 && gltf->meshes[gltf->nodes[i].mesh].n_primitives > 0) {
             load_node(r, t->b, &t->nodes[t->n_nodes++], i, gltf,
                       &vertex_shader, &fragment_shader);
         }
