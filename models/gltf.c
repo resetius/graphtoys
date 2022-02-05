@@ -297,6 +297,8 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
     t->cam.znear = 0.3;
     t->cam.zfar = 100000;
 
+    cam_init(&t->cam);
+
     for (int i = 0; i < gltf->n_nodes; i++) {
 
         if (gltf->nodes[i].camera >= 0) {
