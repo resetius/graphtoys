@@ -53,7 +53,7 @@ void tr_free(struct Object* obj) {
     free(obj);
 }
 
-struct Object* CreateTriangle(struct Render* r) {
+struct Object* CreateTriangle(struct Render* r, struct Config* cfg) {
     struct Triangle* tr = calloc(1, sizeof(struct Triangle));
     struct Object base = {
         .draw = tr_draw,

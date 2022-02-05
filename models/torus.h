@@ -4,4 +4,5 @@
 
 #include <lib/object.h>
 
-struct Object* CreateTorus(struct Render* r);
+struct Config;
+struct Object* CreateTorus(struct Render* r, struct Config* cfg);

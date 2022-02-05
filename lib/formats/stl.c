@@ -59,11 +59,11 @@ struct StlVertex* stl_load(const char* fname, int* nvertices) {
             max_z = fmax(max_z, z);
         }
         verify(fread(&attrs, 2, 1, f) == 1);
-        int r = attrs & 0x1f;
-        int g = (attrs>>5) & 0x1f;
-        int b = (attrs>>10) & 0x1f;
-        float scale = 1./((1<<5)-1);
-        vec3 col = {(float)r*scale, (float)g*scale, (float)b*scale};
+        //int r = attrs & 0x1f;
+        //int g = (attrs>>5) & 0x1f;
+        //int b = (attrs>>10) & 0x1f;
+        //float scale = 1./((1<<5)-1);
+        //vec3 col = {(float)r*scale, (float)g*scale, (float)b*scale};
         //printf("%f %f %f\n", col[0], col[1], col[2]);
         //memcpy(res[k-1].col, col, sizeof(col));
         attrs = 0;

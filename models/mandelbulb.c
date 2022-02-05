@@ -118,7 +118,7 @@ struct Vertex {
     vec3 pos;
 };
 
-struct Object* CreateMandelbulb(struct Render* r) {
+struct Object* CreateMandelbulb(struct Render* r, struct Config* cfg) {
     struct Mandelbulb* t = calloc(1, sizeof(struct Mandelbulb));
     struct Vertex vertices[] = {
         {{ 1.0f,-1.0f,0.0f}},

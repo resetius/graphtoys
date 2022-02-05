@@ -211,8 +211,8 @@ int main(int argc, char** argv)
     setbuf(stdout, NULL);
 
     if (constr == NULL) {
-        ovec_add(&app.objs, CreateTriangle(render));
-        ovec_add(&app.objs, CreateTorus(render));
+        ovec_add(&app.objs, CreateTriangle(render, cfg_section(cfg, "triangle")));
+        ovec_add(&app.objs, CreateTorus(render, cfg_section(cfg, "torus")));
     } else {
         ovec_add(&app.objs, constr(render, cfg_section(cfg, name)));
     }

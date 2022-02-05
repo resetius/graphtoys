@@ -4,4 +4,5 @@
 
 #include <lib/object.h>
 
-struct Object* CreateMandelbulb(struct Render*);
+struct Config;
+struct Object* CreateMandelbulb(struct Render*, struct Config*);

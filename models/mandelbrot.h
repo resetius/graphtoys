@@ -4,4 +4,5 @@
 
 #include <lib/object.h>
 
-struct Object* CreateMandelbrot(struct Render*);
+struct Config;
+struct Object* CreateMandelbrot(struct Render*, struct Config*);

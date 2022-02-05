@@ -254,7 +254,6 @@ static int el_size(int type) {
 void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i, struct Gltf* gltf, struct ShaderCode* vertex_shader, struct ShaderCode* fragment_shader) {
     // TODO
 
-    int has_norm = 1;
     int mesh = gltf->nodes[i].mesh;
     memcpy(n->matrix, gltf->nodes[i].matrix, sizeof(n->matrix));
 

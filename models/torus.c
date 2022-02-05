@@ -159,7 +159,7 @@ static void t_free(struct Object* obj) {
     free(t);
 }
 
-struct Object* CreateTorus(struct Render* r) {
+struct Object* CreateTorus(struct Render* r, struct Config* cfg) {
     struct Torus* t = calloc(1, sizeof(struct Torus));
     struct Object base = {
         .draw = t_draw,
