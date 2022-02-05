@@ -126,7 +126,7 @@ static void cam_key_event(struct EventConsumer* cons, int key, int scancode, int
     int check[] = {
         GLFW_KEY_S, GLFW_KEY_W, GLFW_KEY_D, GLFW_KEY_A,
         GLFW_KEY_SPACE, GLFW_KEY_LEFT, GLFW_KEY_RIGHT,
-        GLFW_KEY_UP, GLFW_KEY_DOWN
+        GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_C
     };
 
     for (int i = 0; i < sizeof(check)/sizeof(check[0]); i++) {
