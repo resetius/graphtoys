@@ -39,7 +39,6 @@ SOURCES=main.c\
 	opengl/render.c\
 	opengl/pipeline.c\
 	render/buffer.c\
-	render/camera.c\
 	render/pipeline.c\
 	render/render.c\
 	vulkan/loader.c\
@@ -58,6 +57,7 @@ SOURCES=main.c\
 	lib/formats/base64.c\
 	lib/formats/stl.c\
 	lib/formats/gltf.c\
+	lib/camera.c\
 	lib/config.c\
 	lib/object.c\
 	lib/ref.c\

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -10,6 +11,7 @@
 
 #include <lib/object.h>
 #include <lib/config.h>
+#include <lib/event.h>
 
 #include <models/triangle.h>
 #include <models/torus.h>
@@ -22,9 +24,14 @@
 struct Object* CreateGltf(struct Render* r, struct Config* cfg);
 
 struct App {
+    struct EventProducer events;
     struct DrawContext ctx;
     struct ObjectVec objs;
     struct Render* r;
+
+    struct EventConsumer** cons;
+    int n_cons;
+    int cap_cons;
 };
 
 static void error_callback(int error, const char* description)
@@ -39,6 +46,15 @@ static void resize_callback(GLFWwindow* window, int w, int h)
     app->ctx.h = h;
     app->ctx.ratio = w/(float)h;
     app->r->set_viewport(app->r, w, h);
+}
+
+static void subscribe(struct EventProducer* prod, struct EventConsumer* cons) {
+    struct App* app = (struct App*)prod;
+    if (app->n_cons >= app->cap_cons) {
+        app->cap_cons = (1+app->cap_cons)*2;
+        app->cons = realloc(app->cons, app->cap_cons*sizeof(struct EventConsumer*));
+    }
+    app->cons[app->n_cons++] = cons;
 }
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -92,9 +108,13 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         }
     }
     //printf("%d %d %d\n", key, action, mods);
+
+    for (i = 0; i < app->n_cons; i++) {
+        app->cons[i]->key_event(app->cons[i], key, scancode, action, mods);
+    }
 }
 
-typedef struct Object* (*ConstructorT)(struct Render*, struct Config* cfg);
+typedef struct Object* (*ConstructorT)(struct Render*, struct Config* cfg, struct EventProducer*);
 
 struct ObjectAndConstructor {
     const char* name;
@@ -131,19 +151,19 @@ int main(int argc, char** argv)
     long long frames = 0;
     int enable_labels = 0;
     struct ObjectAndConstructor constructors[] = {
-        {"torus", CreateTorus},
-        {"triangle", CreateTriangle},
-        {"mandelbrot", CreateMandelbrot},
-        {"mandelbulb", CreateMandelbulb},
-        {"stl", CreateStl},
-        {"particles", CreateParticles},
-        {"particles2", CreateParticles2},
-        {"gltf", CreateGltf},
+        {"torus", (ConstructorT)CreateTorus},
+        {"triangle", (ConstructorT)CreateTriangle},
+        {"mandelbrot", (ConstructorT)CreateMandelbrot},
+        {"mandelbulb", (ConstructorT)CreateMandelbulb},
+        {"stl", (ConstructorT)CreateStl},
+        {"particles", (ConstructorT)CreateParticles},
+        {"particles2", (ConstructorT)CreateParticles2},
+        {"gltf", (ConstructorT)CreateGltf},
         {"test", NULL},
         {NULL, NULL}
     };
     int i, j;
-    ConstructorT constr = CreateTorus;
+    ConstructorT constr = (ConstructorT)CreateTorus;
     const char* name = "torus";
     memset(&app, 0, sizeof(app));
     for (i = 1; i < argc; i++) {
@@ -162,6 +182,8 @@ int main(int argc, char** argv)
             }
         }
     }
+
+    app.events.subscribe = subscribe;
 
     glfwSetErrorCallback(error_callback);
 
@@ -214,7 +236,7 @@ int main(int argc, char** argv)
         ovec_add(&app.objs, CreateTriangle(render, cfg_section(cfg, "triangle")));
         ovec_add(&app.objs, CreateTorus(render, cfg_section(cfg, "torus")));
     } else {
-        ovec_add(&app.objs, constr(render, cfg_section(cfg, name)));
+        ovec_add(&app.objs, constr(render, cfg_section(cfg, name), (struct EventProducer*) &app));
     }
 
 

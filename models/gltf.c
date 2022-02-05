@@ -6,10 +6,11 @@
 #include <lib/formats/gltf.h>
 #include <lib/object.h>
 #include <lib/linmath.h>
+#include <lib/camera.h>
 #include <lib/config.h>
+#include <lib/event.h>
 
 #include <render/pipeline.h>
-#include <render/camera.h>
 
 #include <models/stl.frag.h>
 #include <models/stl.vert.h>
@@ -55,10 +56,9 @@ struct Model {
     struct Pipeline* lamp;
     struct BufferManager* b;
     struct Camera cam;
+    struct CameraEventConsumer cons;
 
-    float ax, ay, az;
     vec4 light;
-    quat q;
 
     int dot;
     int dot_uniform_id;
@@ -69,12 +69,9 @@ struct Model {
 };
 
 static void draw_node(struct Model* t, struct Node* n, mat4x4 v, mat4x4 p) {
-    mat4x4 m, mv, mvp, rot;
+    mat4x4 m, mv, mvp;
     mat4x4_identity(m);
     memcpy(m, n->matrix, sizeof(n->matrix));
-
-    mat4x4_from_quat(rot, t->q);
-    mat4x4_mul(m, m, rot);
 
     mat4x4_mul(mv, v, m);
 
@@ -121,106 +118,6 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     t->lamp->start(t->lamp);
     buffer_update(t->b, t->dot_uniform_id, mvp, 0, sizeof(mvp));
     t->lamp->draw(t->lamp, t->dot);
-}
-
-static void transform(struct Model* t) {
-    vec3 ox = {1,0,0};
-    vec3 oy = {0,1,0};
-    vec3 oz = {0,0,1};
-    quat ox1 = {1,0,0,0};
-    quat oy1 = {0,1,0,0};
-    quat oz1 = {0,0,1,0};
-    quat qx, qy, qz, q;
-
-    quat_conj(q, t->q);
-
-    quat_mul(ox1, ox1, t->q);
-    quat_mul(ox1,  q, ox1);
-    memcpy(ox, ox1, sizeof(vec3));
-
-    quat_mul(oy1, oy1, t->q);
-    quat_mul(oy1,  q, oy1);
-    memcpy(oy, oy1, sizeof(vec3));
-
-    quat_mul(oz1, oz1, t->q);
-    quat_mul(oz1,  q, oz1);
-    memcpy(oz, oz1, sizeof(vec3));
-
-    quat_rotate(qx, t->ax, ox);
-    quat_rotate(qy, t->ay, oy);
-    quat_rotate(qz, t->az, oz);
-
-    quat_mul(t->q, t->q, qx);
-    quat_mul(t->q, t->q, qy);
-    quat_mul(t->q, t->q, qz);
-
-    t->ax = t->ay = t->az = 0;
-}
-
-static void move_left(struct Object* obj, int mods) {
-    struct Model* t = (struct Model*)obj;
-
-    if (mods & 1) {
-        t->light[0] -= 0.1;
-    } else {
-        t->az += -5*M_PI/360;
-    }
-    transform(t);
-}
-
-static void move_right(struct Object* obj, int mods) {
-    struct Model* t = (struct Model*)obj;
-
-    if (mods & 1) {
-        t->light[0] += 0.1;
-    } else {
-        t->az += 5*M_PI/360;
-    }
-    transform(t);
-}
-
-static void move_up(struct Object* obj, int mods) {
-    struct Model* t = (struct Model*)obj;
-
-    if (mods & 1) {
-        t->light[2] += 0.1;
-    } else {
-        t->ax += -5*M_PI/360;
-    }
-    transform(t);
-}
-
-static void move_down(struct Object* obj, int mods) {
-    struct Model* t = (struct Model*)obj;
-
-    if (mods & 1) {
-        t->light[2] -= 0.1;
-    } else {
-        t->ax += 5*M_PI/360;
-    }
-    transform(t);
-}
-
-static void zoom_in(struct Object* obj, int mods) {
-    struct Model* t = (struct Model*)obj;
-
-    if (mods & 1) {
-        t->light[1] += 0.1;
-    } else {
-        t->ay += 5*M_PI/360;;
-    }
-    transform(t);
-}
-
-static void zoom_out(struct Object* obj, int mods) {
-    struct Model* t = (struct Model*)obj;
-
-    if (mods & 1) {
-        t->light[1] -= 0.1;
-    } else {
-        t->ay += -5*M_PI/360;
-    }
-    transform(t);
 }
 
 static void t_free(struct Object* obj) {
@@ -356,17 +253,11 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
     free(vertices);
 }
 
-struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
+struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProducer* events) {
     struct Model* t = calloc(1, sizeof(struct Model));
     struct Object base = {
         .draw = t_draw,
         .free = t_free,
-        .move_left = move_left,
-        .move_right = move_right,
-        .move_up = move_up,
-        .move_down = move_down,
-        .zoom_in = zoom_in,
-        .zoom_out = zoom_out,
     };
 
     struct ShaderCode vertex_shader = {
@@ -390,9 +281,6 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
         .spir_v = models_dot_frag_spv,
         .size = models_dot_frag_spv_size,
     };
-
-    //mat4x4_identity(t->m);
-    quat_identity(t->q);
 
     t->base = base;
     vec4 light = {0, -40, 0, 1};
@@ -480,6 +368,8 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg) {
     int dot_buffer_id = buffer_create(t->b, BUFFER_ARRAY, MEMORY_STATIC, pp, sizeof(pp));
     t->dot = pl_buffer_assign(t->lamp, 0, dot_buffer_id);
 
+    cam_event_consumer_init(&t->cons, &t->cam);
+    events->subscribe(events, (struct EventConsumer*) &t->cons);
 
     return (struct Object*)t;
 }
