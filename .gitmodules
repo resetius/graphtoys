@@ -4,3 +4,6 @@
 [submodule "assets/khr"]
 	path = assets/khr
 	url = https://github.com/KhronosGroup/Vulkan-Samples-Assets.git
+[submodule "contrib/ktx"]
+	path = contrib/ktx
+	url = https://github.com/KhronosGroup/KTX-Software.git
