@@ -72,7 +72,7 @@ SOURCES=main.c\
 	vulkan/loader.c\
 	vulkan/buffer.c\
 	vulkan/char.c\
-    vulkan/device.c\
+	vulkan/device.c\
 	vulkan/commandbuffer.c\
 	vulkan/pipeline.c\
 	vulkan/render.c\
