@@ -51,6 +51,27 @@ void cam_translate(struct Camera* cam, vec3 t) {
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+static void rotate_x(struct Camera* cam, float angle) {
+    quat rot1;
+    quat_identity(rot1);
+    quat_rotate(rot1, angle, cam->up);
+    cam_rotate(cam, rot1);
+}
+
+static void rotate_y(struct Camera* cam, float angle) {
+    vec3 dir;
+
+    vec3_sub(dir, cam->center, cam->eye);
+    vec3 dir2;
+    vec3_mul_cross(dir2, dir, cam->up);
+    vec3_norm(dir2, dir2);
+
+    quat rot1;
+    quat_identity(rot1);
+    quat_rotate(rot1, angle, dir2);
+    cam_rotate(cam, rot1);
+}
+
 static void process_key(struct Camera* cam, int key)
 {
     vec3 dir;
@@ -68,8 +89,6 @@ static void process_key(struct Camera* cam, int key)
     vec3_norm(dir3, cam->up);
 
     float angle = -10*M_PI/180;
-    quat rot1;
-    quat_identity(rot1);
 
     switch (key) {
     case GLFW_KEY_S:
@@ -98,20 +117,18 @@ static void process_key(struct Camera* cam, int key)
     case GLFW_KEY_LEFT:
         angle = -angle;
     case GLFW_KEY_RIGHT:
-        quat_rotate(rot1, angle, cam->up);
-        cam_rotate(cam, rot1);
+        rotate_x(cam, angle);
         break;
     case GLFW_KEY_UP:
         angle = -angle;
     case GLFW_KEY_DOWN:
-        quat_rotate(rot1, angle, dir2);
-        cam_rotate(cam, rot1);
+        rotate_y(cam, angle);
     default:
         break;
     }
 }
 
-static void cam_key_event(struct EventConsumer* cons, int key, int scancode, int action, int mods, unsigned char* mask)
+static void cam_key_event(struct EventConsumer* cons, struct InputEvent* ev)
 {
     struct Camera* cam = ((struct CameraEventConsumer*)cons)->cam;
     // TODO: keys remapping
@@ -119,7 +136,7 @@ static void cam_key_event(struct EventConsumer* cons, int key, int scancode, int
     //       cam->center[0], cam->center[1], cam->center[2],
     //       cam->eye[0], cam->eye[1], cam->eye[2],
     //       cam->up[0], cam->up[1], cam->up[2]);
-    if (action == GLFW_RELEASE) {
+    if (ev->action == GLFW_RELEASE) {
         return;
     }
 
@@ -130,7 +147,27 @@ static void cam_key_event(struct EventConsumer* cons, int key, int scancode, int
     };
 
     for (int i = 0; i < sizeof(check)/sizeof(check[0]); i++) {
-        if (mask[check[i]]) {
+        if (ev->mask[check[i]]) {
+            process_key(cam, check[i]);
+        }
+    }
+}
+
+static void mouse_move_event(struct EventConsumer* cons, struct InputEvent* ev)
+{
+    struct Camera* cam = ((struct CameraEventConsumer*)cons)->cam;
+
+    int check[] = {
+        GLFW_KEY_S, GLFW_KEY_W, GLFW_KEY_D, GLFW_KEY_A,
+        GLFW_KEY_SPACE, GLFW_KEY_LEFT, GLFW_KEY_RIGHT,
+        GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_C
+    };
+
+    rotate_x(cam, -0.1*ev->dx);
+    rotate_y(cam, -0.1*ev->dy);
+
+    for (int i = 0; i < sizeof(check)/sizeof(check[0]); i++) {
+        if (ev->mask[check[i]]) {
             process_key(cam, check[i]);
         }
     }
@@ -138,7 +175,8 @@ static void cam_key_event(struct EventConsumer* cons, int key, int scancode, int
 
 void cam_event_consumer_init(struct CameraEventConsumer* cons, struct Camera* cam) {
     struct EventConsumer base = {
-        .key_event = cam_key_event
+        .key_event = cam_key_event,
+        .mouse_move_event = mouse_move_event
     };
     cons->base = base;
     cons->cam = cam;

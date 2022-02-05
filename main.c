@@ -33,6 +33,10 @@ struct App {
     int n_cons;
     int cap_cons;
     unsigned char key_mask[1000];
+
+    int xy_set;
+    double x;
+    double y;
 };
 
 static void error_callback(int error, const char* description)
@@ -110,6 +114,14 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     }
     //printf("%d %d %d\n", key, action, mods);
 
+    struct InputEvent ev = {
+        .key = key,
+        .scancode = scancode,
+        .action = action,
+        .mods = mods,
+        .mask = app->key_mask
+    };
+
     if (key >= 0 && key < sizeof(app->key_mask) / sizeof(app->key_mask[0])) {
         if (action == GLFW_PRESS) {
             app->key_mask[key] = 1;
@@ -119,8 +131,37 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     }
 
     for (i = 0; i < app->n_cons; i++) {
-        app->cons[i]->key_event(app->cons[i], key, scancode, action, mods, app->key_mask);
+        app->cons[i]->key_event(app->cons[i], &ev);
     }
+}
+
+
+static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    struct App* app = glfwGetWindowUserPointer(window);
+    double dx, dy;
+    int i;
+
+    if (!app->xy_set) {
+        app->x = xpos; app->y = ypos; app->xy_set = 1; return;
+    }
+
+    dx = xpos - app->x;
+    dy = ypos - app->y;
+
+    struct InputEvent ev = {
+        .dx = dx,
+        .dy = dy,
+        .x = xpos,
+        .y = ypos,
+        .mask = app->key_mask
+    };
+
+    for (i = 0; i < app->n_cons; i++) {
+        app->cons[i]->mouse_move_event(app->cons[i], &ev);
+    }
+
+    app->x = xpos; app->y = ypos;
 }
 
 typedef struct Object* (*ConstructorT)(struct Render*, struct Config* cfg, struct EventProducer*);
@@ -226,11 +267,18 @@ int main(int argc, char** argv)
     }
     glfwSetWindowUserPointer(window, &app);
     glfwSetKeyCallback(window, key_callback);
-    //glfwSetWindowSizeCallback(window, resize_callback);
+    glfwSetCursorPosCallback(window, cursor_position_callback);
+
     glfwSetFramebufferSizeCallback(window, resize_callback);
     glfwGetFramebufferSize(window, &app.ctx.w, &app.ctx.h);
     app.ctx.ratio = app.ctx.w/(float)app.ctx.h;
 
+    if (!strcmp(cfg_gets_def(cfg, "input:grab_mouse", "off"), "on")) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        if (glfwRawMouseMotionSupported()) {
+            glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        }
+    }
     /* Make the window's context current */
 
     render->set_view_entity(render, window);
