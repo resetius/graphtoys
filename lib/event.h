@@ -1,7 +1,7 @@
 #pragma once
 
 struct EventConsumer {
-    void (*key_event)(struct EventConsumer*, int key, int scancode, int action, int mods);
+    void (*key_event)(struct EventConsumer*, int key, int scancode, int action, int mods, unsigned char* mask);
 };
 
 struct EventProducer {

@@ -32,6 +32,7 @@ struct App {
     struct EventConsumer** cons;
     int n_cons;
     int cap_cons;
+    unsigned char key_mask[1000];
 };
 
 static void error_callback(int error, const char* description)
@@ -109,8 +110,16 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     }
     //printf("%d %d %d\n", key, action, mods);
 
+    if (key >= 0 && key < sizeof(app->key_mask) / sizeof(app->key_mask[0])) {
+        if (action == GLFW_PRESS) {
+            app->key_mask[key] = 1;
+        } else if (action == GLFW_RELEASE) {
+            app->key_mask[key] = 0;
+        }
+    }
+
     for (i = 0; i < app->n_cons; i++) {
-        app->cons[i]->key_event(app->cons[i], key, scancode, action, mods);
+        app->cons[i]->key_event(app->cons[i], key, scancode, action, mods, app->key_mask);
     }
 }
 

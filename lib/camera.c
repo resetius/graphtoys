@@ -51,18 +51,8 @@ void cam_translate(struct Camera* cam, vec3 t) {
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-static void cam_key_event(struct EventConsumer* cons, int key, int scancode, int action, int mods)
+static void process_key(struct Camera* cam, int key)
 {
-    struct Camera* cam = ((struct CameraEventConsumer*)cons)->cam;
-    // TODO: keys remapping
-    //printf("%f %f %f %f %f %f %f %f %f\n",
-    //       cam->center[0], cam->center[1], cam->center[2],
-    //       cam->eye[0], cam->eye[1], cam->eye[2],
-    //       cam->up[0], cam->up[1], cam->up[2]);
-    if (action == GLFW_RELEASE) {
-        return;
-    }
-
     vec3 dir;
     vec3 dir1;
     vec3_sub(dir, cam->center, cam->eye);
@@ -118,6 +108,31 @@ static void cam_key_event(struct EventConsumer* cons, int key, int scancode, int
         cam_rotate(cam, rot1);
     default:
         break;
+    }
+}
+
+static void cam_key_event(struct EventConsumer* cons, int key, int scancode, int action, int mods, unsigned char* mask)
+{
+    struct Camera* cam = ((struct CameraEventConsumer*)cons)->cam;
+    // TODO: keys remapping
+    //printf("%f %f %f %f %f %f %f %f %f\n",
+    //       cam->center[0], cam->center[1], cam->center[2],
+    //       cam->eye[0], cam->eye[1], cam->eye[2],
+    //       cam->up[0], cam->up[1], cam->up[2]);
+    if (action == GLFW_RELEASE) {
+        return;
+    }
+
+    int check[] = {
+        GLFW_KEY_S, GLFW_KEY_W, GLFW_KEY_D, GLFW_KEY_A,
+        GLFW_KEY_SPACE, GLFW_KEY_LEFT, GLFW_KEY_RIGHT,
+        GLFW_KEY_UP, GLFW_KEY_DOWN
+    };
+
+    for (int i = 0; i < sizeof(check)/sizeof(check[0]); i++) {
+        if (mask[check[i]]) {
+            process_key(cam, check[i]);
+        }
     }
 }
 
