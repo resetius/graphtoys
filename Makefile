@@ -24,9 +24,7 @@ endif
 
 LDFLAGS+=$(VULKAN_LOADER)
 
-KTX_SOURCES=contrib/json/json.c\
-	contrib/ktx/lib/basisu/zstd/zstd.c\
-	contrib/ktx/lib/checkheader.c\
+KTX_SOURCES=contrib/ktx/lib/basisu/zstd/zstd.c\
 	contrib/ktx/lib/dfdutils/createdfd.c\
 	contrib/ktx/lib/dfdutils/colourspaces.c\
 	contrib/ktx/lib/dfdutils/interpretdfd.c\
@@ -90,6 +88,7 @@ SOURCES=main.c\
 	lib/object.c\
 	lib/ref.c\
 	font/font.c\
+	contrib/json/json.c\
 	$(KTX_SOURCES)
 
 SHADERS=models/triangle.frag\
