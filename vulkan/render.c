@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -57,21 +58,16 @@ static void draw_begin_(struct Render* r1) {
         rt_destroy(&r->rt);
         rp_destroy(&r->rp);
         sc_destroy(&r->sc);
-        for (i = 0; i < r->sc.n_images; i++) {
-            frame_destroy(&r->frames[i]);
-        }
 
         sc_init(&r->sc, r);
         rp_init(&r->rp, r->log_dev, r->sc.im_format, r->sc.depth_format);
         rt_init(&r->rt, r);
-        for (i = 0; i < r->sc.n_images; i++) {
-            frame_init(&r->frames[i], r);
-        }
         r->update_viewport = 0;
         VkRect2D scissor = {{0, 0}, r->sc.extent};
         r->scissor = scissor;
     }
 
+    assert(r->n_recycled_semaphores > 0);
     VkSemaphore acquire_sem = r->recycled_semaphores[--r->n_recycled_semaphores];
 
     vkAcquireNextImageKHR(
@@ -85,6 +81,7 @@ static void draw_begin_(struct Render* r1) {
     r->frame = &r->frames[r->image_index];
     if (r->frame->acquire_image != VK_NULL_HANDLE) {
         r->recycled_semaphores[r->n_recycled_semaphores++] = r->frame->acquire_image;
+        r->frame->acquire_image = VK_NULL_HANDLE;
     }
     r->frame->acquire_image = acquire_sem;
 
