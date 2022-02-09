@@ -51,7 +51,6 @@ static void draw_begin_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
 
     if (r->update_viewport) {
-        int i;
         vkDeviceWaitIdle(r->log_dev);
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(r->phy_dev, r->surface, &r->caps);
 
