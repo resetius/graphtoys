@@ -24,7 +24,7 @@ static int create(
 {
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
     struct RenderImpl* r = b->r;
-    struct BufferImpl* buf = (struct BufferImpl*)buffer_acquire_(&b->base, size);
+    struct BufferImpl* buf = (struct BufferImpl*)b->base.iface.acquire(mgr, size);
     int i;
 
     buf->size = size;
@@ -126,17 +126,12 @@ static void release(struct BufferManager* mgr, void* buf1) {
 
 struct BufferManager* buf_mgr_vulkan_new(struct Render* r) {
     struct BufferManagerImpl* b = calloc(1, sizeof(*b));
-    struct BufferManager iface = {
-        .get = buffer_get_,
-        .create = create,
-        .release = release,
-        .update = update,
-        .destroy = buffer_release_,
-        .free = buffer_mgr_free_,
-    };
+    buffermanager_base_ctor(&b->base, sizeof(struct BufferImpl));
 
-    b->base.iface = iface;
-    b->base.buffer_size = sizeof(struct BufferImpl);
+    b->base.iface.create = create;
+    b->base.iface.release = release;
+    b->base.iface.update = update;
+
     b->r = (struct RenderImpl*)r;
 
     return (struct BufferManager*)b;

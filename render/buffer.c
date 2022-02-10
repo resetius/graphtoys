@@ -6,7 +6,7 @@
 #include "buffer.h"
 #include "render.h"
 
-struct BufferBase* buffer_acquire_(struct BufferManagerBase* b, int size) {
+static struct BufferBase* buffer_acquire_(struct BufferManagerBase* b, int size) {
     struct BufferBase* buf = NULL;
     if (b->n_buffers >= b->cap) {
         int i;
@@ -38,7 +38,7 @@ struct BufferBase* buffer_acquire_(struct BufferManagerBase* b, int size) {
     return buf;
 }
 
-void buffer_release_(struct BufferManager* mgr, int id) {
+static void buffer_release_(struct BufferManager* mgr, int id) {
     struct BufferManagerBase* b = (struct BufferManagerBase*)mgr;
     struct BufferBase base = {
         .id = id,
@@ -61,7 +61,7 @@ void buffer_release_(struct BufferManager* mgr, int id) {
     }
 }
 
-void buffer_mgr_free_(struct BufferManager* mgr) {
+static void buffer_mgr_free_(struct BufferManager* mgr) {
     struct BufferManagerBase* b = (struct BufferManagerBase*)mgr;
     while (b->n_buffers > 0) {
         buffer_release_(mgr, b->n_buffers-1);
@@ -70,7 +70,7 @@ void buffer_mgr_free_(struct BufferManager* mgr) {
     free(b);
 }
 
-void* buffer_get_(struct BufferManager* mgr, int id) {
+static void* buffer_get_(struct BufferManager* mgr, int id) {
     struct BufferManagerBase* b = (struct BufferManagerBase*)mgr;
     assert(id < b->n_buffers);
     return &b->buffers[id*b->buffer_size];
@@ -94,4 +94,16 @@ void buffer_update(
     int size)
 {
     return b->update(b, id, data, offset, size);
+}
+
+void buffermanager_base_ctor(struct BufferManagerBase* bm, int buffer_size) {
+    struct BufferManager iface = {
+        .get = buffer_get_,
+        .destroy = buffer_release_,
+        .free = buffer_mgr_free_,
+        .acquire = buffer_acquire_,
+    };
+
+    bm->iface = iface;
+    bm->buffer_size = buffer_size;
 }

@@ -44,6 +44,7 @@ struct BufferManager {
     // internal handler
     void* (*get)(struct BufferManager* mgr, int id);
     void (*release)(struct BufferManager* mgr, void* buffer);
+    struct BufferBase* (*acquire)(struct BufferManager* mgr, int buffer_size);
 
     void (*free)(struct BufferManager* mgr);
 };
@@ -84,7 +85,4 @@ struct BufferManagerBase {
     int64_t total_memory;
 };
 
-struct BufferBase* buffer_acquire_(struct BufferManagerBase* mgr, int size);
-void buffer_release_(struct BufferManager* mgr, int id);
-void* buffer_get_(struct BufferManager* mgr, int id);
-void buffer_mgr_free_(struct BufferManager* mgr);
+void buffermanager_base_ctor(struct BufferManagerBase* bm, int buffer_size);
