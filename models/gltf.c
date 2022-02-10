@@ -290,7 +290,8 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
 
     t->b = r->buffer_manager(r);
 
-    struct Gltf* gltf = gltf_load(fn);
+    struct Gltf gltf;
+    gltf_ctor(&gltf, fn);
 
     t->cam.fov = 70*M_PI/180;
     t->cam.aspect = 1.77;
@@ -299,11 +300,11 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
 
     cam_init(&t->cam);
 
-    for (int i = 0; i < gltf->n_nodes; i++) {
+    for (int i = 0; i < gltf.n_nodes; i++) {
 
-        if (gltf->nodes[i].camera >= 0) {
+        if (gltf.nodes[i].camera >= 0) {
             // TODO: multiple cameras
-            struct GltfCamera* c = &gltf->cameras[gltf->nodes[i].camera];
+            struct GltfCamera* c = &gltf.cameras[gltf.nodes[i].camera];
             if (c->is_perspective) {
                 printf("Load camera\n");
                 t->cam.fov = c->perspective.yfov;
@@ -312,12 +313,12 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
                 t->cam.zfar = c->perspective.zfar;
 
                 cam_init(&t->cam);
-                cam_rotate(&t->cam, gltf->nodes[i].rotation);
-                cam_translate(&t->cam, gltf->nodes[i].translation);
+                cam_rotate(&t->cam, gltf.nodes[i].rotation);
+                cam_translate(&t->cam, gltf.nodes[i].translation);
             }
         }
 
-        if (! (gltf->nodes[i].mesh >= 0 && gltf->meshes[gltf->nodes[i].mesh].n_primitives > 0) ) {
+        if (! (gltf.nodes[i].mesh >= 0 && gltf.meshes[gltf.nodes[i].mesh].n_primitives > 0) ) {
             continue;
         }
 
@@ -326,12 +327,11 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
             t->nodes = realloc(t->nodes, t->cap_nodes*sizeof(struct Node));
         }
 
-        load_node(r, t->b, &t->nodes[t->n_nodes++], i, gltf,
+        load_node(r, t->b, &t->nodes[t->n_nodes++], i, &gltf,
                   &vertex_shader, &fragment_shader);
     }
 
-
-    gltf_destroy(gltf);
+    gltf_dtor(&gltf);
 
     struct Vertex pp[] = {
         {{1.0, 0.0, 1.0}, {0.0, 0.0, 0.0}, { -1,  1, 0}},

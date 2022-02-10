@@ -117,5 +117,8 @@ struct Gltf {
     char fsbase[1024];
 };
 
-struct Gltf* gltf_load(const char* fn);
-void gltf_destroy(struct Gltf*);
+struct Gltf* gltf_alloc();
+void gltf_free(struct Gltf*);
+
+void gltf_ctor(struct Gltf*, const char* fn);
+void gltf_dtor(struct Gltf*);

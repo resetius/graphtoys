@@ -375,15 +375,14 @@ static void load_cameras(struct Gltf* gltf, json_value* value) {
     }
 }
 
-struct Gltf* gltf_load(const char* fn) {
-    struct Gltf* gltf = calloc(1, sizeof(*gltf));
+void gltf_ctor(struct Gltf* gltf, const char* fn) {
     FILE* f = fopen(fn, "rb");
     char* buf;
     int64_t size;
     memset(gltf, 0, sizeof(*gltf));
     if (!f) {
         printf("Cannot open '%s'\n", fn);
-        return NULL;
+        return;
     }
     fseek(f, 0, SEEK_END);
     size = ftell(f);
@@ -449,11 +448,9 @@ end:
     json_value_free(value);
 
     free(buf);
-
-    return gltf;
 }
 
-void gltf_destroy(struct Gltf* gltf) {
+void gltf_dtor(struct Gltf* gltf) {
     int i;
     for (i = 0; i < gltf->n_buffers; i++) {
         free(gltf->buffers[i].data);
@@ -467,5 +464,12 @@ void gltf_destroy(struct Gltf* gltf) {
     free(gltf->meshes);
     free(gltf->views);
     free(gltf->buffers);
+}
+
+struct Gltf* gltf_alloc() {
+    return calloc(1, sizeof(sizeof(struct Gltf)));
+}
+
+void gltf_free(struct Gltf* gltf) {
     free(gltf);
 }
