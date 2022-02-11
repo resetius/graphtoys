@@ -26,7 +26,7 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
     float* accel = calloc(1, size);
     int i,j,k,n=0;
     //float side = 4.0f;
-    float side = 7.5f;
+    float side = cfg_getf_def(cfg, "side", 7.5f);
     float dx = side/(n_x-1);
     float dy = side/(n_y-1);
     float dz = side/(n_z-1);
