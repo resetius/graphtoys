@@ -192,8 +192,8 @@ int main(int argc, char** argv)
     GLFWwindow* window = NULL;
     struct App app;
     struct Font* font = NULL;
-    struct Label* fps = NULL;
-    struct Label* text = NULL;
+    struct Label fps;
+    //struct Label text;
     struct Render* render = NULL;
     struct Config* cfg = NULL;
     struct RenderConfig rcfg;
@@ -303,13 +303,13 @@ int main(int argc, char** argv)
 
     if (enable_labels) {
         font = font_new(render, 0, 16*64, 150*scale_w, 150*scale_h);
-        fps = label_new(font);
-        label_set_pos(fps, 10, 10);
-        label_set_text(fps, "FPS:");
+        label_ctor(&fps, font);
+        label_set_pos(&fps, 10, 10);
+        label_set_text(&fps, "FPS:");
 
 
-        text = label_new(font);
-        label_set_pos(text, 100, 200);
+        //label_new(&text, font);
+        //label_set_pos(&text, 100, 200);
         //label_set_text(text, "Проверка русских букв");
     }
 
@@ -324,8 +324,8 @@ int main(int argc, char** argv)
 
         /* Render here */
         if (enable_labels) {
-            label_set_screen(fps, app.ctx.w, app.ctx.h);
-            label_set_screen(text, app.ctx.w, app.ctx.h);
+            label_set_screen(&fps, app.ctx.w, app.ctx.h);
+            //label_set_screen(text, app.ctx.w, app.ctx.h);
         }
 
         for (i = 0; i < app.objs.size; i++) {
@@ -333,7 +333,7 @@ int main(int argc, char** argv)
         }
 
         if (enable_labels) {
-            label_render(fps);
+            label_render(&fps);
             //label_render(text);
         }
 
@@ -349,7 +349,7 @@ int main(int argc, char** argv)
             double fp = frames/(t2-t1);
             double ms = 1000.*(t2-t1)/frames;
             if (enable_labels) {
-                label_set_vtext(fps, "FPS:%.2f, %.1fms", fp, ms);
+                label_set_vtext(&fps, "FPS:%.2f, %.1fms", fp, ms);
             }
             printf("FPS:%.2f, %.1fms\n", fp, ms);
             frames = 0;
@@ -358,8 +358,8 @@ int main(int argc, char** argv)
     }
 
     ovec_free(&app.objs);
-    label_free(fps);
-    label_free(text);
+    label_dtor(&fps);
+    //label_dtor(&text);
     font_free(font);
     rend_free(render);
     cfg_free(cfg);

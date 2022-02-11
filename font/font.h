@@ -31,7 +31,10 @@ struct Font* font_new(struct Render* r,
                       int device_h);
 void font_free(struct Font*);
 
-struct Label* label_new(struct Font* f);
+
+struct Label* label_alloc();
+void label_ctor(struct Label*l, struct Font* f);
+void label_dtor(struct Label*l);
 void label_set_text(struct Label* l, const char* s);
 void label_set_vtext(struct Label* l, const char* s, ...);
 void label_set_pos(struct Label* l, int x, int y);

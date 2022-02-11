@@ -28,7 +28,6 @@ struct BufferPair {
 };
 
 struct FontImpl {
-    //struct Program* p;
     struct Char* chars[65536];
     struct UniformBlock uniform;
     struct Pipeline* pl;
@@ -165,15 +164,6 @@ void font_free(struct Font* o) {
         f->pl->free(f->pl);
         free(f);
     }
-}
-
-struct Label* label_new(struct Font* f) {
-    struct FontImpl* f1 = (struct FontImpl*)f;
-    struct Label* l = calloc(1, sizeof(*l));
-    l->f = f;
-    l->id = f1->current_id ++;
-    l->dirty = 5;
-    return l;
 }
 
 static int next_or_die(const unsigned char** p, jmp_buf* buf) {
@@ -318,10 +308,24 @@ void label_render(struct Label* l)
     }
 }
 
-void label_free(struct Label* l) {
+struct Label* label_alloc() {
+    return calloc(1, sizeof(struct Label));
+}
+
+void label_ctor(struct Label* l, struct Font* f) {
+    struct FontImpl* f1 = (struct FontImpl*)f;
+    l->f = f;
+    l->id = f1->current_id ++;
+    l->dirty = 5;
+}
+
+void label_dtor(struct Label* l) {
     if (l) {
         free(l->text);
         free(l->buf);
-        free(l);
     }
+}
+
+void label_free(struct Label* l) {
+    free(l);
 }
