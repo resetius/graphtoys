@@ -39,6 +39,7 @@ struct GltfPrimitive {
     int position;
     int texcoord[10];
     int n_texcoords;
+    int tangent;
 
     int indices;
     int material;
@@ -89,6 +90,11 @@ struct GltfCamera {
     struct GltfCameraOrthographic orthographic;
 };
 
+struct GltfImage {
+    char name[256];
+    void* texture;
+};
+
 struct Gltf {
     struct GltfAccessor* accessors;
     int cap_accessors;
@@ -111,6 +117,9 @@ struct Gltf {
     struct GltfCamera* cameras;
     int cap_cameras;
     int n_cameras;
+    struct GltfImage* images;
+    int cap_images;
+    int n_images;
 
     int def;
 

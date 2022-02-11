@@ -122,7 +122,7 @@ clean:
 	rm -rf .deps
 	rm -f $(GENERATED)
 
-main.exe: $(OBJECTS)
+main.exe: $(OBJECTS) $(KTX_OBJECTS)
 	$(CC) $^ $(LDFLAGS) -o $@
 
 tools/rcc.exe: tools/rcc.o
@@ -134,7 +134,7 @@ tools/stlprint.exe: tools/stlprint.o
 tools/cfgprint.exe: tools/cfgprint.o lib/config.o
 	$(CC) $^ $(SANITIZE) -o $@
 
-tools/gltfprint.exe: tools/gltfprint.o lib/formats/base64.o lib/formats/gltf.o contrib/json/json.o
+tools/gltfprint.exe: tools/gltfprint.o lib/formats/base64.o lib/formats/gltf.o contrib/json/json.o $(KTX_OBJECTS)
 	$(CC) $^ $(LDFLAGS) -o $@
 
 tools/ktx2tga.exe: tools/ktx2tga.o $(KTX_OBJECTS)
