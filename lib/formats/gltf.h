@@ -95,6 +95,10 @@ struct GltfImage {
     void* texture;
 };
 
+struct GltfTexture {
+    int source;
+};
+
 struct Gltf {
     struct GltfAccessor* accessors;
     int cap_accessors;
@@ -120,6 +124,9 @@ struct Gltf {
     struct GltfImage* images;
     int cap_images;
     int n_images;
+    struct GltfTexture* textures;
+    int cap_textures;
+    int n_textures;
 
     int def;
 

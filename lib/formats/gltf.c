@@ -426,6 +426,28 @@ static void load_images(struct Gltf* gltf, json_value* value) {
     }
 }
 
+static void load_texture(struct GltfTexture* texture, json_value* value) {
+    for (json_object_entry* entry = value->u.object.values;
+         entry != value->u.object.values+value->u.object.length; entry++)
+    {
+        if (!strcmp(entry->name, "source") && entry->value->type == json_integer) {
+            texture->source = entry->value->u.integer;
+        }
+    }
+}
+
+static void load_textures(struct Gltf* gltf, json_value* value) {
+    for (json_value** entry = value->u.array.values;
+         entry != value->u.array.values+value->u.array.length; entry++)
+    {
+        if ((*entry)->type == json_object) {
+            load_texture(BACK(gltf->textures, gltf->cap_textures, gltf->n_textures), *entry);
+        } else {
+            printf("Unknown texture type\n");
+        }
+    }
+}
+
 void gltf_ctor(struct Gltf* gltf, const char* fn) {
     FILE* f = fopen(fn, "rb");
     char* buf;
@@ -487,6 +509,8 @@ void gltf_ctor(struct Gltf* gltf, const char* fn) {
             load_cameras(gltf, entry->value);
         } else if (!strcmp(entry->name, "images") && entry->value->type == json_array) {
             load_images(gltf, entry->value);
+        } else if (!strcmp(entry->name, "textures") && entry->value->type == json_array) {
+            load_textures(gltf, entry->value);
         } else {
             printf("Unsupported key: '%s'\n", entry->name);
         }
@@ -521,6 +545,7 @@ void gltf_dtor(struct Gltf* gltf) {
     free(gltf->views);
     free(gltf->buffers);
     free(gltf->images);
+    free(gltf->textures);
 }
 
 struct Gltf* gltf_alloc() {
