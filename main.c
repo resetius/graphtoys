@@ -358,8 +358,10 @@ int main(int argc, char** argv)
     }
 
     ovec_free(&app.objs);
-    label_dtor(&fps);
-    //label_dtor(&text);
+    if (enable_labels) {
+        label_dtor(&fps);
+        //label_dtor(&text);
+    }
     font_free(font);
     rend_free(render);
     cfg_free(cfg);
