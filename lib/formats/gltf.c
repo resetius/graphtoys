@@ -456,6 +456,51 @@ static void load_textures(struct Gltf* gltf, json_value* value) {
     }
 }
 
+static void load_tex_info(struct GltfTextureInfo* info, json_value* value) {
+    for (json_object_entry* entry = value->u.object.values;
+         entry != value->u.object.values+value->u.object.length; entry++)
+    {
+        if (!strcmp(entry->name, "index") && entry->value->type == json_integer) {
+            info->index = entry->value->u.integer;
+        } else if (!strcmp(entry->name, "texCoord") && entry->value->type == json_integer) {
+            info->tex_coord = entry->value->u.integer;
+        } else {
+            printf("Unknowm tex info key: '%s'\n", entry->name);
+        }
+    }
+}
+
+static void load_normal_tex_info(struct GltfNormalTextureInfo* info, json_value* value) {
+    for (json_object_entry* entry = value->u.object.values;
+         entry != value->u.object.values+value->u.object.length; entry++)
+    {
+        if (!strcmp(entry->name, "index") && entry->value->type == json_integer) {
+            info->index = entry->value->u.integer;
+        } else if (!strcmp(entry->name, "texCoord") && entry->value->type == json_integer) {
+            info->tex_coord = entry->value->u.integer;
+        } else if (!strcmp(entry->name, "scale")) {
+            info->scale = get_float(entry->value);
+        } else {
+            printf("Unknowm tex info key: '%s'\n", entry->name);
+        }
+    }
+}
+
+static void load_occlusion_tex_info(struct GltfOcclusionTextureInfo* info, json_value* value) {
+    for (json_object_entry* entry = value->u.object.values;
+         entry != value->u.object.values+value->u.object.length; entry++)
+    {
+        if (!strcmp(entry->name, "index") && entry->value->type == json_integer) {
+            info->index = entry->value->u.integer;
+        } else if (!strcmp(entry->name, "texCoord") && entry->value->type == json_integer) {
+            info->tex_coord = entry->value->u.integer;
+        } else if (!strcmp(entry->name, "strength")) {
+            info->strength = get_float(entry->value);
+        } else {
+            printf("Unknowm tex info key: '%s'\n", entry->name);
+        }
+    }
+}
 
 static void load_pbr_metallic_roughness(struct GltfMetallicRoughness* info, json_value* value) {
     info->base_color_factor[0] = info->base_color_factor[1] = info->base_color_factor[2] = info->base_color_factor[3] = 1;
@@ -465,6 +510,17 @@ static void load_pbr_metallic_roughness(struct GltfMetallicRoughness* info, json
     {
         if (!strcmp(entry->name, "baseColorFactor") && entry->value->type == json_array && entry->value->u.array.length == 4) {
             load_vec(entry->value, info->base_color_factor, 4);
+
+        } else if (!strcmp(entry->name, "baseColorTexture") && entry->value->type == json_object) {
+            info->has_base_color_texture = 1;
+            load_tex_info(&info->base_color_texture, entry->value);
+        } else if (!strcmp(entry->name, "metallicFactor")) {
+            info->metallic_factor = get_float(entry->value);
+        } else if (!strcmp(entry->name, "roughnessFactor")) {
+            info->roughness_factor = get_float(entry->value);
+        } else if (!strcmp(entry->name, "metallicRoughnessTexture") && entry->value->type == json_object) {
+            info->has_metallic_roughness_texture = 1;
+            load_tex_info(&info->metallic_roughness_texture, entry->value);
         } else {
             printf("Unknowm pbr key: '%s'\n", entry->name);
         }
@@ -482,10 +538,13 @@ static void load_material(struct GltfMaterial* material, json_value* value) {
             load_pbr_metallic_roughness(&material->pbr_metallic_roughness, entry->value);
         } else if (!strcmp(entry->name, "normalTexture") && entry->value->type == json_object) {
             material->has_normal_texture = 1;
+            load_normal_tex_info(&material->normal_texture, entry->value);
         } else if (!strcmp(entry->name, "occlusionTexture") && entry->value->type == json_object) {
             material->has_occlusion_texture = 1;
+            load_occlusion_tex_info(&material->occlusion_texture, entry->value);
         } else if (!strcmp(entry->name, "emissiveTexture") && entry->value->type == json_object) {
             material->has_emissive_texture = 1;
+            load_tex_info(&material->emissive_texture, entry->value);
         } else if (!strcmp(entry->name, "emissiveFactor") && entry->value->type == json_array && entry->value->u.array.length == 3) {
             load_vec(entry->value, material->emissive_factor, 3);
         } else if (!strcmp(entry->name, "alphaMode") && entry->value->type == json_string) {

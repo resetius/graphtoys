@@ -33,16 +33,6 @@ struct GltfTextureInfo {
     int tex_coord; // 0
 };
 
-struct GltfMetallicRoughness {
-    vec4 base_color_factor; // [1,1,1,1]
-    struct GltfTextureInfo base_color_texture;
-    int has_base_color_texture; // 0
-    float metallic_factor; // 1
-    float roughness_factor; // 1
-    struct GltfTextureInfo metallic_roughness_texture;
-    int has_metallic_roughness_texture; // 0
-};
-
 struct GltfNormalTextureInfo {
     int index;
     int tex_coord; // 0
@@ -53,6 +43,16 @@ struct GltfOcclusionTextureInfo {
     int index;
     int tex_coord; // 0
     float strength; // 1
+};
+
+struct GltfMetallicRoughness {
+    vec4 base_color_factor; // [1,1,1,1]
+    struct GltfTextureInfo base_color_texture;
+    int has_base_color_texture; // 0
+    float metallic_factor; // 1
+    float roughness_factor; // 1
+    struct GltfTextureInfo metallic_roughness_texture;
+    int has_metallic_roughness_texture; // 0
 };
 
 struct GltfMaterial {
