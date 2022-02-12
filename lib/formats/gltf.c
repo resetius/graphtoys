@@ -12,6 +12,21 @@
 #define BACK(vec, cap, count) \
     count>=cap ? ( cap=(1+cap)*2, vec = realloc(vec, cap*sizeof(vec[0])), memset(&vec[count], 0, sizeof(vec[count])), &vec[count++] ) : ( memset(&vec[count], 0, sizeof(vec[count])), &vec[count++] )
 
+static float get_float(json_value* value) {
+    if (value->type == json_integer) {
+        return value->u.integer;
+    } else {
+        return value->u.dbl;
+    }
+}
+
+static void load_vec(json_value* value, float* vec, int size) {
+    int i;
+    for (i = 0; i < size; i++) {
+        vec[i] = get_float(value->u.array.values[i]);
+    }
+}
+
 static void load_scene(struct GltfScene* scene, json_value* value) {
     for (json_object_entry* entry = value->u.object.values;
          entry != value->u.object.values+value->u.object.length; entry++)
@@ -39,13 +54,6 @@ static void load_scenes(struct Gltf* gltf, json_value* value) {
         } else {
             printf("Bad scene type\n");
         }
-    }
-}
-
-static void load_vec(json_value* value, float* vec, int size) {
-    int i;
-    for (i = 0; i < size; i++) {
-        vec[i] = value->u.array.values[i]->u.dbl;
     }
 }
 
@@ -260,7 +268,7 @@ static void load_attributes(struct GltfPrimitive* primitive, json_value* value) 
 }
 
 static void load_primitive(struct GltfPrimitive* primitive, json_value* value) {
-    primitive->normal = primitive->position = primitive->tangent = -1;
+    primitive->material = primitive->normal = primitive->position = primitive->tangent = -1;
     for (int i = 0; i < sizeof(primitive->texcoord)/sizeof(int); i++) {
         primitive->texcoord[i] = -1;
     }
@@ -322,13 +330,13 @@ static void load_perspective(struct GltfCameraPerspective* cam, json_value* valu
          entry != value->u.object.values+value->u.object.length; entry++)
     {
         if (!strcmp(entry->name, "aspectRatio")) {
-            cam->aspect = entry->value->u.dbl;
+            cam->aspect = get_float(entry->value);
         } else if (!strcmp(entry->name, "yfov")) {
-            cam->yfov = entry->value->u.dbl;
+            cam->yfov = get_float(entry->value);
         } else if (!strcmp(entry->name, "zfar")) {
-            cam->zfar = entry->value->u.dbl;
+            cam->zfar = get_float(entry->value);
         } else if (!strcmp(entry->name, "znear")) {
-            cam->znear = entry->value->u.dbl;
+            cam->znear = get_float(entry->value);
         }
     }
 }
@@ -338,13 +346,13 @@ static void load_orthographic(struct GltfCameraOrthographic* cam, json_value* va
          entry != value->u.object.values+value->u.object.length; entry++)
     {
         if (!strcmp(entry->name, "xmag")) {
-            cam->xmag = entry->value->u.dbl;
+            cam->xmag = get_float(entry->value);
         } else if (!strcmp(entry->name, "ymag")) {
-            cam->ymag = entry->value->u.dbl;
+            cam->ymag = get_float(entry->value);
         } else if (!strcmp(entry->name, "zfar")) {
-            cam->zfar = entry->value->u.dbl;
+            cam->zfar = get_float(entry->value);
         } else if (!strcmp(entry->name, "znear")) {
-            cam->znear = entry->value->u.dbl;
+            cam->znear = get_float(entry->value);
         }
     }
 }
@@ -448,6 +456,64 @@ static void load_textures(struct Gltf* gltf, json_value* value) {
     }
 }
 
+
+static void load_pbr_metallic_roughness(struct GltfMetallicRoughness* info, json_value* value) {
+    info->base_color_factor[0] = info->base_color_factor[1] = info->base_color_factor[2] = info->base_color_factor[3] = 1;
+    info->metallic_factor = info->roughness_factor = 1;
+    for (json_object_entry* entry = value->u.object.values;
+         entry != value->u.object.values+value->u.object.length; entry++)
+    {
+        if (!strcmp(entry->name, "baseColorFactor") && entry->value->type == json_array && entry->value->u.array.length == 4) {
+            load_vec(entry->value, info->base_color_factor, 4);
+        } else {
+            printf("Unknowm pbr key: '%s'\n", entry->name);
+        }
+    }
+}
+
+static void load_material(struct GltfMaterial* material, json_value* value) {
+    for (json_object_entry* entry = value->u.object.values;
+         entry != value->u.object.values+value->u.object.length; entry++)
+    {
+        if (!strcmp(entry->name, "name") && entry->value->type == json_string) {
+            strncpy(material->name, entry->value->u.string.ptr, sizeof(material->name)-1);
+        } else if (!strcmp(entry->name, "pbrMetallicRoughness") && entry->value->type == json_object) {
+            material->has_pbr_metallic_roughness = 1;
+            load_pbr_metallic_roughness(&material->pbr_metallic_roughness, entry->value);
+        } else if (!strcmp(entry->name, "normalTexture") && entry->value->type == json_object) {
+            material->has_normal_texture = 1;
+        } else if (!strcmp(entry->name, "occlusionTexture") && entry->value->type == json_object) {
+            material->has_occlusion_texture = 1;
+        } else if (!strcmp(entry->name, "emissiveTexture") && entry->value->type == json_object) {
+            material->has_emissive_texture = 1;
+        } else if (!strcmp(entry->name, "emissiveFactor") && entry->value->type == json_array && entry->value->u.array.length == 3) {
+            load_vec(entry->value, material->emissive_factor, 3);
+        } else if (!strcmp(entry->name, "alphaMode") && entry->value->type == json_string) {
+            if (!strcmp(entry->value->u.string.ptr, "OPAQUE")) {
+                material->alpha_mode = 1;
+            } else {
+                printf("Unknown alphaMode: '%s'\n", entry->value->u.string.ptr);
+            }
+        } else if (!strcmp(entry->name, "doubleSided") && entry->value->type == json_boolean) {
+            material->double_sided = entry->value->u.boolean;
+        } else {
+            printf("Unknown material key: '%s'\n", entry->name);
+        }
+    }
+}
+
+static void load_materials(struct Gltf* gltf, json_value* value) {
+    for (json_value** entry = value->u.array.values;
+         entry != value->u.array.values+value->u.array.length; entry++)
+    {
+        if ((*entry)->type == json_object) {
+            load_material(BACK(gltf->materials, gltf->cap_materials, gltf->n_materials), *entry);
+        } else {
+            printf("Unknown material type\n");
+        }
+    }
+}
+
 void gltf_ctor(struct Gltf* gltf, const char* fn) {
     FILE* f = fopen(fn, "rb");
     char* buf;
@@ -481,16 +547,14 @@ void gltf_ctor(struct Gltf* gltf, const char* fn) {
     for (json_object_entry* entry = value->u.object.values;
          entry != value->u.object.values+value->u.object.length; entry++)
     {
-        if (!strcmp(entry->name, "scene")) {
-            // TODO: check integer type
+        if (!strcmp(entry->name, "scene") && entry->value->type == json_integer) {
             gltf->def = entry->value->u.integer;
         } else if (!strcmp(entry->name, "scenes") && entry->value->type == json_array) {
             load_scenes(gltf, entry->value);
         } else if (!strcmp(entry->name, "nodes") && entry->value->type == json_array) {
             load_nodes(gltf, entry->value);
         } else if (!strcmp(entry->name, "materials")) {
-            // TODO
-            printf("Materials unsupported yet\n");
+            load_materials(gltf, entry->value);
         } else if (!strcmp(entry->name, "extensions")) {
             // TODO
             printf("Extensions unsupported yet\n");

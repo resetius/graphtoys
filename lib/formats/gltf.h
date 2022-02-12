@@ -28,9 +28,51 @@ struct GltfView {
     int64_t size;
 };
 
+struct GltfTextureInfo {
+    int index;
+    int tex_coord; // 0
+};
+
+struct GltfMetallicRoughness {
+    vec4 base_color_factor; // [1,1,1,1]
+    struct GltfTextureInfo base_color_texture;
+    int has_base_color_texture; // 0
+    float metallic_factor; // 1
+    float roughness_factor; // 1
+    struct GltfTextureInfo metallic_roughness_texture;
+    int has_metallic_roughness_texture; // 0
+};
+
+struct GltfNormalTextureInfo {
+    int index;
+    int tex_coord; // 0
+    float scale; // 1
+};
+
+struct GltfOcclusionTextureInfo {
+    int index;
+    int tex_coord; // 0
+    float strength; // 1
+};
+
 struct GltfMaterial {
     char name[256];
-    // TODO
+
+    struct GltfMetallicRoughness pbr_metallic_roughness;
+    int has_pbr_metallic_roughness; // 0
+
+    struct GltfNormalTextureInfo normal_texture;
+    int has_normal_texture; // 0
+
+    struct GltfOcclusionTextureInfo occlusion_texture;
+    int has_occlusion_texture; // 0
+
+    struct GltfTextureInfo emissive_texture;
+    int has_emissive_texture; // 0
+    vec3 emissive_factor; // [0,0,0]
+    int alpha_mode; // OPAQUE
+    float alpha_cutoff; // 0.5
+    int double_sided; // 0
 };
 
 struct GltfPrimitive {
@@ -127,6 +169,9 @@ struct Gltf {
     struct GltfTexture* textures;
     int cap_textures;
     int n_textures;
+    struct GltfMaterial* materials;
+    int cap_materials;
+    int n_materials;
 
     int def;
 

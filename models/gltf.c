@@ -168,10 +168,15 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
     struct Vertex* vertices = malloc(npos*sizeof(struct Vertex));
 
     //int* indices =
+    // TODO: loop on primitives
 
     int ind_view = gltf->accessors[gltf->meshes[mesh].primitives[0].indices].view;
     int pos_view = gltf->accessors[gltf->meshes[mesh].primitives[0].position].view;
     int norm_view = gltf->accessors[gltf->meshes[mesh].primitives[0].normal].view;
+    int material_id = gltf->meshes[mesh].primitives[0].material;
+    struct GltfMaterial* material = material_id >= 0
+        ? &gltf->materials[material_id]
+        : NULL;
 
     int pos_components = gltf->accessors[gltf->meshes[mesh].primitives[0].position].components;
     int norm_components = gltf->accessors[gltf->meshes[mesh].primitives[0].normal].components;
@@ -208,9 +213,14 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
     for (int i = 0; i < npos; i ++) {
         memcpy(vertices[k].pos, &pos_data[i*pos_stride], pos_size);
         memcpy(vertices[k].norm, &norm_data[i*norm_stride], norm_size);
-        vertices[k].col[0] = 1.0;
-        vertices[k].col[1] = 0.0;
-        vertices[k].col[2] = 1.0;
+        if (material && material->has_pbr_metallic_roughness) {
+            memcpy(vertices[k].col, material->pbr_metallic_roughness.base_color_factor,
+                   3*sizeof(float));
+        } else {
+            vertices[k].col[0] = 1.0;
+            vertices[k].col[1] = 0.0;
+            vertices[k].col[2] = 1.0;
+        }
 
         //printf("%f %f %f %f %f %f %d\n",
         //       vertices[k].pos[0], vertices[k].pos[1], vertices[k].pos[2],
