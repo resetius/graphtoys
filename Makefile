@@ -17,6 +17,10 @@ CFLAGS += -I. $(shell pkg-config --cflags glfw3,freetype2) -Icontrib/ktx/lib/bas
 
 LDFLAGS+=$(shell pkg-config --static --libs glfw3,freetype2) $(SANITIZE)
 
+ifneq (,$(findstring MINGW,$(UNAME_S)))
+    CFLAGS += -DS_IFSOCK=0xC000 -DKHRONOS_STATIC
+endif
+
 ifeq ($(UNAME_S),Darwin)
     LDFLAGS+=-framework OpenGl
     CFLAGS += -DGL_SILENCE_DEPRECATION
@@ -121,6 +125,7 @@ clean:
 	rm -f $(OBJECTS)
 	rm -rf .deps
 	rm -f $(GENERATED)
+	rm -f tools/*.exe tools/*.o
 
 main.exe: $(OBJECTS) $(KTX_OBJECTS)
 	$(CC) $^ $(LDFLAGS) -o $@
