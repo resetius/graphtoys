@@ -14,6 +14,7 @@
 struct UniformBlock {
     mat4x4 mvp;
     mat4x4 rot;
+    mat4x4 inv_rot;
     vec4 T;
     int next;
 };
@@ -90,15 +91,16 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
 
     mat4x4 rot;
     mat4x4_identity(rot);
-    mat4x4_rotate_X(rot, rot, ctx->time);
-    mat4x4_rotate_Y(rot, rot, ctx->time);
-    mat4x4_rotate_Z(rot, rot, ctx->time);
+    mat4x4_rotate_X(rot, rot, 0.5*ctx->time);
+    mat4x4_rotate_Y(rot, rot, 0.5*ctx->time);
+    mat4x4_rotate_Z(rot, rot, 0.5*ctx->time);
 
     //mat3x3 norm;
     //mat3x3_from_mat4x4(norm, rot);
 
     memcpy(t->uniform.mvp, mvp, sizeof(mvp));
     memcpy(t->uniform.rot, rot, sizeof(rot));
+    mat4x4_invert(t->uniform.inv_rot, rot);
     memcpy(t->uniform.T, t->T, sizeof(t->T));
     memcpy(&t->uniform.next, &t->cur_type, 4);
 

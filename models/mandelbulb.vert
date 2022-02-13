@@ -3,6 +3,7 @@
 layout (std140) uniform MatrixBlock {
     uniform mat4 MVP;
     uniform mat4 Rot;
+    uniform mat4 InvRot;
     uniform vec4 T;
     uniform int NextType;
 };
