@@ -157,6 +157,20 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
     struct GltfMaterial* material = material_id >= 0
         ? &gltf->materials[material_id]
         : NULL;
+    int tex_view = -1;
+    int tex_components = -1;
+    int tex_type = -1;
+    int tex_stride = -1;
+    int tex_size = -1;
+    if (gltf->meshes[mesh].primitives[0].texcoord[0] >= 0) {
+        tex_view = gltf->accessors[gltf->meshes[mesh].primitives[0].texcoord[0]].view;
+        tex_components = gltf->accessors[gltf->meshes[mesh].primitives[0].texcoord[0]].components;
+        tex_type = gltf->accessors[gltf->meshes[mesh].primitives[0].texcoord[0]].component_type;
+        tex_size = tex_components*el_size(tex_type);
+        tex_stride = gltf->views[tex_view].stride
+            ? gltf->views[tex_view].stride
+            : tex_size;
+    }
 
     int pos_components = gltf->accessors[gltf->meshes[mesh].primitives[0].position].components;
     int norm_components = gltf->accessors[gltf->meshes[mesh].primitives[0].normal].components;
@@ -167,6 +181,12 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
         gltf->accessors[gltf->meshes[mesh].primitives[0].position].offset;
     char* norm_data = gltf->views[norm_view].data +
         gltf->accessors[gltf->meshes[mesh].primitives[0].normal].offset;
+    char* tex_data = NULL;
+
+    if (tex_view >= 0) {
+        tex_data = gltf->views[tex_view].data +
+            gltf->accessors[gltf->meshes[mesh].primitives[0].texcoord[0]].offset;
+    }
 
     int pos_size = pos_components*el_size(pos_type);
     int norm_size = norm_components*el_size(norm_type);
@@ -204,6 +224,9 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
     for (int i = 0; i < npos; i ++) {
         memcpy(vertices[k].pos, &pos_data[i*pos_stride], pos_size);
         memcpy(vertices[k].norm, &norm_data[i*norm_stride], norm_size);
+        if (tex_data) {
+            memcpy(vertices[k].tex, &norm_data[i*tex_stride], tex_size);
+        }
         if (material && material->has_pbr_metallic_roughness) {
             memcpy(vertices[k].col, material->pbr_metallic_roughness.base_color_factor,
                    3*sizeof(float));
