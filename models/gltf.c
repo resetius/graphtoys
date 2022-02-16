@@ -18,6 +18,7 @@
 #include <models/base.vert.spv.h>
 
 struct Vertex {
+    vec2 tex;
     vec3 col;
     vec3 pos;
     vec3 norm;
@@ -222,6 +223,7 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
         ->uniform_add(pl, 0, "MatrixBlock")
 
         ->begin_buffer(pl, sizeof(struct Vertex))
+        ->buffer_attribute(pl, 4, 2, DATA_FLOAT, offsetof(struct Vertex, tex))
         ->buffer_attribute(pl, 3, 3, DATA_FLOAT, offsetof(struct Vertex, col))
         ->buffer_attribute(pl, 2, 3, DATA_FLOAT, offsetof(struct Vertex, norm))
         ->buffer_attribute(pl, 1, 3, DATA_FLOAT, offsetof(struct Vertex, pos))
