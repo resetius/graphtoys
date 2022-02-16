@@ -12,15 +12,10 @@
 
 #include <render/pipeline.h>
 
-#include <models/stl.frag.h>
-#include <models/stl.vert.h>
-#include <models/stl.frag.spv.h>
-#include <models/stl.vert.spv.h>
-
-#include <models/dot.frag.h>
-#include <models/dot.vert.h>
-#include <models/dot.frag.spv.h>
-#include <models/dot.vert.spv.h>
+#include <models/base.frag.h>
+#include <models/base.vert.h>
+#include <models/base.frag.spv.h>
+#include <models/base.vert.spv.h>
 
 struct Vertex {
     vec3 col;
@@ -53,15 +48,11 @@ struct Node {
 
 struct Model {
     struct Object base;
-    struct Pipeline* lamp;
     struct BufferManager* b;
     struct Camera cam;
     struct CameraEventConsumer cons;
 
     vec4 light;
-
-    int dot;
-    int dot_uniform_id;
 
     struct Node* nodes;
     int cap_nodes;
@@ -97,7 +88,7 @@ static void draw_node(struct Model* t, struct Node* n, mat4x4 v, mat4x4 p) {
 static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     struct Model* t = (struct Model*)obj;
 
-    mat4x4 v, p, mv, mvp;
+    mat4x4 v, p;
 
     t->cam.aspect = ctx->ratio;
     cam_update(v, p, &t->cam);
@@ -107,17 +98,6 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
             draw_node(t, &t->nodes[i], v, p);
         }
     }
-
-    mat4x4 m1;
-    mat4x4_identity(m1);
-    mat4x4_translate_in_place(m1, t->light[0], t->light[1], t->light[2]);
-
-    mat4x4_mul(mv, v, m1);
-    mat4x4_mul(mvp, p, mv);
-
-    t->lamp->start(t->lamp);
-    buffer_update(t->b, t->dot_uniform_id, mvp, 0, sizeof(mvp));
-    t->lamp->draw(t->lamp, t->dot);
 }
 
 static void t_free(struct Object* obj) {
@@ -128,7 +108,6 @@ static void t_free(struct Object* obj) {
         }
     }
     free(t->nodes);
-    t->lamp->free(t->lamp);
     t->b->free(t->b);
     free(t);
 }
@@ -271,25 +250,14 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
     };
 
     struct ShaderCode vertex_shader = {
-        .glsl = models_stl_vert,
-        .spir_v = models_stl_vert_spv,
-        .size = models_stl_vert_spv_size,
+        .glsl = models_base_vert,
+        .spir_v = models_base_vert_spv,
+        .size = models_base_vert_spv_size,
     };
     struct ShaderCode fragment_shader = {
-        .glsl = models_stl_frag,
-        .spir_v = models_stl_frag_spv,
-        .size = models_stl_frag_spv_size,
-    };
-
-    struct ShaderCode vertex_shadert = {
-        .glsl = models_dot_vert,
-        .spir_v = models_dot_vert_spv,
-        .size = models_dot_vert_spv_size,
-    };
-    struct ShaderCode fragment_shadert = {
-        .glsl = models_dot_frag,
-        .spir_v = models_dot_frag_spv,
-        .size = models_dot_frag_spv_size,
+        .glsl = models_base_frag,
+        .spir_v = models_base_frag_spv,
+        .size = models_base_frag_spv_size,
     };
 
     t->base = base;
@@ -342,43 +310,6 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
     }
 
     gltf_dtor(&gltf);
-
-    struct Vertex pp[] = {
-        {{1.0, 0.0, 1.0}, {0.0, 0.0, 0.0}, { -1,  1, 0}},
-        {{1.0, 0.0, 1.0}, {0.0, 0.0, 0.0}, { -1, -1, 0}},
-        {{1.0, 0.0, 1.0}, {0.0, 0.0, 0.0}, {  1, -1, 0}},
-
-        {{1.0, 0.0, 1.0}, {0.0, 0.0, 0.0}, { -1,  1, 0}},
-        {{1.0, 0.0, 1.0}, {0.0, 0.0, 0.0}, {  1, -1, 0}},
-        {{1.0, 0.0, 1.0}, {0.0, 0.0, 0.0}, {  1,  1, 0}}
-    };
-
-    struct PipelineBuilder* lamp = r->pipeline(r);
-    t->lamp = lamp
-        ->set_bmgr(lamp, t->b)
-        ->begin_program(lamp)
-        ->add_vs(lamp, vertex_shadert)
-        ->add_fs(lamp, fragment_shadert)
-        ->end_program(lamp)
-
-        ->uniform_add(lamp, 0, "MatrixBlock")
-
-        ->begin_buffer(lamp, sizeof(struct Vertex))
-        ->buffer_attribute(lamp, 2, 3, DATA_FLOAT, offsetof(struct Vertex, col))
-        ->buffer_attribute(lamp, 1, 3, DATA_FLOAT, offsetof(struct Vertex, pos))
-
-        ->end_buffer(lamp)
-
-        ->enable_blend(lamp)
-        ->enable_depth(lamp)
-
-        ->build(lamp);
-
-    t->dot_uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(mat4x4));
-    t->lamp->uniform_assign(t->lamp, 0, t->dot_uniform_id);
-
-    int dot_buffer_id = buffer_create(t->b, BUFFER_ARRAY, MEMORY_STATIC, pp, sizeof(pp));
-    t->dot = pl_buffer_assign(t->lamp, 0, dot_buffer_id);
 
     cam_event_consumer_init(&t->cons, &t->cam);
     events->subscribe(events, (struct EventConsumer*) &t->cons);
