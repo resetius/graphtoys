@@ -182,8 +182,19 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
     printf("indview: %d\n", ind_view);
     char* indices = gltf->views[ind_view].data+gltf->accessors[gltf->meshes[mesh].primitives[0].indices].offset;
 
-    n->index = buffer_create(b, BUFFER_INDEX, MEMORY_STATIC, indices, ind_size);
     n->index_byte_size = el_size(gltf->accessors[gltf->meshes[mesh].primitives[0].indices].component_type);
+    if (n->index_byte_size == 1) {
+        n->index_byte_size = 2;
+        unsigned short* new_indices = malloc(ind_size*2);
+        for (int i = 0; i < ind_size; i++) {
+            new_indices[i] = (unsigned char)indices[i];
+        }
+        ind_size *= 2;
+        n->index = buffer_create(b, BUFFER_INDEX, MEMORY_STATIC, new_indices, ind_size);
+        free(new_indices);
+    } else {
+        n->index = buffer_create(b, BUFFER_INDEX, MEMORY_STATIC, indices, ind_size);
+    }
 
     printf("> nvertices: %d %d %d\n", npos, nvertices, ind_size);
     printf("> pos size/stride: %d %d\n", pos_size, pos_stride);
