@@ -1,12 +1,24 @@
 #version 410
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_KHR_vulkan_glsl : enable
 
-layout (std140) uniform MatrixBlock {
+#if defined(GL_KHR_vulkan_glsl) || defined(GLSLC)
+layout (std140, set = 0, binding = 0)
+#else
+layout (std140)
+#endif
+uniform MatrixBlock {
     mat4 ModelViewMatrix;
     mat4 MVP;
     mat4 NormalMatrix;
     vec4 LP;
 };
+
+#if defined(GL_KHR_vulkan_glsl) || defined(GLSLC)
+layout (set = 1, binding = 0)
+#endif
+uniform sampler2D Texture;
 
 layout (location = 8) in vec2 f_tex;
 layout (location = 7) in vec3 f_color;

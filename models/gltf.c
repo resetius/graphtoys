@@ -264,6 +264,9 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
 
         ->end_buffer(pl)
 
+        ->begin_sampler(pl, 0)
+        ->end_sampler(pl)
+
         ->enable_depth(pl)
 
         ->build(pl);
