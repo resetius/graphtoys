@@ -21,6 +21,24 @@ enum CullType {
     CULL_BOTH = 3
 };
 
+enum WrapType {
+    WRAP_NONE = 0,
+    WRAP_REPEAT,
+    WRAP_MIRRORED_REPEAT,
+    WRAP_CLAMP_TO_EDGE,
+    WRAP_CLAMP_TO_BORDER
+};
+
+enum FilterType {
+    FILTER_NONE = 0,
+    FILTER_NEAREST,
+    FILTER_LINEAR,
+    FILTER_NEAREST_MIPMAP_NEAREST,
+    FILTER_LINEAR_MIPMAP_NEAREST,
+    FILTER_NEAREST_MIPMAP_LINEAR,
+    FILTER_LINEAR_MIPMAP_LINEAR,
+};
+
 struct Pipeline {
 
     void (*free)(struct Pipeline*);
@@ -83,6 +101,10 @@ struct PipelineBuilder {
         const char* name);
 
     struct PipelineBuilder* (*begin_sampler)(struct PipelineBuilder* p1, int binding);
+    struct PipelineBuilder* (*sampler_mag_filter)(struct PipelineBuilder* p1, enum FilterType);
+    struct PipelineBuilder* (*sampler_min_filter)(struct PipelineBuilder* p1, enum FilterType);
+    struct PipelineBuilder* (*sampler_wrap_s)(struct PipelineBuilder* p1, enum WrapType);
+    struct PipelineBuilder* (*sampler_wrap_t)(struct PipelineBuilder* p1, enum WrapType);
     struct PipelineBuilder* (*end_sampler)(struct PipelineBuilder* p1);
 
     struct PipelineBuilder* (*enable_depth)(struct PipelineBuilder* p1);

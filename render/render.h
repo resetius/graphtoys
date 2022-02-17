@@ -17,10 +17,14 @@ struct RenderConfig {
     int triple_buffer;
 };
 
+enum TexType {
+    TEX_KTX = 0
+};
+
 struct Render {
     struct PipelineBuilder* (*pipeline)(struct Render*);
     struct BufferManager* (*buffer_manager)(struct Render*);
-    struct Texture* (*tex_new)(struct Render*);
+    struct Texture* (*tex_new)(struct Render*, void* data, enum TexType tex_type);
     struct Char* (*char_new)(struct Render*, wchar_t ch, void* face);
     void (*free)(struct Render*);
 
@@ -36,5 +40,5 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg);
 
 void rend_free(struct Render*);
 
-struct Texture* rend_tex_new(struct Render*);
+struct Texture* rend_tex_new(struct Render*, void* data, enum TexType tex_type);
 struct Char* rend_char_new(struct Render*, wchar_t ch, void* face);

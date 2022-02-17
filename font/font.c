@@ -309,11 +309,12 @@ void label_render(struct Label* l)
 }
 
 struct Label* label_alloc() {
-    return calloc(1, sizeof(struct Label));
+    return malloc(sizeof(struct Label));
 }
 
 void label_ctor(struct Label* l, struct Font* f) {
     struct FontImpl* f1 = (struct FontImpl*)f;
+    memset(l, 0, sizeof(*l));
     l->f = f;
     l->id = f1->current_id ++;
     l->dirty = 5;

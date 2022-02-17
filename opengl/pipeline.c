@@ -6,6 +6,8 @@
 #include <opengl/program.h>
 #include <opengl/buffer.h>
 
+#include <lib/verify.h>
+
 struct UniformBlock {
     struct BufferImpl base;
 
@@ -526,6 +528,55 @@ static struct PipelineBuilder* begin_sampler(struct PipelineBuilder* p1, int bin
     return p1;
 }
 
+static int gl_filter(enum FilterType filter_type) {
+    switch (filter_type) {
+    case FILTER_NEAREST: return GL_NEAREST;
+    case FILTER_LINEAR: return GL_LINEAR;
+    case FILTER_NEAREST_MIPMAP_NEAREST: return GL_NEAREST_MIPMAP_NEAREST;
+    case FILTER_LINEAR_MIPMAP_NEAREST: return GL_LINEAR_MIPMAP_NEAREST;
+    case FILTER_NEAREST_MIPMAP_LINEAR: return GL_NEAREST_MIPMAP_LINEAR;
+    case FILTER_LINEAR_MIPMAP_LINEAR: return GL_LINEAR_MIPMAP_LINEAR;
+    default: verify(0);
+    }
+    return -1;
+}
+
+static struct PipelineBuilder* sampler_mag_filter(struct PipelineBuilder* p1, enum FilterType filter_type) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    glSamplerParameteri(p->cur_sampler->id, GL_TEXTURE_MAG_FILTER, gl_filter(filter_type));
+    return p1;
+}
+
+static struct PipelineBuilder* sampler_min_filter(struct PipelineBuilder* p1, enum FilterType filter_type) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    glSamplerParameteri(p->cur_sampler->id, GL_TEXTURE_MIN_FILTER, gl_filter(filter_type));
+    return p1;
+}
+
+static int gl_wrap(enum WrapType wrap_type) {
+    switch (wrap_type) {
+    case WRAP_REPEAT: return GL_REPEAT;
+    case WRAP_MIRRORED_REPEAT: return GL_MIRRORED_REPEAT;
+    case WRAP_CLAMP_TO_EDGE: return GL_CLAMP_TO_EDGE;
+    case WRAP_CLAMP_TO_BORDER: return GL_CLAMP_TO_BORDER;
+    default: verify(0); break;
+    }
+    return -1;
+}
+
+static struct PipelineBuilder* sampler_wrap_s(struct PipelineBuilder* p1, enum WrapType wrap_type) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    glSamplerParameteri(p->cur_sampler->id, GL_TEXTURE_WRAP_S, gl_wrap(wrap_type));
+    return p1;
+}
+
+static struct PipelineBuilder* sampler_wrap_t(struct PipelineBuilder* p1, enum WrapType wrap_type) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    glSamplerParameteri(p->cur_sampler->id, GL_TEXTURE_WRAP_T, gl_wrap(wrap_type));
+    return p1;
+}
+
+
 static struct PipelineBuilder* end_sampler(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     p->cur_sampler = NULL;
@@ -602,6 +653,10 @@ struct PipelineBuilder* pipeline_builder_opengl(struct Render* r) {
         .end_buffer = end_buffer,
 
         .begin_sampler = begin_sampler,
+        .sampler_mag_filter = sampler_mag_filter,
+        .sampler_min_filter = sampler_min_filter,
+        .sampler_wrap_s = sampler_wrap_s,
+        .sampler_wrap_t = sampler_wrap_t,
         .end_sampler = end_sampler,
 
         .enable_depth = enable_depth,

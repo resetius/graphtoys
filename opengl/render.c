@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <ktx.h>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -12,6 +13,7 @@
 
 #include <freetype/freetype.h>
 
+#include <lib/verify.h>
 
 struct Program* prog_opengl_new();
 struct BufferManager* buf_mgr_opengl_new(struct Render* r);
@@ -155,6 +157,21 @@ static void init_(struct Render* r1) {
     }
 }
 
+static struct Texture* tex_new(struct Render*, void* data, enum TexType tex_type)
+{
+    // TODO: check tex_type
+    ktxTexture* texture = data;
+    KTX_error_code result = KTX_SUCCESS;
+    GLenum glError = 0;
+    GLuint* tex_id = calloc(1, sizeof(tex_id)); // TODO
+    GLenum target = 0; // TODO
+
+    result = ktxTexture_GLUpload(texture, tex_id, &target, &glError);
+    verify (result == KTX_SUCCESS);
+
+    return (struct Texture*)tex_id;
+}
+
 struct PipelineBuilder* pipeline_builder_opengl(struct Render*);
 
 struct Render* rend_opengl_new(struct RenderConfig cfg)
@@ -170,6 +187,7 @@ struct Render* rend_opengl_new(struct RenderConfig cfg)
         .pipeline = pipeline_builder_opengl,
         .set_viewport = set_viewport,
         .buffer_manager = buf_mgr_opengl_new,
+        .tex_new = tex_new,
     };
     r->base = base;
     r->cfg = cfg;

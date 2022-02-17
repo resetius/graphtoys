@@ -45,6 +45,7 @@ struct Node {
     mat4x4 matrix;
 
     int skip;
+    void* tex;
 };
 
 struct Model {
@@ -82,6 +83,9 @@ static void draw_node(struct Model* t, struct Node* n, mat4x4 v, mat4x4 p) {
     mat4x4_mul_vec4(n->uniform.light, v, t->light);
 
     n->pl->start(n->pl);
+    if (n->tex) {
+        n->pl->use_texture(n->pl, n->tex);
+    }
     buffer_update(t->b, n->uniform_id, &n->uniform, 0, sizeof(n->uniform));
     n->pl->draw_indexed(n->pl, n->model, n->index, n->index_byte_size);
 }
@@ -128,7 +132,7 @@ static int el_size(int type) {
     return -1;
 }
 
-void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i, struct Gltf* gltf, struct ShaderCode* vertex_shader, struct ShaderCode* fragment_shader) {
+void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i, struct Gltf* gltf, void** images, struct ShaderCode* vertex_shader, struct ShaderCode* fragment_shader) {
     // TODO
 
     int mesh = gltf->nodes[i].mesh;
@@ -203,6 +207,19 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
     char* indices = gltf->views[ind_view].data+gltf->accessors[gltf->meshes[mesh].primitives[0].indices].offset;
 
     n->index_byte_size = el_size(gltf->accessors[gltf->meshes[mesh].primitives[0].indices].component_type);
+
+    if (material
+        && material->has_pbr_metallic_roughness
+        && material->pbr_metallic_roughness.has_base_color_texture
+        && material->pbr_metallic_roughness.base_color_texture.tex_coord == 0 /*TODO*/)
+    {
+        int index = material->pbr_metallic_roughness.base_color_texture.index;
+        int source = gltf->textures[index].source;
+        printf("Use %d '%s' %p\n", source, gltf->images[source].name, gltf->images[source].texture); fflush(stdout);
+        n->tex = images[source];
+// r->tex_new(r, gltf->images[source].texture, TEX_KTX);
+    }
+
     if (n->index_byte_size == 1) {
         n->index_byte_size = 2;
         unsigned short* new_indices = malloc(ind_size*2);
@@ -225,9 +242,15 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
         memcpy(vertices[k].pos, &pos_data[i*pos_stride], pos_size);
         memcpy(vertices[k].norm, &norm_data[i*norm_stride], norm_size);
         if (tex_data) {
-            memcpy(vertices[k].tex, &norm_data[i*tex_stride], tex_size);
+            memcpy(vertices[k].tex, &tex_data[i*tex_stride], tex_size);
         }
-        if (material && material->has_pbr_metallic_roughness) {
+
+        if (n->tex) {
+            // TODO
+            vertices[k].col[0] = 0.0;
+            vertices[k].col[1] = 0.0;
+            vertices[k].col[2] = 0.0;
+        } else if (material && material->has_pbr_metallic_roughness) {
             memcpy(vertices[k].col, material->pbr_metallic_roughness.base_color_factor,
                    3*sizeof(float));
         } else {
@@ -265,6 +288,10 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
         ->end_buffer(pl)
 
         ->begin_sampler(pl, 0)
+        // TODO: read sampler properties from Glft
+        ->sampler_min_filter(pl, FILTER_LINEAR_MIPMAP_LINEAR)
+        ->sampler_wrap_s(pl, WRAP_REPEAT)
+        ->sampler_wrap_t(pl, WRAP_REPEAT)
         ->end_sampler(pl)
 
         ->enable_depth(pl)
@@ -317,6 +344,12 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
 
     cam_init(&t->cam);
 
+    void** images = malloc(gltf.n_images * sizeof(void*));
+    for (int i = 0; i < gltf.n_images; i++) {
+        images[i] = r->tex_new(r, gltf.images[i].texture, TEX_KTX);
+    }
+    // TODO: drop images
+
     for (int i = 0; i < gltf.n_nodes; i++) {
 
         if (gltf.nodes[i].camera >= 0) {
@@ -344,7 +377,7 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
             t->nodes = realloc(t->nodes, t->cap_nodes*sizeof(struct Node));
         }
 
-        load_node(r, t->b, &t->nodes[t->n_nodes++], i, &gltf,
+        load_node(r, t->b, &t->nodes[t->n_nodes++], i, &gltf, images,
                   &vertex_shader, &fragment_shader);
     }
 
