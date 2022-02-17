@@ -6,6 +6,8 @@
 #include <render/pipeline.h>
 #include <render/render.h>
 
+#include <lib/verify.h>
+
 #include "render_impl.h"
 #include "tools.h"
 #include "buffer.h"
@@ -338,7 +340,7 @@ static void draw_indexed(struct Pipeline* p1, int id, int index, int index_byte_
 
     assert(index_byte_size == 2 || index_byte_size == 4 || index_byte_size == 1);
 
-    if (id < p->n_buffers && index_byte_size > 1) {
+    if (id < p->n_buffers /*&& index_byte_size > 1*/) {
         VkDeviceSize offset = 0;
         struct Buffer* buf = &p->buffers[id];
         struct BufferImpl* ibuf = (struct BufferImpl*)p->b->get(p->b, index);
@@ -394,6 +396,43 @@ static void draw_indexed(struct Pipeline* p1, int id, int index, int index_byte_
     }
 }
 
+static int vk_filter(enum FilterType filter_type) {
+    switch (filter_type) {
+    case FILTER_NEAREST: return VK_FILTER_NEAREST;
+    case FILTER_LINEAR: return VK_FILTER_LINEAR;
+    case FILTER_NEAREST_MIPMAP_NEAREST: return VK_FILTER_NEAREST;
+    case FILTER_LINEAR_MIPMAP_NEAREST: return VK_FILTER_NEAREST;
+    case FILTER_NEAREST_MIPMAP_LINEAR: return VK_FILTER_NEAREST;
+    case FILTER_LINEAR_MIPMAP_LINEAR: return VK_FILTER_LINEAR;
+    default: verify(0);
+    }
+    return -1;
+}
+
+static int vk_mipmap(enum FilterType filter_type) {
+    switch (filter_type) {
+    case FILTER_NEAREST: return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    case FILTER_LINEAR: return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    case FILTER_NEAREST_MIPMAP_NEAREST: return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    case FILTER_LINEAR_MIPMAP_NEAREST: return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    case FILTER_NEAREST_MIPMAP_LINEAR: return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    case FILTER_LINEAR_MIPMAP_LINEAR: return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    default: verify(0);
+    }
+    return -1;
+}
+
+static int vk_wrap(enum WrapType wrap_type) {
+    switch (wrap_type) {
+    case WRAP_REPEAT: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    case WRAP_MIRRORED_REPEAT: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+    case WRAP_CLAMP_TO_EDGE: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    case WRAP_CLAMP_TO_BORDER: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    default: verify(0); break;
+    }
+    return -1;
+}
+
 static struct PipelineBuilder* begin_sampler(struct PipelineBuilder*p1, int binding)
 {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
@@ -427,6 +466,36 @@ static struct PipelineBuilder* begin_sampler(struct PipelineBuilder*p1, int bind
     sampler->info = samplerInfo;
     sampler->layoutBinding = samplerLayoutBinding;
     sampler->binding = binding;
+    return p1;
+}
+
+static struct PipelineBuilder* sampler_mag_filter(struct PipelineBuilder* p1, enum FilterType filter_type) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    struct Sampler* s = &p->samplers[p->n_samplers-1];
+    s->info.magFilter = vk_filter(filter_type);
+    return p1;
+}
+
+static struct PipelineBuilder* sampler_min_filter(struct PipelineBuilder* p1, enum FilterType filter_type) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    struct Sampler* s = &p->samplers[p->n_samplers-1];
+    s->info.minFilter = vk_filter(filter_type);
+    s->info.mipmapMode = vk_mipmap(filter_type);
+    s->info.maxLod = 11;
+    return p1;
+}
+
+static struct PipelineBuilder* sampler_wrap_s(struct PipelineBuilder* p1, enum WrapType wrap_type) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    struct Sampler* s = &p->samplers[p->n_samplers-1];
+    s->info.addressModeU = vk_wrap(wrap_type);
+    return p1;
+}
+
+static struct PipelineBuilder* sampler_wrap_t(struct PipelineBuilder* p1, enum WrapType wrap_type) {
+    struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
+    struct Sampler* s = &p->samplers[p->n_samplers-1];
+    s->info.addressModeV = vk_wrap(wrap_type);
     return p1;
 }
 
@@ -1082,6 +1151,10 @@ struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r) {
         .enable_blend = enable_blend,
         .enable_cull = enable_cull,
         .begin_sampler = begin_sampler,
+        .sampler_min_filter = sampler_min_filter,
+        .sampler_mag_filter = sampler_mag_filter,
+        .sampler_wrap_s = sampler_wrap_s,
+        .sampler_wrap_t = sampler_wrap_t,
         .end_sampler = end_sampler,
         .geometry = set_geometry,
         .build = build,

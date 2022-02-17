@@ -6,8 +6,10 @@
 
 #include <assert.h>
 
-#define DECL_FUNC(name) \
-    PFN_##name name;
+#define DECL_FUNC(name)                         \
+    PFN_##name name;                            \
+    PFN_##name ktx_##name;
+
 
 #define L0_FUNC(name) DECL_FUNC(name)
 #define L1_FUNC(name) DECL_FUNC(name)
@@ -22,7 +24,7 @@
 
 void vk_load_global() {
 #define L0_FUNC(name) \
-    name = (PFN_##name)glfwGetInstanceProcAddress(NULL, #name); \
+    ktx_##name = name = (PFN_##name)glfwGetInstanceProcAddress(NULL, #name); \
     assert(name);
 
 #include "symbols.h"
@@ -32,7 +34,7 @@ void vk_load_global() {
 
 void vk_load_instance(VkInstance instance) {
 #define L1_FUNC(name) \
-    name = (PFN_##name)glfwGetInstanceProcAddress(instance, #name); \
+    ktx_##name = name = (PFN_##name)glfwGetInstanceProcAddress(instance, #name); \
     assert(name);
 
 #include "symbols.h"
@@ -42,10 +44,15 @@ void vk_load_instance(VkInstance instance) {
 
 void vk_load_device(VkDevice device) {
 #define L2_FUNC(name) \
-    name = (PFN_##name)vkGetDeviceProcAddr(device, #name); \
+    ktx_##name = name = (PFN_##name)vkGetDeviceProcAddr(device, #name); \
     assert(name)
 
 #include "symbols.h"
 
 #undef L2_FUNC
 }
+
+#include <ktxvulkan.h>
+
+void* ktxVulkanModuleHandle = (void*)1; // hack
+ktx_error_code_e ktxLoadVulkanLibrary(void) { return 0; }

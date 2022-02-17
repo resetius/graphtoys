@@ -167,7 +167,10 @@ static struct Texture* tex_new(struct Render*, void* data, enum TexType tex_type
     GLenum target = 0; // TODO
 
     result = ktxTexture_GLUpload(texture, tex_id, &target, &glError);
-    verify (result == KTX_SUCCESS);
+    if (result != KTX_SUCCESS) {
+        free(tex_id); return NULL;
+    }
+    //verify (result == KTX_SUCCESS);
 
     return (struct Texture*)tex_id;
 }

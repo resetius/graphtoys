@@ -3,6 +3,9 @@
 #include <assert.h>
 
 #include "tools.h"
+#include "render_impl.h"
+
+#include <ktxvulkan.h>
 
 static uint32_t findMemoryTypeIndex(VkPhysicalDeviceMemoryProperties* props, uint32_t typeFilter, VkMemoryPropertyFlags flags)
 {
@@ -328,5 +331,63 @@ void copy_buffer_to_image(
 
     endSingleTimeCommands(logicalDevice, g_queue, commandBuffer, commandPool);
 
-     vkDestroyCommandPool(logicalDevice, commandPool, NULL);
+    vkDestroyCommandPool(logicalDevice, commandPool, NULL);
+}
+
+struct Texture* vk_tex_new(struct Render* r1, void* data, enum TexType tex_type)
+{
+    struct RenderImpl* r = (struct RenderImpl*)r1;
+    ktxVulkanDeviceInfo vdi;
+    VkCommandPool commandPool;
+    struct Texture* tex = calloc(1, sizeof(*tex));
+
+    VkCommandPoolCreateInfo cpInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .queueFamilyIndex = r->graphics_family,
+        .flags = 0
+    };
+
+    if (vkCreateCommandPool(r->log_dev, &cpInfo, NULL, &commandPool) != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create command pool\n");
+        exit(-1);
+    }
+
+    ktxVulkanDeviceInfo_Construct(
+        &vdi,
+        r->phy_dev,
+        r->log_dev,
+        r->g_queue,
+        commandPool,
+        NULL);
+
+    ktxVulkanTexture vkTexture;
+    ktxTexture* t = data;
+
+    ktxTexture_VkUpload(t, &vdi, &vkTexture);
+    tex->tex = vkTexture.image;
+    tex->memory = vkTexture.deviceMemory;
+
+    VkImageViewCreateInfo viewInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image = tex->tex,
+        .viewType = vkTexture.viewType,
+        .format = vkTexture.imageFormat,
+        .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .subresourceRange.levelCount = vkTexture.levelCount,
+        .subresourceRange.layerCount = vkTexture.layerCount,
+    };
+
+    if (vkCreateImageView(r->log_dev, &viewInfo, NULL, &tex->view) != VK_SUCCESS)
+    {
+        fprintf(stderr, "Failed to create texture image view\n");
+        exit(-1);
+    }
+
+    //printf("Level: %d\n", vkTexture.levelCount);
+
+    //vkDestroyCommandPool(r->log_dev, commandPool, NULL);
+
+    ktxVulkanDeviceInfo_Destruct(&vdi);
+
+    return tex;
 }

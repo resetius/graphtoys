@@ -28,6 +28,7 @@ L1_FUNC(vkGetPhysicalDeviceSurfaceCapabilitiesKHR);
 L1_FUNC(vkGetPhysicalDeviceSurfaceFormatsKHR);
 L1_FUNC(vkGetPhysicalDeviceSurfacePresentModesKHR);
 L1_FUNC(vkGetPhysicalDeviceSurfaceSupportKHR);
+L1_FUNC(vkGetPhysicalDeviceImageFormatProperties);
 L1_FUNC(vkDestroySurfaceKHR);
 
 #undef L1_FUNC
@@ -38,6 +39,7 @@ L1_FUNC(vkDestroySurfaceKHR);
 
 L2_FUNC(vkAcquireNextImageKHR);
 L2_FUNC(vkAllocateDescriptorSets);
+L2_FUNC(vkCmdBlitImage);
 L2_FUNC(vkMapMemory);
 L2_FUNC(vkUnmapMemory);
 L2_FUNC(vkGetDeviceQueue);
@@ -101,6 +103,7 @@ L2_FUNC(vkDestroySwapchainKHR);
 L2_FUNC(vkFreeMemory);
 L2_FUNC(vkGetBufferMemoryRequirements);
 L2_FUNC(vkGetImageMemoryRequirements);
+L2_FUNC(vkGetImageSubresourceLayout);
 L2_FUNC(vkGetSwapchainImagesKHR);
 L2_FUNC(vkQueuePresentKHR);
 L2_FUNC(vkQueueWaitIdle);

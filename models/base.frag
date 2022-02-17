@@ -32,10 +32,10 @@ void main()
     vec3 Ld = vec3(1.0, 1.0, 1.0);
     vec3 Kd = f_color;
 
-    //if (Kd.x == 0 && Kd.y == 0 && Kd.z == 0) {
+    if (Kd.x == 0 && Kd.y == 0 && Kd.z == 0) {
         // TODO
         Kd = texture(Texture, f_tex).xyz; // f_color;
-    //}
+    }
     vec3 tnorm = f_norm;
     vec4 eyeCoords = f_pos;
 

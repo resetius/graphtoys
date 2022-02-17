@@ -541,6 +541,17 @@ static int gl_filter(enum FilterType filter_type) {
     return -1;
 }
 
+static int gl_wrap(enum WrapType wrap_type) {
+    switch (wrap_type) {
+    case WRAP_REPEAT: return GL_REPEAT;
+    case WRAP_MIRRORED_REPEAT: return GL_MIRRORED_REPEAT;
+    case WRAP_CLAMP_TO_EDGE: return GL_CLAMP_TO_EDGE;
+    case WRAP_CLAMP_TO_BORDER: return GL_CLAMP_TO_BORDER;
+    default: verify(0); break;
+    }
+    return -1;
+}
+
 static struct PipelineBuilder* sampler_mag_filter(struct PipelineBuilder* p1, enum FilterType filter_type) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     glSamplerParameteri(p->cur_sampler->id, GL_TEXTURE_MAG_FILTER, gl_filter(filter_type));
@@ -551,17 +562,6 @@ static struct PipelineBuilder* sampler_min_filter(struct PipelineBuilder* p1, en
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     glSamplerParameteri(p->cur_sampler->id, GL_TEXTURE_MIN_FILTER, gl_filter(filter_type));
     return p1;
-}
-
-static int gl_wrap(enum WrapType wrap_type) {
-    switch (wrap_type) {
-    case WRAP_REPEAT: return GL_REPEAT;
-    case WRAP_MIRRORED_REPEAT: return GL_MIRRORED_REPEAT;
-    case WRAP_CLAMP_TO_EDGE: return GL_CLAMP_TO_EDGE;
-    case WRAP_CLAMP_TO_BORDER: return GL_CLAMP_TO_BORDER;
-    default: verify(0); break;
-    }
-    return -1;
 }
 
 static struct PipelineBuilder* sampler_wrap_s(struct PipelineBuilder* p1, enum WrapType wrap_type) {

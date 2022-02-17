@@ -49,7 +49,6 @@ KTX_SOURCES=contrib/ktx/lib/basisu/zstd/zstd.c\
 	contrib/ktx/lib/gl_funcs.c\
 	contrib/ktx/lib/glloader.c\
 	contrib/ktx/lib/texture1.c\
-	contrib/ktx/lib/vk_funcs.c\
 	contrib/ktx/lib/vkloader.c\
 	contrib/ktx/lib/etcdec.cxx\
 	contrib/ktx/lib/etcunpack.cxx
@@ -139,10 +138,10 @@ tools/stlprint.exe: tools/stlprint.o
 tools/cfgprint.exe: tools/cfgprint.o lib/config.o
 	$(CC) $^ $(SANITIZE) -o $@
 
-tools/gltfprint.exe: tools/gltfprint.o lib/formats/base64.o lib/formats/gltf.o contrib/json/json.o $(KTX_OBJECTS)
+tools/gltfprint.exe: vulkan/loader.o tools/gltfprint.o lib/formats/base64.o lib/formats/gltf.o contrib/json/json.o $(KTX_OBJECTS)
 	$(CC) $^ $(LDFLAGS) -o $@
 
-tools/ktx2tga.exe: tools/ktx2tga.o $(KTX_OBJECTS)
+tools/ktx2tga.exe: vulkan/loader.o tools/ktx2tga.o $(KTX_OBJECTS)
 	$(CC) $^ $(LDFLAGS) -o $@
 
 .deps/%.d: %.c Makefile

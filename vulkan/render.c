@@ -21,6 +21,7 @@ struct BufferManager* buf_mgr_vulkan_new(struct Render* r);
 void vk_load_global();
 void vk_load_instance(VkInstance instance);
 void vk_load_device(VkDevice device);
+struct Texture* vk_tex_new(struct Render* r, void* data, enum TexType tex_type);
 
 static void free_(struct Render* r1) {
     int i;
@@ -347,6 +348,7 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg) {
         .pipeline = pipeline_builder_vulkan,
         .char_new =  rend_vulkan_char_new,
         .buffer_manager = buf_mgr_vulkan_new,
+        .tex_new = vk_tex_new,
     };
     uint32_t extensionCount = 0;
     const char** glfwExtensionNames = glfwGetRequiredInstanceExtensions(&extensionCount);
