@@ -7,3 +7,6 @@
 [submodule "contrib/ktx"]
 	path = contrib/ktx
 	url = https://github.com/KhronosGroup/KTX-Software.git
+[submodule "contrib/astc-codec"]
+	path = contrib/astc-codec
+	url = https://github.com/google/astc-codec.git

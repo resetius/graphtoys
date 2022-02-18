@@ -13,7 +13,7 @@ CFLAGS?=-g -O2 -Wall
 # Ubuntu: apt-get install shaderc
 # Mingw: pacman -S mingw-w64-x86_64-shaderc mingw-w64-x86_64-spirv-tools mingw-w64-x86_64-vulkan-headers
 GLSLC=glslc
-CFLAGS += -I. $(shell pkg-config --cflags glfw3,freetype2) -Icontrib/ktx/lib/basisu/zstd  -Icontrib/ktx/other_include -Icontrib/ktx/lib/dfdutils -Icontrib/ktx/utils -Icontrib/ktx/include $(SANITIZE)
+CFLAGS += -I. $(shell pkg-config --cflags glfw3,freetype2) -Icontrib/ktx/lib/basisu/zstd  -Icontrib/ktx/other_include -Icontrib/ktx/lib/dfdutils -Icontrib/ktx/utils -Icontrib/ktx/include -Icontrib/astc-codec $(SANITIZE)
 
 LDFLAGS+=$(shell pkg-config --static --libs glfw3,freetype2) $(SANITIZE)
 
@@ -27,6 +27,19 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 LDFLAGS+=$(VULKAN_LOADER)
+
+ASTC_SOURCES=\
+	contrib/astc-codec/src/decoder/astc_file.cc\
+	contrib/astc-codec/src/decoder/codec.cc\
+	contrib/astc-codec/src/decoder/endpoint_codec.cc\
+	contrib/astc-codec/src/decoder/footprint.cc\
+	contrib/astc-codec/src/decoder/integer_sequence_codec.cc\
+	contrib/astc-codec/src/decoder/intermediate_astc_block.cc\
+	contrib/astc-codec/src/decoder/logical_astc_block.cc\
+	contrib/astc-codec/src/decoder/partition.cc\
+	contrib/astc-codec/src/decoder/physical_astc_block.cc\
+	contrib/astc-codec/src/decoder/quantization.cc\
+	contrib/astc-codec/src/decoder/weight_infill.cc
 
 KTX_SOURCES=contrib/ktx/lib/basisu/zstd/zstd.c\
 	contrib/ktx/lib/dfdutils/createdfd.c\
@@ -107,10 +120,13 @@ SHADERS=models/triangle.frag\
 FONTS=font/RobotoMono-Regular.ttf
 
 OBJECTS1=$(patsubst %.c,%.o,$(SOURCES))
-OBJECTS=$(patsubst %.cxx,%.o,$(OBJECTS1))
+OBJECTS2=$(patsubst %.cc,%.o,$(OBJECTS1))
+OBJECTS=$(patsubst %.cxx,%.o,$(OBJECTS2))
 
 KTX_OBJECTS1=$(patsubst %.c,%.o,$(KTX_SOURCES))
 KTX_OBJECTS=$(patsubst %.cxx,%.o,$(KTX_OBJECTS1))
+
+ASTC_OBJECTS=$(patsubst %.cc,%.o,$(ASTC_SOURCES))
 
 DEPS=$(patsubst %.c,%.d,$(SOURCES))
 GENERATED1=$(patsubst %.frag,%.frag.h,$(SHADERS))
@@ -141,8 +157,8 @@ tools/cfgprint.exe: tools/cfgprint.o lib/config.o
 tools/gltfprint.exe: vulkan/loader.o tools/gltfprint.o lib/formats/base64.o lib/formats/gltf.o contrib/json/json.o $(KTX_OBJECTS)
 	$(CC) $^ $(LDFLAGS) -o $@
 
-tools/ktx2tga.exe: vulkan/loader.o tools/ktx2tga.o $(KTX_OBJECTS)
-	$(CC) $^ $(LDFLAGS) -o $@
+tools/ktx2tga.exe: vulkan/loader.o tools/ktx2tga.o $(KTX_OBJECTS) $(ASTC_OBJECTS)
+	$(CXX) $^ $(LDFLAGS) -o $@
 
 .deps/%.d: %.c Makefile
 	mkdir -p `dirname $@`
@@ -153,6 +169,12 @@ tools/ktx2tga.exe: vulkan/loader.o tools/ktx2tga.o $(KTX_OBJECTS)
 
 %.o: %.cxx Makefile
 	$(CXX) $(CFLAGS) -c $< -o $@
+
+%.o: %.cpp Makefile
+	$(CXX) $(CFLAGS) -std=c++17 -c $< -o $@
+
+%.o: %.cc Makefile
+	$(CXX) $(CFLAGS) -std=c++17 -c $< -o $@
 
 %.ttf.h: %.ttf tools/rcc.exe
 	./tools/rcc.exe $< -o $@
