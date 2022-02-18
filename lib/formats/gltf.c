@@ -388,23 +388,17 @@ static void load_cameras(struct Gltf* gltf, json_value* value) {
 }
 
 static void* load_image_uri(struct Gltf* gltf, json_value* value) {
-    const char* base64_type = "data:application/octet-stream;base64,";
-    int base64_type_len = strlen(base64_type);
+
+    char* data;
     int64_t size;
     ktxTexture* tex = NULL;
-    if (!strncmp(value->u.string.ptr, base64_type, base64_type_len)) {
-        char* data = base64_decode(
-            value->u.string.ptr+base64_type_len,
-            value->u.string.length-base64_type_len,
-            &size);
-        verify(ktxTexture_CreateFromMemory((const ktx_uint8_t *)data, size, 0, &tex) == KTX_SUCCESS);
-    } else {
-        int l = strlen(gltf->fsbase);
-        strncat(gltf->fsbase, value->u.string.ptr, sizeof(gltf->fsbase)-l-1);
-        printf("Loading '%s'\n", gltf->fsbase);
-        verify(ktxTexture_CreateFromNamedFile(gltf->fsbase, 0, &tex) == KTX_SUCCESS);
-        gltf->fsbase[l] = 0;
-    }
+    data = load_uri(gltf, value, &size);
+    verify(ktxTexture_CreateFromMemory(
+               (const ktx_uint8_t *)data,
+               size, // TODO: optimization
+               KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+               &tex) == KTX_SUCCESS);
+    free(data);
     return tex;
 }
 
