@@ -60,7 +60,6 @@ KTX_SOURCES=contrib/ktx/lib/basisu/zstd/zstd.c\
 	contrib/ktx/lib/vkformat_check.c\
 	contrib/ktx/lib/vkformat_str.c\
 	contrib/ktx/lib/gl_funcs.c\
-	contrib/ktx/lib/glloader.c\
 	contrib/ktx/lib/texture1.c\
 	contrib/ktx/lib/vkloader.c\
 	contrib/ktx/lib/etcdec.cxx\
@@ -99,6 +98,8 @@ SOURCES=main.c\
 	lib/formats/base64.c\
 	lib/formats/stl.c\
 	lib/formats/gltf.c\
+	lib/astc_unpack.cpp\
+	lib/glloader.c\
 	lib/camera.c\
 	lib/config.c\
 	lib/object.c\
@@ -121,7 +122,8 @@ FONTS=font/RobotoMono-Regular.ttf
 
 OBJECTS1=$(patsubst %.c,%.o,$(SOURCES))
 OBJECTS2=$(patsubst %.cc,%.o,$(OBJECTS1))
-OBJECTS=$(patsubst %.cxx,%.o,$(OBJECTS2))
+OBJECTS3=$(patsubst %.cpp,%.o,$(OBJECTS2))
+OBJECTS=$(patsubst %.cxx,%.o,$(OBJECTS3))
 
 KTX_OBJECTS1=$(patsubst %.c,%.o,$(KTX_SOURCES))
 KTX_OBJECTS=$(patsubst %.cxx,%.o,$(KTX_OBJECTS1))
@@ -142,8 +144,8 @@ clean:
 	rm -f $(GENERATED)
 	rm -f tools/*.exe tools/*.o
 
-main.exe: $(OBJECTS) $(KTX_OBJECTS)
-	$(CC) $^ $(LDFLAGS) -o $@
+main.exe: $(OBJECTS) $(KTX_OBJECTS) $(ASTC_OBJECTS)
+	$(CXX) $^ $(LDFLAGS) -o $@
 
 tools/rcc.exe: tools/rcc.o
 	$(CC) $^ $(SANITIZE) -o $@
@@ -154,10 +156,10 @@ tools/stlprint.exe: tools/stlprint.o
 tools/cfgprint.exe: tools/cfgprint.o lib/config.o
 	$(CC) $^ $(SANITIZE) -o $@
 
-tools/gltfprint.exe: vulkan/loader.o tools/gltfprint.o lib/formats/base64.o lib/formats/gltf.o contrib/json/json.o $(KTX_OBJECTS)
-	$(CC) $^ $(LDFLAGS) -o $@
+tools/gltfprint.exe: lib/astc_unpack.o vulkan/loader.o tools/gltfprint.o lib/formats/base64.o lib/formats/gltf.o contrib/json/json.o $(KTX_OBJECTS) $(ASTC_OBJECTS)
+	$(CXX) $^ $(LDFLAGS) -o $@
 
-tools/ktx2tga.exe: vulkan/loader.o tools/ktx2tga.o $(KTX_OBJECTS) $(ASTC_OBJECTS)
+tools/ktx2tga.exe: lib/astc_unpack.o vulkan/loader.o tools/ktx2tga.o $(KTX_OBJECTS) $(ASTC_OBJECTS)
 	$(CXX) $^ $(LDFLAGS) -o $@
 
 .deps/%.d: %.c Makefile
