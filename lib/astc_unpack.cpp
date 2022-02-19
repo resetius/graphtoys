@@ -86,6 +86,54 @@ static FootprintType get_fp_type(VkFormat format) {
     return r;
 }
 
+static GLenum get_internal_format(VkFormat format) {
+    GLenum r = GL_RGBA8;
+    switch (format) {
+    case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_5x4_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_5x5_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_6x5_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_6x6_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_8x5_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_8x6_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_8x8_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_10x5_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_10x6_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_10x8_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_10x10_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_12x10_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_12x12_SRGB_BLOCK:
+        r = GL_SRGB8_ALPHA8;
+        break;
+    default: break;
+    };
+    return r;
+}
+
+static VkFormat get_output_format(VkFormat format) {
+    VkFormat r = VK_FORMAT_R8G8B8A8_UNORM;
+    switch (format) {
+    case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_5x4_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_5x5_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_6x5_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_6x6_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_8x5_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_8x6_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_8x8_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_10x5_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_10x6_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_10x8_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_10x10_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_12x10_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_12x12_SRGB_BLOCK:
+        r = VK_FORMAT_R8G8B8A8_SRGB;
+        break;
+    default: break;
+    };
+    return r;
+}
+
 extern "C" ktxTexture* ktx_ASTC2RGB(ktxTexture* tex) {
     VkFormat vkFormat = ktxTexture_GetVkFormat(tex);
     verify(VK_FORMAT_ASTC_4x4_UNORM_BLOCK <= vkFormat
@@ -94,8 +142,8 @@ extern "C" ktxTexture* ktx_ASTC2RGB(ktxTexture* tex) {
     ktxTexture1* out;
 
     ktxTextureCreateInfo info = {
-        .glInternalformat = GL_RGBA8,
-        .vkFormat = VK_FORMAT_R8G8B8A8_UNORM,
+        .glInternalformat = get_internal_format(vkFormat),
+        .vkFormat = get_output_format(vkFormat),
         .baseWidth = tex->baseWidth,
         .baseHeight = tex->baseHeight,
         .baseDepth = tex->baseDepth,
