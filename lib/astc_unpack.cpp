@@ -36,6 +36,7 @@ static KTX_error_code iterateCallback(
     void *pixels, void *userdata
     )
 {
+    if (miplevel > 0) return KTX_SUCCESS;
     CbData* data = (CbData*)userdata;
     KTX_error_code result = KTX_SUCCESS;
     size_t size = width*height*depth*4;
@@ -139,7 +140,7 @@ extern "C" ktxTexture* ktx_ASTC2RGB(ktxTexture* tex) {
     verify(VK_FORMAT_ASTC_4x4_UNORM_BLOCK <= vkFormat
            && vkFormat <= VK_FORMAT_ASTC_12x12_SRGB_BLOCK);
 
-    ktxTexture1* out;
+    ktxTexture2* out;
 
     ktxTextureCreateInfo info = {
         .glInternalformat = get_internal_format(vkFormat),
@@ -148,13 +149,15 @@ extern "C" ktxTexture* ktx_ASTC2RGB(ktxTexture* tex) {
         .baseHeight = tex->baseHeight,
         .baseDepth = tex->baseDepth,
         .numDimensions = tex->numDimensions,
-        .numLevels = tex->numLevels,
+        .numLevels = 1, // tex->numLevels,
+        //.numLevels = tex->numLevels,
         .numLayers = tex->numLayers,
         .numFaces = tex->numFaces,
         .isArray = tex->isArray,
-        .generateMipmaps = tex->generateMipmaps
+        .generateMipmaps = 1 // tex->generateMipmaps
+        //.generateMipmaps = tex->generateMipmaps
     };
-    verify(ktxTexture1_Create(&info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &out) == KTX_SUCCESS);
+    verify(ktxTexture2_Create(&info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &out) == KTX_SUCCESS);
 
     CbData data = {
         .out = (ktxTexture*)out,
