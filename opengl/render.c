@@ -157,6 +157,8 @@ static void init_(struct Render* r1) {
     }
 }
 
+ktxTexture* ktx_ASTC2RGB(ktxTexture* tex);
+
 static struct Texture* tex_new(struct Render* r, void* data, enum TexType tex_type)
 {
     // TODO: check tex_type
@@ -168,9 +170,11 @@ static struct Texture* tex_new(struct Render* r, void* data, enum TexType tex_ty
 
     result = ktxTexture_GLUpload(texture, tex_id, &target, &glError);
     if (result != KTX_SUCCESS) {
-        free(tex_id); return NULL;
+        texture = ktx_ASTC2RGB(texture);
+        result = ktxTexture_GLUpload(texture, tex_id, &target, &glError);
+        ktxTexture_Destroy(texture);
     }
-    //verify (result == KTX_SUCCESS);
+    verify (result == KTX_SUCCESS);
 
     return (struct Texture*)tex_id;
 }
