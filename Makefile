@@ -22,7 +22,6 @@ ifneq (,$(findstring MINGW,$(UNAME_S)))
 endif
 
 ifeq ($(UNAME_S),Darwin)
-    LDFLAGS+=-framework OpenGl
     CFLAGS += -DGL_SILENCE_DEPRECATION
 endif
 
