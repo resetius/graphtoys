@@ -409,7 +409,7 @@ static void load_image(struct Gltf* gltf, struct GltfImage* image, json_value* v
         if (!strcmp(entry->name, "uri") && entry->value->type == json_string) {
             image->texture = load_image_uri(gltf, entry->value);
         } else if (!strcmp(entry->name, "name") && entry->value->type == json_string) {
-            strncat(image->name, value->u.string.ptr, sizeof(image->name)-1);
+            strncpy(image->name, entry->value->u.string.ptr, sizeof(image->name)-1);
         } else {
             printf("Unknown image key: '%s'\n", entry->name);
         }
