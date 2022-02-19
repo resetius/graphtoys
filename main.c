@@ -185,6 +185,8 @@ static void fill_render_config(struct RenderConfig* r, struct Config* cfg) {
     printf("vsync: %d\n", r->vsync);
     r->show_fps = strcmp(cfg_gets_def(cfg, "render:fps", "off"), "on") == 0;
     r->triple_buffer = strcmp(cfg_gets_def(cfg, "render:triple_buffer", "off"), "on") == 0;
+    r->fullscreen = strcmp(cfg_gets_def(cfg, "render:fullscreen", "off"), "on") == 0;
+    r->vidmode = cfg_geti_def(cfg, "render:vidmode", -1);
 }
 
 int main(int argc, char** argv)
@@ -265,6 +267,25 @@ int main(int argc, char** argv)
         glfwTerminate();
         return -1;
     }
+    if (rcfg.fullscreen) {
+        int count;
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* modes = glfwGetVideoModes(monitor, &count);
+        for (int i = 0; i < count; i++) {
+            printf("mode %d: %dx%d@%d\n",
+                   i, modes[i].width, modes[i].height, modes[i].refreshRate);
+        }
+        const GLFWvidmode* cur = glfwGetVideoMode(monitor);
+        printf("current: %dx%d@%d\n", cur->width, cur->height, cur->refreshRate);
+
+        if (rcfg.vidmode >= 0 && rcfg.vidmode < count) {
+            printf("use vidmode: %d\n", rcfg.vidmode);
+            cur = &modes[rcfg.vidmode];
+        }
+
+        glfwSetWindowMonitor(window, glfwGetPrimaryMonitor(), 0, 0, cur->width, cur->height, cur->refreshRate);
+    }
+    //glfwSetWindowMonitor(window, glfwGetPrimaryMonitor(), 0, 0, 640, 480, 60);
     glfwSetWindowUserPointer(window, &app);
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);

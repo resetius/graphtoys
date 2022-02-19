@@ -15,6 +15,8 @@ struct RenderConfig {
     int vsync;
     int show_fps;
     int triple_buffer;
+    int fullscreen;
+    int vidmode;
 };
 
 enum TexType {
