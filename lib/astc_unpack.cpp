@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.h>
 #include <ktxvulkan.h>
 #include <lib/verify.h>
+#undef NOMINMAX
 #include <contrib/ktx/lib/gl_format.h>
 
 using namespace astc_codec;
@@ -94,6 +95,7 @@ extern "C" ktxTexture* ktx_ASTC2RGB(ktxTexture* tex) {
 
     ktxTextureCreateInfo info = {
         .glInternalformat = GL_RGBA8,
+        .vkFormat = VK_FORMAT_R8G8B8A8_UNORM,
         .baseWidth = tex->baseWidth,
         .baseHeight = tex->baseHeight,
         .baseDepth = tex->baseDepth,
@@ -102,8 +104,7 @@ extern "C" ktxTexture* ktx_ASTC2RGB(ktxTexture* tex) {
         .numLayers = tex->numLayers,
         .numFaces = tex->numFaces,
         .isArray = tex->isArray,
-        .generateMipmaps = tex->generateMipmaps,
-        .vkFormat = VK_FORMAT_R8G8B8A8_UNORM
+        .generateMipmaps = tex->generateMipmaps
     };
     verify(ktxTexture1_Create(&info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &out) == KTX_SUCCESS);
 

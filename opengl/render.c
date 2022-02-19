@@ -157,7 +157,7 @@ static void init_(struct Render* r1) {
     }
 }
 
-static struct Texture* tex_new(struct Render*, void* data, enum TexType tex_type)
+static struct Texture* tex_new(struct Render* r, void* data, enum TexType tex_type)
 {
     // TODO: check tex_type
     ktxTexture* texture = data;
