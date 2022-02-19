@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include <lib/verify.h>
+
 #include "tools.h"
 #include "render_impl.h"
 
@@ -334,6 +336,8 @@ void copy_buffer_to_image(
     vkDestroyCommandPool(logicalDevice, commandPool, NULL);
 }
 
+ktxTexture* ktx_ASTC2RGB(ktxTexture* tex);
+
 struct Texture* vk_tex_new(struct Render* r1, void* data, enum TexType tex_type)
 {
     struct RenderImpl* r = (struct RenderImpl*)r1;
@@ -363,7 +367,12 @@ struct Texture* vk_tex_new(struct Render* r1, void* data, enum TexType tex_type)
     ktxVulkanTexture vkTexture;
     ktxTexture* t = data;
 
-    ktxTexture_VkUpload(t, &vdi, &vkTexture);
+    if (ktxTexture_VkUpload(t, &vdi, &vkTexture) != KTX_SUCCESS) {
+        t = ktx_ASTC2RGB(t);
+        // TODO: optimize
+        verify(ktxTexture_VkUpload(t, &vdi, &vkTexture) == KTX_SUCCESS);
+        ktxTexture_Destroy(t);
+    }
     tex->tex = vkTexture.image;
     tex->memory = vkTexture.deviceMemory;
 
