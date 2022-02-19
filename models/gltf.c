@@ -17,6 +17,8 @@
 #include <models/base.frag.spv.h>
 #include <models/base.vert.spv.h>
 
+double glfwGetTime();
+
 struct Vertex {
     vec2 tex;
     vec3 col;
@@ -344,11 +346,17 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
 
     cam_init(&t->cam);
 
+    double t1 = glfwGetTime();
+
     void** images = malloc(gltf.n_images * sizeof(void*));
     for (int i = 0; i < gltf.n_images; i++) {
+        printf("Loading '%s'\n", gltf.images[i].name); fflush(stdout);
         images[i] = r->tex_new(r, gltf.images[i].texture, TEX_KTX);
     }
     // TODO: drop images
+
+    printf("Loaded in %f\n", glfwGetTime() - t1);
+    //exit(1);
 
     for (int i = 0; i < gltf.n_nodes; i++) {
 
