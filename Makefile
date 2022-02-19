@@ -13,7 +13,7 @@ CFLAGS?=-g -O2 -Wall
 # Ubuntu: apt-get install shaderc
 # Mingw: pacman -S mingw-w64-x86_64-shaderc mingw-w64-x86_64-spirv-tools mingw-w64-x86_64-vulkan-headers
 GLSLC=glslc
-CFLAGS += -I. $(shell pkg-config --cflags glfw3,freetype2) -Icontrib/ktx/lib/basisu/zstd  -Icontrib/ktx/other_include -Icontrib/ktx/lib/dfdutils -Icontrib/ktx/utils -Icontrib/ktx/include -Icontrib/astc-codec $(SANITIZE)
+CFLAGS += -I. $(shell pkg-config --cflags glfw3,freetype2) -Icontrib/ktx/lib/basisu/zstd  -Icontrib/ktx/other_include -Icontrib/ktx/lib/dfdutils -Icontrib/ktx/utils -Icontrib/ktx/include -Icontrib/astc-codec -DKTX_FEATURE_WRITE=1 $(SANITIZE)
 
 LDFLAGS+=$(shell pkg-config --static --libs glfw3,freetype2) $(SANITIZE)
 
@@ -63,7 +63,9 @@ KTX_SOURCES=contrib/ktx/lib/basisu/zstd/zstd.c\
 	contrib/ktx/lib/texture1.c\
 	contrib/ktx/lib/vkloader.c\
 	contrib/ktx/lib/etcdec.cxx\
-	contrib/ktx/lib/etcunpack.cxx
+	contrib/ktx/lib/etcunpack.cxx\
+	contrib/ktx/lib/writer1.c\
+	contrib/ktx/lib/writer2.c\
 
 SOURCES=main.c\
 	models/gltf.c\
