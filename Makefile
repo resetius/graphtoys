@@ -32,6 +32,7 @@ ifeq ($(UNAME_S),Linux)
 endif
 
 LDFLAGS+=$(VULKAN_LOADER)
+CMOCKA_MESSAGE_OUTPUT?=none
 
 ASTC_SOURCES=\
 	contrib/astc-codec/src/decoder/astc_file.cc\
@@ -146,8 +147,12 @@ TESTS=test/base64.exe
 
 All: main.exe tools/stlprint.exe tools/cfgprint.exe tools/gltfprint.exe tools/ktx2tga.exe
 test: $(TESTS)
+	@rm -f test-results/*
+	@mkdir -p test-results
 	@for i in $(TESTS) ; \
 	do \
+		export CMOCKA_XML_FILE=test-results/`basename $$i`.xml ; \
+		export CMOCKA_MESSAGE_OUTPUT=$(CMOCKA_MESSAGE_OUTPUT) ; \
 		$$i ; \
 	done
 
