@@ -27,6 +27,10 @@ ifeq ($(UNAME_S),Darwin)
     CFLAGS += -DGL_SILENCE_DEPRECATION
 endif
 
+ifeq ($(UNAME_S),Linux)
+    LDFLAGS += -pthread
+endif
+
 LDFLAGS+=$(VULKAN_LOADER)
 
 ASTC_SOURCES=\
