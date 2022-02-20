@@ -143,7 +143,7 @@ GENERATED1=$(patsubst %.frag,%.frag.h,$(SHADERS))
 GENERATED=$(patsubst %.vert,%.vert.h,$(GENERATED1))
 GENERATED+=$(patsubst %.ttf,%.ttf.h,$(FONTS))
 
-TESTS=test/base64.exe
+TESTS=test/base64.exe test/config.exe
 
 All: main.exe tools/stlprint.exe tools/cfgprint.exe tools/gltfprint.exe tools/ktx2tga.exe
 test: $(TESTS)
@@ -167,6 +167,9 @@ main.exe: $(OBJECTS) $(KTX_OBJECTS) $(ASTC_OBJECTS)
 	$(CXX) $^ $(LDFLAGS) -o $@
 
 test/base64.exe: test/base64.o lib/formats/base64.o
+	$(CC) $^ $(SANITIZE) $(TEST_LDFLAGS) -lcmocka -o $@
+
+test/config.exe: test/config.o lib/config.o
 	$(CC) $^ $(SANITIZE) $(TEST_LDFLAGS) -lcmocka -o $@
 
 tools/rcc.exe: tools/rcc.o
