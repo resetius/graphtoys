@@ -36,7 +36,7 @@ jobs:
     - name: make test
       run: make test
     - name: Publish Unit Test Results
-      uses: EnricoMi/publish-unit-test-result-action@v1
+      uses: EnricoMi/publish-unit-test-result-action@v1.28
       if: always()
       with:
          files: test-results/**/*.xml
