@@ -1,4 +1,4 @@
-.PHONY: All
+.PHONY: All test
 .DEFAULT_GOAL := All
 
 # SANITIZE=-fsanitize=address
@@ -14,8 +14,10 @@ CFLAGS?=-g -O2 -Wall
 # Mingw: pacman -S mingw-w64-x86_64-shaderc mingw-w64-x86_64-spirv-tools mingw-w64-x86_64-vulkan-headers
 GLSLC=glslc
 CFLAGS += -I. $(shell pkg-config --cflags glfw3,freetype2) -Icontrib/ktx/lib/basisu/zstd  -Icontrib/ktx/other_include -Icontrib/ktx/lib/dfdutils -Icontrib/ktx/utils -Icontrib/ktx/include -Icontrib/astc-codec -DKTX_FEATURE_WRITE=1 $(SANITIZE)
+CFLAGS += $(shell pkg-config --cflags cmocka)
 
 LDFLAGS+=$(shell pkg-config --static --libs glfw3,freetype2) $(SANITIZE)
+TEST_LDFLAGS=$(shell pkg-config --libs cmocka)
 
 ifneq (,$(findstring MINGW,$(UNAME_S)))
     CFLAGS += -DS_IFSOCK=0xC000 -DKHRONOS_STATIC
@@ -136,7 +138,14 @@ GENERATED1=$(patsubst %.frag,%.frag.h,$(SHADERS))
 GENERATED=$(patsubst %.vert,%.vert.h,$(GENERATED1))
 GENERATED+=$(patsubst %.ttf,%.ttf.h,$(FONTS))
 
+TESTS=test/base64.exe
+
 All: main.exe tools/stlprint.exe tools/cfgprint.exe tools/gltfprint.exe tools/ktx2tga.exe
+test: $(TESTS)
+	@for i in $(TESTS) ; \
+	do \
+		$$i ; \
+	done
 
 clean:
 	rm -f *.exe
@@ -147,6 +156,9 @@ clean:
 
 main.exe: $(OBJECTS) $(KTX_OBJECTS) $(ASTC_OBJECTS)
 	$(CXX) $^ $(LDFLAGS) -o $@
+
+test/base64.exe: test/base64.o lib/formats/base64.o
+	$(CC) $^ $(SANITIZE) $(TEST_LDFLAGS) -lcmocka -o $@
 
 tools/rcc.exe: tools/rcc.o
 	$(CC) $^ $(SANITIZE) -o $@
