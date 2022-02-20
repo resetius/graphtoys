@@ -17,6 +17,8 @@ jobs:
       run: git submodule update --init --recursive
     - name: Lunarg repo
       run: echo "deb https://packages.lunarg.com/vulkan focal main" | sudo tee /etc/apt/sources.list.d/lunarg-vulkan-focal.list
+    - name: Lunarg key
+      run: wget -qO - http://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
     - name: apt-get update
       run: sudo apt-get update
     - name: Install glfw
