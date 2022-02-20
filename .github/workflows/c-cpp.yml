@@ -29,6 +29,8 @@ jobs:
       run: sudo apt-get install shaderc
     - name: Install vulkan
       run: sudo apt-get install libvulkan-dev
+    - name: Install freetype2
+      run: sudo apt-get install libfreetype6-dev
     - name: make
       run: make
     - name: make test
