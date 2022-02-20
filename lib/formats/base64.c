@@ -62,6 +62,7 @@ char* base64_decode(const char* input, int64_t size, int64_t* output_size) {
         len--; size --;
     }
 
+    output[len] = 0;
     *output_size = len;
     return output;
 }

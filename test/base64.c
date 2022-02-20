@@ -26,6 +26,7 @@ static void test_decoder(void** state) {
     test_dec("dGVzdA==", "test");
     test_dec("bG9uZyBsb25nIGxvbmcgdGV4dCB0ZXN0", "long long long text test");
     test_dec("0YDRg9GB0YHQutC40Lkg0YLQtdC60YHRgg==", "русский текст");
+    test_dec("bG9uZyBsb25nIGxvbmcgdGV4dCB0ZXN0", "long long long text test");
 }
 
 static void test_encoder(void** state) {
