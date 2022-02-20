@@ -34,7 +34,7 @@ jobs:
     - name: make
       run: make
     - name: make test
-      run: make test
+      run: make test CMOCKA_MESSAGE_OUTPUT=xml
     - name: Publish Unit Test Results
       uses: EnricoMi/publish-unit-test-result-action@v1.28
       if: always()
