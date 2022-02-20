@@ -1,7 +1,8 @@
 #include <stddef.h>
 #include <render/char.h>
 
-#include <freetype/freetype.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 #include "render_impl.h"
 #include "tools.h"
