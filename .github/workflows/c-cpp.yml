@@ -13,6 +13,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Checkout submodules
+      uses: textbook/git-checkout-submodule-action@master
+    - name: Install glfw
+      run: sudo apt-get install libglfw3-dev
+    - name: Install cmocka
+      run: sudo apt-get install libcmocka-dev
+    - name: Install shaderc
+      run: sudo apt-get install shaderc
+    - name: Install vulkan
+      run: sudo apt-get install libvulkan-dev
     - name: make
       run: make
     - name: make test
