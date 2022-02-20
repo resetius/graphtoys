@@ -39,7 +39,7 @@ static unsigned char dec_table[] = {
 char* base64_decode(const char* input, int64_t size, int64_t* output_size) {
     uint32_t part = 0;
     int i=3,j;
-    char* output = malloc((size + 3) / 4 * 3);
+    char* output = malloc((size + 3) / 4 * 3 + 10);
     int64_t len = 0;
     for (j = 0; j < size && input[j] != '='; j++) {
         part |= ((uint32_t)dec_table[(uint8_t)input[j]]) << (i*6);
@@ -69,7 +69,7 @@ char* base64_decode(const char* input, int64_t size, int64_t* output_size) {
 
 char* base64_encode(const char* input, int64_t size, int64_t* output_size) {
     int i,j=0;
-    char* output = malloc(4 * ((size + 2) / 3));
+    char* output = malloc(4 * ((size + 2) / 3) + 10);
     uint32_t part = 0;
     int len = 0;
     j = 2;
@@ -97,6 +97,7 @@ char* base64_encode(const char* input, int64_t size, int64_t* output_size) {
         output[len - 1] = '=';
     }
 
+    output[len] = 0;
     *output_size = len;
     return output;
 }
