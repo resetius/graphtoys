@@ -11,7 +11,8 @@
 #include <render/char.h>
 #include <render/pipeline.h>
 
-#include <freetype/freetype.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 #include <lib/verify.h>
 
