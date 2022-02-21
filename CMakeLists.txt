@@ -5,6 +5,8 @@ pkg_check_modules(FREETYPE2 REQUIRED freetype2)
 pkg_check_modules(GLFW3 REQUIRED glfw3)
 pkg_check_modules(CMOCKA REQUIRED cmocka)
 pkg_check_modules(VULKAN REQUIRED vulkan)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 add_library(astc_codec 
     contrib/astc-codec/src/decoder/astc_file.cc
@@ -155,7 +157,7 @@ target_include_directories(engine
     PUBLIC ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${GLFW3_INCLUDE_DIRS})
 target_compile_options(engine PRIVATE ${FREETYPE2_CFLAGS_OTHER})
 target_link_directories(engine PUBLIC ${FREETYPE2_LIBRARY_DIRS} ${GLFW3_LIBRARY_DIRS})
-target_link_libraries(engine ktx astc_codec json ${FREETYPE2_STATIC_LIBRARIES} ${GLFW3_STATIC_LIBRARIES})
+target_link_libraries(engine ktx astc_codec json ${FREETYPE2_STATIC_LIBRARIES} ${GLFW3_STATIC_LIBRARIES} Threads::Threads)
 set_property(TARGET engine PROPERTY CXX_STANDARD 17)
 
 add_executable(main main.c)
