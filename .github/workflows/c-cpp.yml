@@ -24,7 +24,7 @@ jobs:
     - name: Install packages
       run: sudo apt-get install libglfw3-dev libcmocka-dev shaderc libvulkan-dev vulkan-headers libfreetype6-dev cmake ninja-build
     - name: configure
-      run: mkdir build && cmake -B build -G ninja
+      run: mkdir build && cmake -B build -G Ninja
     - name: make
       run: cmake --build build
     - name: test
