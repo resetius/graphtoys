@@ -18,6 +18,7 @@ add_library(astc_codec
     contrib/astc-codec/src/decoder/quantization.cc
     contrib/astc-codec/src/decoder/weight_infill.cc)
 target_include_directories(astc_codec PUBLIC contrib/astc-codec)
+set_property(TARGET astc_codec PROPERTY CXX_STANDARD 17)
 
 add_library(ktx
     contrib/ktx/lib/basisu/zstd/zstd.c
@@ -139,23 +140,28 @@ add_library(engine
     ${GENERATED}
     )
 
-target_include_directories(engine PRIVATE ${FREETYPE2_INCLUDE_DIRS} contrib/ktx/include PUBLIC ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
+target_include_directories(engine PRIVATE ${FREETYPE2_INCLUDE_DIRS} /usr/local/include contrib/ktx/other_include contrib/ktx/include PUBLIC ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${GLFW3_INCLUDE_DIRS})
 target_compile_options(engine PRIVATE ${FREETYPE2_CFLAGS_OTHER})
+target_link_directories(engine PUBLIC ${FREETYPE2_LIBRARY_DIRS} ${GLFW3_LIBRARY_DIRS})
 target_link_libraries(engine ktx astc_codec json ${FREETYPE2_LIBRARIES} ${GLFW3_LIBRARIES})
+set_property(TARGET engine PROPERTY CXX_STANDARD 17)
 
 add_executable(main main.c)
 target_link_libraries(main engine)
 
 add_executable(test_base64 test/base64.c)
 target_include_directories(test_base64 PRIVATE ${CMOCKA_INCLUDE_DIRS})
+target_link_directories(test_base64 PRIVATE ${CMOCKA_LIBRARY_DIRS})
 target_link_libraries(test_base64 engine ${CMOCKA_LIBRARIES})
 
 add_executable(test_gltf test/gltf.c)
 target_include_directories(test_gltf PRIVATE ${CMOCKA_INCLUDE_DIRS})
+target_link_directories(test_gltf PRIVATE ${CMOCKA_LIBRARY_DIRS})
 target_link_libraries(test_gltf engine ${CMOCKA_LIBRARIES})
 
 add_executable(test_config test/config.c)
 target_include_directories(test_config PRIVATE ${CMOCKA_INCLUDE_DIRS})
+target_link_directories(test_config PRIVATE ${CMOCKA_LIBRARY_DIRS})
 target_link_libraries(test_config engine ${CMOCKA_LIBRARIES})
 
 add_executable(rcc tools/rcc.c)
