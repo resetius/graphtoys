@@ -173,5 +173,7 @@ enable_testing()
 add_test(NAME test_gltf COMMAND test_gltf ${CMAKE_SOURCE_DIR})
 add_test(NAME test_base64 COMMAND test_base64)
 add_test(NAME test_config COMMAND test_config ${CMAKE_SOURCE_DIR})
-
+set_tests_properties(test_gltf PROPERTIES ENVIRONMENT "CMOCKA_MESSAGE_OUTPUT=xml;CMOCKA_XML_FILE=test_gltf.xml")
+set_tests_properties(test_base64 PROPERTIES ENVIRONMENT "CMOCKA_MESSAGE_OUTPUT=xml;CMOCKA_XML_FILE=test_base64.xml")
+set_tests_properties(test_config PROPERTIES ENVIRONMENT "CMOCKA_MESSAGE_OUTPUT=xml;CMOCKA_XML_FILE=test_config.xml")
 
