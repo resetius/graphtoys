@@ -83,6 +83,7 @@ set(SHADERS
     models/triangle.frag
     models/particles.comp
     )
+set(FONTS font/RobotoMono-Regular.ttf)
 set(GENERATED "")
 foreach (shader ${SHADERS})
     add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${shader}.h 
@@ -96,6 +97,12 @@ foreach (shader ${SHADERS})
         DEPENDS ${CMAKE_SOURCE_DIR}/${shader} ${CMAKE_BINARY_DIR}/${shader}.spv rcc)
     list(APPEND GENERATED ${CMAKE_BINARY_DIR}/${shader}.h)
     list(APPEND GENERATED ${CMAKE_BINARY_DIR}/${shader}.spv.h)
+endforeach ()
+foreach (font ${FONTS})
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${font}.h 
+        COMMAND rcc ${CMAKE_SOURCE_DIR}/${font} -o ${CMAKE_BINARY_DIR}/${font}.h --strip ${CMAKE_BINARY_DIR}/ -q
+        DEPENDS ${CMAKE_SOURCE_DIR}/${font} rcc)
+    list(APPEND GENERATED ${CMAKE_BINARY_DIR}/${font}.h)
 endforeach ()
 
 add_library(engine
