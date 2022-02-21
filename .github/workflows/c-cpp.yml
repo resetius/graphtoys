@@ -21,22 +21,16 @@ jobs:
       run: wget -qO - http://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
     - name: apt-get update
       run: sudo apt-get update
-    - name: Install glfw
-      run: sudo apt-get install libglfw3-dev
-    - name: Install cmocka
-      run: sudo apt-get install libcmocka-dev
-    - name: Install shaderc
-      run: sudo apt-get install shaderc
-    - name: Install vulkan
-      run: sudo apt-get install libvulkan-dev vulkan-headers
-    - name: Install freetype2
-      run: sudo apt-get install libfreetype6-dev
+    - name: Install packages
+      run: sudo apt-get install libglfw3-dev libcmocka-dev shaderc libvulkan-dev vulkan-headers libfreetype6-dev cmake ninja-build
+    - name: configure
+      run: mkdir build && cmake -B build -G ninja
     - name: make
-      run: make
-    - name: make test
-      run: make test CMOCKA_MESSAGE_OUTPUT=xml
+      run: cmake --build build
+    - name: test
+      run: cmake --build build --target test
     - name: Publish Unit Test Results
       uses: EnricoMi/publish-unit-test-result-action@v1.28
       if: always()
       with:
-         files: test-results/**/*.xml
+         files: build/*.xml
