@@ -4,7 +4,7 @@
 #include <ctype.h>
 
 void usage(char* name) {
-    printf("%s text.txt [-o output_name]\n", name);
+    printf("%s text.txt [-o output_name] [--strip prefix] [-q]\n", name);
 }
 
 int main(int argc, char** argv) {
@@ -18,6 +18,8 @@ int main(int argc, char** argv) {
     int ch;
     int count = 0;
     int size = 0;
+    char* prefix = NULL;
+    int quiet = 0;
 
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-o")) {
@@ -26,6 +28,14 @@ int main(int argc, char** argv) {
                 return -1;
             }
             output = strdup(argv[++i]);
+        } else if (!strcmp(argv[i], "--strip")) {
+            if (i == argc - 1) {
+                usage(argv[0]);
+                return -1;
+            }
+            prefix = argv[++i];
+        } else if (!strcmp(argv[i], "-q")) {
+            quiet = 1;
         } else {
             input = strdup(argv[i]);
         }
@@ -40,11 +50,17 @@ int main(int argc, char** argv) {
         strcpy(output, input);
         strcat(output, "_gen.c");
     }
-    fprintf(stderr, "generating '%s' from '%s'\n", output, input);
+    if (!quiet) {
+        fprintf(stderr, "generating '%s' from '%s'\n", output, input);
+    }
 
-    varname = strdup(output);
-    if ((dot = strrchr(output, '.'))) {
-        varname[dot-output] = 0;
+    char* varstart = output;
+    if (prefix && strstr(output, prefix) == output) {
+        varstart = &output[strlen(prefix)];
+    }
+    varname = strdup(varstart);
+    if ((dot = strrchr(varstart, '.'))) {
+        varname[dot-varstart] = 0;
     }
     dot = varname;
     while (*dot) {
