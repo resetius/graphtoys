@@ -7,21 +7,15 @@
 #include <stdio.h>
 #include <lib/formats/gltf.h>
 
-static void get_config_fname(char* out, int size, const char* prog, const char* config) {
+static void get_config_fname(char* out, int size, const char* dir, const char* config) {
     memset(out, 0, size);
-    strncpy(out, prog, size-1);
-    char* pos = strrchr(out, '/');
-    if (pos) {
-        pos ++;
-    } else {
-        pos = out;
-    }
-    strncpy(pos, config, size-1-(pos-out));
+    strncpy(out, dir, size-256);
+    strcat(out, config);
 }
 
 static void test_cube(void** state) {
     char buf[10240];
-    get_config_fname(buf, sizeof(buf), (char*)*state, "../assets/khr/scenes/cube.gltf");
+    get_config_fname(buf, sizeof(buf), (char*)*state, "assets/khr/scenes/cube.gltf");
     struct Gltf gltf;
     gltf_ctor(&gltf, buf);
     assert_int_equal(gltf.n_nodes, 1);
@@ -36,7 +30,7 @@ static void test_cube(void** state) {
 
 static void test_teapot(void** state) {
     char buf[10240];
-    get_config_fname(buf, sizeof(buf), (char*)*state, "../assets/khr/scenes/teapot.gltf");
+    get_config_fname(buf, sizeof(buf), (char*)*state, "assets/khr/scenes/teapot.gltf");
     struct Gltf gltf;
     gltf_ctor(&gltf, buf);
     assert_int_equal(gltf.n_nodes, 1);
@@ -51,7 +45,7 @@ static void test_teapot(void** state) {
 
 static void test_sponza(void** state) {
     char buf[10240];
-    get_config_fname(buf, sizeof(buf), (char*)*state, "../assets/khr/scenes/sponza/Sponza01.gltf");
+    get_config_fname(buf, sizeof(buf), (char*)*state, "assets/khr/scenes/sponza/Sponza01.gltf");
     struct Gltf gltf;
     gltf_ctor(&gltf, buf);
     assert_int_equal(gltf.n_nodes, 0x1b);
@@ -65,10 +59,23 @@ static void test_sponza(void** state) {
 }
 
 int main(int argc, char** argv) {
+    char dir[10240];
+    if (argc > 1) {
+        strncpy(dir, argv[1], sizeof(dir)-1);
+        strcat(dir, "/");
+    } else {
+        char* pos;
+        strncpy(dir, argv[0], sizeof(dir)-10);
+        pos = strrchr(dir, '/');
+        if (pos) {
+            *pos = 0;
+        }
+        strcat(dir, "/../");
+    }
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test_prestate(test_cube, argv[0]),
-        cmocka_unit_test_prestate(test_teapot, argv[0]),
-        cmocka_unit_test_prestate(test_sponza, argv[0])
+        cmocka_unit_test_prestate(test_cube, dir),
+        cmocka_unit_test_prestate(test_teapot, dir),
+        cmocka_unit_test_prestate(test_sponza, dir)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -7,16 +7,10 @@
 #include <stdio.h>
 #include <lib/config.h>
 
-static void get_config_fname(char* out, int size, const char* prog, const char* config) {
+static void get_config_fname(char* out, int size, const char* dir, const char* config) {
     memset(out, 0, size);
-    strncpy(out, prog, size-1);
-    char* pos = strrchr(out, '/');
-    if (pos) {
-        pos ++;
-    } else {
-        pos = out;
-    }
-    strncpy(pos, config, size-1-(pos-out));
+    strncpy(out, dir, size-256);
+    strcat(out, config);
 }
 
 static void test_parse(void** state)
@@ -59,10 +53,15 @@ static void test_newkey(void** state)
 }
 
 int main(int argc, char** argv) {
+    char dir[10240] = {0};
+    if (argc > 1) {
+        strncpy(dir, argv[1], sizeof(dir)-1);
+        strcat(dir, "/test/");
+    }
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test_prestate(test_parse, argv[0]),
-        cmocka_unit_test_prestate(test_rewrite, argv[0]),
-        cmocka_unit_test_prestate(test_newkey, argv[0]),
+        cmocka_unit_test_prestate(test_parse, dir),
+        cmocka_unit_test_prestate(test_rewrite, dir),
+        cmocka_unit_test_prestate(test_newkey, dir),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
