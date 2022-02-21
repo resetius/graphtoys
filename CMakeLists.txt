@@ -4,6 +4,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(FREETYPE2 REQUIRED freetype2)
 pkg_check_modules(GLFW3 REQUIRED glfw3)
 pkg_check_modules(CMOCKA REQUIRED cmocka)
+pkg_check_modules(VULKAN REQUIRED vulkan)
 
 add_library(astc_codec 
     contrib/astc-codec/src/decoder/astc_file.cc
@@ -140,7 +141,9 @@ add_library(engine
     ${GENERATED}
     )
 
-target_include_directories(engine PRIVATE ${FREETYPE2_INCLUDE_DIRS} /usr/local/include contrib/ktx/other_include contrib/ktx/include PUBLIC ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${GLFW3_INCLUDE_DIRS})
+target_include_directories(engine 
+    PRIVATE ${FREETYPE2_INCLUDE_DIRS} ${VULKAN_INCLUDE_DIRS} contrib/ktx/other_include contrib/ktx/include 
+    PUBLIC ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${GLFW3_INCLUDE_DIRS})
 target_compile_options(engine PRIVATE ${FREETYPE2_CFLAGS_OTHER})
 target_link_directories(engine PUBLIC ${FREETYPE2_LIBRARY_DIRS} ${GLFW3_LIBRARY_DIRS})
 target_link_libraries(engine ktx astc_codec json ${FREETYPE2_LIBRARIES} ${GLFW3_LIBRARIES})
@@ -167,8 +170,8 @@ target_link_libraries(test_config engine ${CMOCKA_LIBRARIES})
 add_executable(rcc tools/rcc.c)
 
 enable_testing()
-add_test(NAME test_gltf COMMAND test_gltf)
+add_test(NAME test_gltf COMMAND test_gltf ${CMAKE_SOURCE_DIR})
 add_test(NAME test_base64 COMMAND test_base64)
-add_test(NAME test_config COMMAND test_config)
+add_test(NAME test_config COMMAND test_config ${CMAKE_SOURCE_DIR})
 
 
