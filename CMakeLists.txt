@@ -82,6 +82,8 @@ set(SHADERS
     models/stl.frag
     models/triangle.frag
     models/particles.comp
+    font/font.frag
+    font/font.vert
     )
 set(FONTS font/RobotoMono-Regular.ttf)
 set(GENERATED "")
@@ -177,9 +179,9 @@ target_link_libraries(test_config engine ${CMOCKA_LIBRARIES})
 add_executable(rcc tools/rcc.c)
 
 enable_testing()
-add_test(NAME test_gltf COMMAND test_gltf ${CMAKE_SOURCE_DIR})
-add_test(NAME test_base64 COMMAND test_base64)
-add_test(NAME test_config COMMAND test_config ${CMAKE_SOURCE_DIR})
+add_test(NAME test_gltf COMMAND ${CMAKE_BINARY_DIR}/test_gltf ${CMAKE_SOURCE_DIR})
+add_test(NAME test_base64 COMMAND ${CMAKE_BINARY_DIR}/test_base64)
+add_test(NAME test_config COMMAND ${CMAKE_BINARY_DIR}/test_config ${CMAKE_SOURCE_DIR})
 set_tests_properties(test_gltf PROPERTIES ENVIRONMENT "CMOCKA_MESSAGE_OUTPUT=xml;CMOCKA_XML_FILE=test_gltf.xml")
 set_tests_properties(test_base64 PROPERTIES ENVIRONMENT "CMOCKA_MESSAGE_OUTPUT=xml;CMOCKA_XML_FILE=test_base64.xml")
 set_tests_properties(test_config PROPERTIES ENVIRONMENT "CMOCKA_MESSAGE_OUTPUT=xml;CMOCKA_XML_FILE=test_config.xml")
