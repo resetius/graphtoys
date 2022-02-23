@@ -156,7 +156,7 @@ target_include_directories(engine
     PRIVATE ${FREETYPE2_INCLUDE_DIRS} ${VULKAN_INCLUDE_DIRS} contrib/ktx/other_include contrib/ktx/include 
     PUBLIC ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${GLFW3_INCLUDE_DIRS})
 target_compile_options(engine PRIVATE ${FREETYPE2_CFLAGS_OTHER})
-target_link_directories(engine PUBLIC ${FREETYPE2_LIBRARY_DIRS} ${GLFW3_LIBRARY_DIRS})
+target_link_directories(engine PUBLIC ${FREETYPE2_STATIC_LIBRARY_DIRS} ${GLFW3_STATIC_LIBRARY_DIRS})
 target_link_libraries(engine ktx astc_codec json ${FREETYPE2_STATIC_LIBRARIES} ${GLFW3_STATIC_LIBRARIES} Threads::Threads)
 set_property(TARGET engine PROPERTY CXX_STANDARD 17)
 
