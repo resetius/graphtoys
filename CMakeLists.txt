@@ -160,6 +160,11 @@ target_include_directories(engine
 target_compile_options(engine PRIVATE ${FREETYPE2_CFLAGS_OTHER})
 target_link_directories(engine PUBLIC ${FREETYPE2_STATIC_LIBRARY_DIRS} ${GLFW3_STATIC_LIBRARY_DIRS})
 target_link_libraries(engine ktx astc_codec json ${FREETYPE2_STATIC_LIBRARIES} ${GLFW3_STATIC_LIBRARIES} Threads::Threads)
+if (MSVC)
+    target_compile_options(engine PUBLIC /W4)
+else()
+    target_compile_options(engine PUBLIC -Wall)
+endif()
 set_property(TARGET engine PROPERTY CXX_STANDARD 17)
 
 add_executable(main main.c)
