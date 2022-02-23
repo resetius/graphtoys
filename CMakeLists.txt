@@ -89,6 +89,8 @@ set(SHADERS
     )
 set(FONTS font/RobotoMono-Regular.ttf)
 set(GENERATED "")
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/models)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/font)
 foreach (shader ${SHADERS})
     add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${shader}.h 
         COMMAND rcc ${CMAKE_SOURCE_DIR}/${shader} -o ${CMAKE_BINARY_DIR}/${shader}.h --strip ${CMAKE_BINARY_DIR}/ -q
