@@ -392,7 +392,7 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
             strcat(buf, ".ktx");
             printf("Loading '%s'\n", buf);
             char* img = gltf_load_image_uri(buf); // gltf_file_by_name(&gltf, buf, &size);
-            images[i] = r->tex_new(r, img, TEX_KTX);
+            images[i] = img ? r->tex_new(r, img, TEX_KTX) : NULL;
             buf[l] = 0;
         }
     }

@@ -406,6 +406,7 @@ void* gltf_load_image_uri(const char* fname) {
     int64_t size;
     ktxTexture* tex = NULL;
     data = gltf_file_by_fullname(fname, &size);
+    if (!data) return tex;
     verify(ktxTexture_CreateFromMemory(
                (const ktx_uint8_t *)data,
                size, // TODO: optimization
