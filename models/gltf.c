@@ -61,13 +61,15 @@ struct Model {
     struct Node* nodes;
     int cap_nodes;
     int n_nodes;
+    float scale;
 };
 
 static void draw_node(struct Model* t, struct Node* n, mat4x4 v, mat4x4 p) {
     mat4x4 m, mv, mvp;
     mat4x4_identity(m);
     memcpy(m, n->matrix, sizeof(n->matrix));
-    //mat4x4_scale3(m, m, 4);
+    mat4x4_scale(m, m, t->scale);
+    m[3][3] = 1;
 
     mat4x4_mul(mv, v, m);
     mat4x4_mul(mvp, p, mv);
@@ -357,6 +359,7 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
     vec4_dup(t->light, light);
 
     const char* fn = cfg_gets_def(cfg, "name", "./assets/khr/scenes/sponza/Sponza01.gltf");
+    t->scale = cfg_getf_def(cfg, "scale", 1.0);
 
     t->b = r->buffer_manager(r);
 
@@ -386,7 +389,6 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
         char buf[10240];
         strcpy(buf, gltf.fsbase);
         int l = strlen(buf);
-        int64_t size;
         for (int i = 0; i < gltf.n_meshes; i++) {
             strncat(buf, gltf.meshes[i].name, sizeof(buf)-10-l);
             strcat(buf, ".ktx");
@@ -428,8 +430,11 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
         }
 
         load_node(r, t->b, &t->nodes[t->n_nodes++], i, &gltf, images,
-                  &vertex_shader, &fragment_shader);
+                  &vertex_shader, &fragment_shader);        
     }
+
+    vec3_scale(t->cam.eye, t->cam.eye, t->scale);
+    vec3_scale(t->cam.center, t->cam.center, t->scale);
 
     gltf_dtor(&gltf);
 
