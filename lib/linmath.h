@@ -169,6 +169,12 @@ LINMATH_H_FUNC void mat4x4_scale(mat4x4 M, mat4x4 const a, float k)
 	for(i=0; i<4; ++i)
 		vec4_scale(M[i], a[i], k);
 }
+LINMATH_H_FUNC void mat4x4_scale3(mat4x4 M, mat4x4 const a, float k)
+{
+	int i;
+	for(i=0; i<3; ++i)
+		vec4_scale(M[i], a[i], k);
+}
 LINMATH_H_FUNC void mat4x4_scale_aniso(mat4x4 M, mat4x4 const a, float x, float y, float z)
 {
 	vec4_scale(M[0], a[0], x);
