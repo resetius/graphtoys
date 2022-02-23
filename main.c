@@ -187,6 +187,7 @@ static void fill_render_config(struct RenderConfig* r, struct Config* cfg) {
     r->triple_buffer = strcmp(cfg_gets_def(cfg, "render:triple_buffer", "off"), "on") == 0;
     r->fullscreen = strcmp(cfg_gets_def(cfg, "render:fullscreen", "off"), "on") == 0;
     r->vidmode = cfg_geti_def(cfg, "render:vidmode", -1);
+    r->cfg = cfg_section(cfg, "render");
 }
 
 int main(int argc, char** argv)

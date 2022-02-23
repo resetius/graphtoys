@@ -10,6 +10,7 @@
 #include <GLFW/glfw3.h>
 
 #include <render/render.h>
+#include <lib/config.h>
 
 #include "device.h"
 #include "renderpass.h"
@@ -224,10 +225,14 @@ static void init_(struct Render* r1) {
     printf("Devices:\n");
     for (i = 0; i < deviceCount; i++) {
         vkGetPhysicalDeviceProperties(devices[i], &r->properties);
-        printf("Name: '%s'\n", r->properties.deviceName);
+        printf("Name: %d: '%s'\n", i, r->properties.deviceName);
         // TODO: check device
-        r->phy_dev = devices[i];
-        break;
+    }
+    
+    int dev_id = cfg_geti_def(r->cfg.cfg, "dev", 0);
+    if (dev_id < deviceCount) {
+        printf("Using device: %d\n", dev_id);
+        r->phy_dev = devices[dev_id];
     }
 
     vkGetPhysicalDeviceFeatures(r->phy_dev, &r->features);
