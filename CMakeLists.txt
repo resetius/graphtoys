@@ -58,7 +58,7 @@ target_include_directories(ktx PRIVATE
     ${CMAKE_SOURCE_DIR}
     PUBLIC contrib/ktx/include
     )
-target_compile_options(ktx PUBLIC -DKHRONOS_STATIC)
+target_compile_options(ktx PUBLIC -DKHRONOS_STATIC PRIVATE -DKTX_FEATURE_WRITE)
 if (MINGW)
     target_compile_options(ktx PUBLIC -DS_IFSOCK=0xC000)
 endif ()
