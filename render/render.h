@@ -6,6 +6,7 @@ struct Texture;
 struct Char;
 struct PipelineBuilder;
 struct BufferManager;
+struct Config;
 
 struct RenderConfig {
     const char* api;
@@ -17,6 +18,8 @@ struct RenderConfig {
     int triple_buffer;
     int fullscreen;
     int vidmode;
+
+    struct Config* cfg;
 };
 
 enum TexType {
