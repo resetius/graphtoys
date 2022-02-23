@@ -245,7 +245,7 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
             memcpy(vertices[k].norm, &norm_data[i*norm_stride], norm_size);
         } else {
             // TODO: calc normal
-            vertices[k].norm[0] = 0.0; vertices[k].norm[1] = 0.0; vertices[k].norm[2] = 1.0; vertices[k].norm[3] = 1.0;
+            vertices[k].norm[0] = 0.0; vertices[k].norm[1] = 0.0; vertices[k].norm[2] = 1.0; 
         }
         if (tex_data) {
             memcpy(vertices[k].tex, &tex_data[i*tex_stride], tex_size);
