@@ -107,6 +107,29 @@ static void load_nodes(struct Gltf* gltf, json_value* value) {
     }
 }
 
+static char* gltf_file_by_fullname(const char* name, int64_t* size) {
+    FILE* f;
+    char* output;
+    f = fopen(name, "rb");
+    if (!f) return NULL;
+    fseek(f, 0, SEEK_END);
+    *size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    output = malloc(*size);
+    verify(fread(output, 1, *size, f) == *size);
+    fclose(f);
+    return output;
+}
+
+static char* gltf_file_by_name(struct Gltf* gltf, const char* name, int64_t* size) {
+    int l = strlen(gltf->fsbase);
+    char* output;
+    strncat(gltf->fsbase, name, sizeof(gltf->fsbase)-l-1);
+    output = gltf_file_by_fullname(gltf->fsbase, size);
+    gltf->fsbase[l] = 0;
+    return output;
+}
+
 static char* load_uri(struct Gltf* gltf, json_value* value, int64_t* size) {
     const char* base64_type = "data:application/octet-stream;base64,";
     int base64_type_len = strlen(base64_type);
@@ -117,18 +140,8 @@ static char* load_uri(struct Gltf* gltf, json_value* value, int64_t* size) {
             value->u.string.length-base64_type_len,
             size);
     } else {
-        int l = strlen(gltf->fsbase);
-        FILE* f;
-        char* output;
-        strncat(gltf->fsbase, value->u.string.ptr, sizeof(gltf->fsbase)-l-1);
-        verify(f = fopen(gltf->fsbase, "rb"));
-        fseek(f, 0, SEEK_END);
-        *size = ftell(f);
-        fseek(f, 0, SEEK_SET);
-        output = malloc(*size);
-        verify(fread(output, 1, *size, f) == *size);
-        fclose(f);
-        gltf->fsbase[l] = 0;
+        char* output = gltf_file_by_name(gltf, value->u.string.ptr, size);
+        verify(output);
         return output;
     }
 }
@@ -385,6 +398,21 @@ static void load_cameras(struct Gltf* gltf, json_value* value) {
             printf("Unknown camera type\n");
         }
     }
+}
+
+void* gltf_load_image_uri(const char* fname) {
+
+    char* data;
+    int64_t size;
+    ktxTexture* tex = NULL;
+    data = gltf_file_by_fullname(fname, &size);
+    verify(ktxTexture_CreateFromMemory(
+               (const ktx_uint8_t *)data,
+               size, // TODO: optimization
+               KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+               &tex) == KTX_SUCCESS);
+    free(data);
+    return tex;
 }
 
 static void* load_image_uri(struct Gltf* gltf, json_value* value) {

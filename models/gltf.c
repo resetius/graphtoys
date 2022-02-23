@@ -67,9 +67,9 @@ static void draw_node(struct Model* t, struct Node* n, mat4x4 v, mat4x4 p) {
     mat4x4 m, mv, mvp;
     mat4x4_identity(m);
     memcpy(m, n->matrix, sizeof(n->matrix));
+    //mat4x4_scale3(m, m, 4);
 
     mat4x4_mul(mv, v, m);
-
     mat4x4_mul(mvp, p, mv);
 
     mat4x4 norm;
@@ -145,20 +145,14 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
     int nvertices = gltf->accessors[gltf->meshes[mesh].primitives[0].indices].count;
     int npos = gltf->accessors[gltf->meshes[mesh].primitives[0].position].count;
 
-    if (gltf->meshes[mesh].primitives[0].normal < 0) {
-        // TODO: skip
-        n->skip = 1;
-        return;
-    }
-
     struct Vertex* vertices = malloc(npos*sizeof(struct Vertex));
 
-    //int* indices =
     // TODO: loop on primitives
 
+    int normal = gltf->meshes[mesh].primitives[0].normal;
     int ind_view = gltf->accessors[gltf->meshes[mesh].primitives[0].indices].view;
     int pos_view = gltf->accessors[gltf->meshes[mesh].primitives[0].position].view;
-    int norm_view = gltf->accessors[gltf->meshes[mesh].primitives[0].normal].view;
+    int norm_view = normal >= 0 ? gltf->accessors[normal].view : -1;
     int material_id = gltf->meshes[mesh].primitives[0].material;
     struct GltfMaterial* material = material_id >= 0
         ? &gltf->materials[material_id]
@@ -179,14 +173,14 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
     }
 
     int pos_components = gltf->accessors[gltf->meshes[mesh].primitives[0].position].components;
-    int norm_components = gltf->accessors[gltf->meshes[mesh].primitives[0].normal].components;
+    int norm_components = normal >= 0 ? gltf->accessors[normal].components : -1;
     int ind_type = gltf->accessors[gltf->meshes[mesh].primitives[0].indices].component_type;
     int pos_type = gltf->accessors[gltf->meshes[mesh].primitives[0].position].component_type;
-    int norm_type = gltf->accessors[gltf->meshes[mesh].primitives[0].normal].component_type;
+    int norm_type = normal >= 0 ? gltf->accessors[normal].component_type : -1;
     char* pos_data = gltf->views[pos_view].data +
         gltf->accessors[gltf->meshes[mesh].primitives[0].position].offset;
-    char* norm_data = gltf->views[norm_view].data +
-        gltf->accessors[gltf->meshes[mesh].primitives[0].normal].offset;
+    char* norm_data = norm_view >= 0 ? gltf->views[norm_view].data +
+        gltf->accessors[normal].offset : NULL;
     char* tex_data = NULL;
 
     if (tex_view >= 0) {
@@ -200,10 +194,11 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
     int pos_stride = gltf->views[pos_view].stride
             ? gltf->views[pos_view].stride
             : pos_size;
-    int norm_stride =
-        gltf->views[norm_view].stride
+    int norm_stride = norm_view >= 0 ?
+        (gltf->views[norm_view].stride
             ? gltf->views[norm_view].stride
-            : norm_size;
+            : norm_size)
+        : -1;
 
     printf("indview: %d\n", ind_view);
     char* indices = gltf->views[ind_view].data+gltf->accessors[gltf->meshes[mesh].primitives[0].indices].offset;
@@ -219,7 +214,10 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
         int source = gltf->textures[index].source;
         printf("Use %d '%s' %p\n", source, gltf->images[source].name, gltf->images[source].texture); fflush(stdout);
         n->tex = images[source];
-// r->tex_new(r, gltf->images[source].texture, TEX_KTX);
+    } else if (material && images[mesh]) {
+        n->tex = images[mesh];
+    } else {
+        n->tex = NULL;
     }
 
     if (n->index_byte_size == 1) {
@@ -228,8 +226,7 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
         for (int i = 0; i < ind_size; i++) {
             new_indices[i] = (unsigned char)indices[i];
         }
-        ind_size *= 2;
-        n->index = buffer_create(b, BUFFER_INDEX, MEMORY_STATIC, new_indices, ind_size);
+        n->index = buffer_create(b, BUFFER_INDEX, MEMORY_STATIC, new_indices, ind_size*2);
         free(new_indices);
     } else {
         n->index = buffer_create(b, BUFFER_INDEX, MEMORY_STATIC, indices, ind_size);
@@ -242,7 +239,12 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
     int k = 0;
     for (int i = 0; i < npos; i ++) {
         memcpy(vertices[k].pos, &pos_data[i*pos_stride], pos_size);
-        memcpy(vertices[k].norm, &norm_data[i*norm_stride], norm_size);
+        if (normal >= 0) {
+            memcpy(vertices[k].norm, &norm_data[i*norm_stride], norm_size);
+        } else {
+            // TODO: calc normal
+            vertices[k].norm[0] = 0.0; vertices[k].norm[1] = 0.0; vertices[k].norm[2] = 1.0; vertices[k].norm[3] = 1.0;
+        }
         if (tex_data) {
             memcpy(vertices[k].tex, &tex_data[i*tex_stride], tex_size);
         }
@@ -267,6 +269,26 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
         //       indices[i]
         //    );
         k++;
+    }
+    if (normal < 0) {
+        int sz = ind_size / nvertices;
+        for (int i = 0; i < nvertices; i+=3) {
+            unsigned x, y, z;
+            x = y = z = 0;
+            memcpy(&x, &indices[i*sz], sz);
+            memcpy(&y, &indices[(i+1)*sz], sz);
+            memcpy(&z, &indices[(i+2)*sz], sz);
+
+            vec3 a,b,n;
+            vec3_sub(a, vertices[z].pos, vertices[x].pos);
+            vec3_sub(b, vertices[y].pos, vertices[x].pos);
+            vec3_mul_cross(n, a, b);
+            vec3_norm(n, n);
+
+            memcpy(vertices[x].norm, n, sizeof(n));
+            memcpy(vertices[y].norm, n, sizeof(n));
+            memcpy(vertices[z].norm, n, sizeof(n));
+        }
     }
 
     // TODO: use indices
@@ -306,9 +328,11 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
     int model_buffer_id = buffer_create(b, BUFFER_ARRAY, MEMORY_STATIC, vertices, k*sizeof(struct Vertex));
     n->model = pl_buffer_assign(n->pl, 0, model_buffer_id);
 
-
     free(vertices);
 }
+
+//char* gltf_file_by_name(struct Gltf* gltf, const char* name, int64_t* size); // TODO
+void* gltf_load_image_uri(const char* fname); // TODO
 
 struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProducer* events) {
     struct Model* t = calloc(1, sizeof(struct Model));
@@ -341,10 +365,13 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
 
     t->cam.fov = 70*M_PI/180;
     t->cam.aspect = 1.77;
-    t->cam.znear = 0.3;
+    t->cam.znear = 0.001;
     t->cam.zfar = 100000;
 
     cam_init(&t->cam);
+    vec3 tr = {0, 0.5, 0};
+    t->cam.znear = 0.001;
+    cam_translate(&t->cam, tr);
 
     double t1 = glfwGetTime();
 
@@ -353,7 +380,22 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
         printf("Loading '%s'\n", gltf.images[i].name); fflush(stdout);
         images[i] = r->tex_new(r, gltf.images[i].texture, TEX_KTX);
     }
-    // TODO: drop images
+    if (gltf.n_images == 0) {
+        // load by mesh name
+        images = realloc(images, gltf.n_meshes * sizeof(void*));
+        char buf[10240];
+        strcpy(buf, gltf.fsbase);
+        int l = strlen(buf);
+        int64_t size;
+        for (int i = 0; i < gltf.n_meshes; i++) {
+            strncat(buf, gltf.meshes[i].name, sizeof(buf)-10-l);
+            strcat(buf, ".ktx");
+            printf("Loading '%s'\n", buf);
+            char* img = gltf_load_image_uri(buf); // gltf_file_by_name(&gltf, buf, &size);
+            images[i] = r->tex_new(r, img, TEX_KTX);
+            buf[l] = 0;
+        }
+    }
 
     printf("Loaded in %f\n", glfwGetTime() - t1);
     //exit(1);
@@ -390,6 +432,8 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
     }
 
     gltf_dtor(&gltf);
+
+    free(images); // TODO
 
     cam_event_consumer_init(&t->cons, &t->cam);
     events->subscribe(events, (struct EventConsumer*) &t->cons);
