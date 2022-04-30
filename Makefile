@@ -11,7 +11,7 @@ UNAME_S := $(shell uname -s)
 PLATFORM=$(UNAME_S)
 CFLAGS?=-g -O2 -Wall
 # Ubuntu: apt-get install shaderc
-# Mingw: pacman -S mingw-w64-x86_64-shaderc mingw-w64-x86_64-spirv-tools mingw-w64-x86_64-vulkan-headers
+# Mingw: pacman -S mingw-w64-x86_64-shaderc mingw-w64-x86_64-spirv-tools mingw-w64-x86_64-vulkan-headers (or  pacman -S mingw-w64-x86_64-vulkan-devel)
 GLSLC=glslc
 CFLAGS += -I. $(shell pkg-config --cflags glfw3,freetype2) -Icontrib/ktx/lib/basisu/zstd  -Icontrib/ktx/other_include -Icontrib/ktx/lib/dfdutils -Icontrib/ktx/utils -Icontrib/ktx/include -Icontrib/astc-codec -DKTX_FEATURE_WRITE=1 $(SANITIZE)
 CFLAGS += $(shell pkg-config --cflags cmocka)
