@@ -1,0 +1,99 @@
+#version 430
+
+layout(local_size_x = 1024) in;
+
+struct Body {
+    vec3 x;
+    vec3 v;
+    vec3 a;
+    vec3 aprev;
+    float mass;
+    int enabled;
+    ivec3 cellid;
+};
+
+struct Cell {
+    int first_body;
+    int nbodies;
+};
+
+layout(std140, binding=0) uniform Settings {
+    ivec3 nn;
+    int Out; // fft output
+    int In;  // fft input
+    int Cos; // cos table for fft
+    int Sin; // sin table for fft
+};
+
+layout(std430, binding=1) buffer BodiesBuffer {
+    Body Bodies[];
+};
+
+layout(std430, binding=2) buffer CellsBuffer {
+    Cell Cells[];
+};
+
+layout(std430, binding=3) buffer NodesBuffer {
+    int Nodes[];
+};
+
+layout(std430, binding=4) buffer DensityBuffer {
+    float A[];
+};
+
+// fft s->S
+void pFFT_1(int ooff, int ioff, float dx, int N, int n, int sz) {
+    int N_2 = N/2;
+    int yoff = ooff; // [0..N/2]
+    int _yoff = ooff+N_2+1; // [N/2+1..N-1]
+
+    for (int p = 1; p <= n; p++) {
+        int idx = 1 << (n - p);
+        for (int j = 0; j <= idx - 1; j++) {
+            A[ioff + p * N + j]       = A[ioff + (p - 1) * N + j] + A[ioff + (p - 1) * N + idx + j];
+            A[ioff + p * N + idx + j] = A[ioff + (p - 1) * N + j] - A[ioff + (p - 1) * N + idx + j];
+        }
+    }
+
+    for (int s = 1; s <= n - 2; s++) {
+        int idx = 1 << (n - s - 1);
+        int vm  = 1 << s;
+        for (int k = 1; k <= idx; k++) {
+            float s1 = 0.0;
+            float s2 = 0.0;
+            for (int j = 0; j <= 2 * idx - 1; j++) {
+                s1 += A[ioff + s * N + 2 * idx + j] *
+                    A[Cos + ((2 * k - 1) * vm * j) % sz];
+            }
+            for (int j = 1; j <= 2 * idx - 1; j++) {
+                s2 += A[ioff + s * N + 2 * idx + j] *
+                    A[Sin + ((2 * k - 1) * vm * j) % sz];
+            }
+            int idx2 = (1 << (s - 1)) * (2 * k - 1);
+            A[yoff + idx2]  = s1;
+            A[_yoff + idx2] = s2;
+        }
+    }
+
+    A[yoff + N_2]           = A[ioff + n * N + 1];
+    A[_yoff + 1 << (n - 2)] = A[ioff + (n - 1) * N + 2];
+
+    A[yoff + 0]             = A[ioff + n * N + 0];
+    A[_yoff + 1 << (n - 2)] = A[ioff + (n - 1) * N + 3];
+
+    for (int k = 0; k <= N_2; k++) {
+        A[yoff + k] = A[yoff + k] * dx;
+    }
+
+    for (int k = 1; k <= N_2-1; k++) {
+        A[_yoff + k] = A[_yoff + k] * dx;
+    }
+
+    for (int k = 1; k < N_2/2; k++) {
+        float tmp = A[_yoff + k];
+        A[_yoff + k] = A[_yoff+N_2-k];
+        A[_yoff+N_2-k] = tmp;
+    }
+}
+
+void main() { }
