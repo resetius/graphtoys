@@ -1,7 +1,33 @@
 #version 430
 
-layout(local_size_x = 1024) in;
+layout(local_size_x = 1024, local_size_y = 1024) in;
 
+layout(std140, binding=0) uniform Settings {
+    int nn;  // nx=ny=nz=nn
+    int n;   // log(nn)
+    int Out; // fft output
+    int In;  // fft input
+    int Cos; // cos table for fft
+    int Sin; // sin table for fft
+    float h;
+    float l;
+};
+
+int sz = 2*nn;
+// max grid size 1024x1024x1024
+const int rs = 1024;
+
+// density + psi + sin/cos tables
+layout(std430, binding=1) buffer DensityBuffer {
+    float A[];
+};
+
+// field (w-component unused)
+layout(std430, binding=2) buffer EBuffer {
+    vec4 E[];
+};
+
+/*
 struct Body {
     vec3 x;
     vec3 v;
@@ -16,15 +42,9 @@ struct Cell {
     int first_body;
     int nbodies;
 };
+*/
 
-layout(std140, binding=0) uniform Settings {
-    ivec3 nn;
-    int Out; // fft output
-    int In;  // fft input
-    int Cos; // cos table for fft
-    int Sin; // sin table for fft
-};
-
+/*
 layout(std430, binding=1) buffer BodiesBuffer {
     Body Bodies[];
 };
@@ -36,18 +56,15 @@ layout(std430, binding=2) buffer CellsBuffer {
 layout(std430, binding=3) buffer NodesBuffer {
     int Nodes[];
 };
+*/
 
-layout(std430, binding=4) buffer DensityBuffer {
-    float A[];
-};
-
-void padvance(int ioff, int idx)
+void padvance(inout float a[rs], int idx)
 {
     for (int j = 0; j <= idx - 1; j++) {
-        float a1 = A[ioff+j] + A[ioff+idx + j];
-        float a2 = A[ioff+j] - A[ioff+idx + j];
-        A[ioff+j]       = a1;
-        A[ioff+idx + j] = a2;
+        float a1 = a[j] + a[idx + j];
+        float a2 = a[j] - a[idx + j];
+        a[j]       = a1;
+        a[idx + j] = a2;
     }
 }
 
@@ -70,58 +87,58 @@ void cadvance(int ioff, int idx) {
 }
 
 // fft s->S
-void pFFT_1(int ooff, int ioff, float dx, int N, int n, int sz) {
+void pFFT_1(inout float S[rs], inout float a[rs], float dx, int N, int n) {
     int N_2 = N/2;
-    int yoff = ooff; // [0..N/2]
-    int _yoff = ooff+N_2; // [N/2+1..N-1]
+    int yoff = 0; // [0..N/2]
+    int _yoff = N_2; // [N/2+1..N-1]
 
     for (int s = 1; s <= n - 2; s++) {
         int idx = 1 << (n - s - 1);
         int vm  = 1 << s;
 
-        padvance(ioff, 2*idx);
+        padvance(a, 2*idx);
 
         for (int k = 1; k <= idx; k++) {
             float s1 = 0.0;
             float s2 = 0.0;
             for (int j = 0; j <= 2 * idx - 1; j++) {
-                s1 += A[ioff + 2 * idx + j] *
+                s1 += a[2 * idx + j] *
                     A[Cos + ((2 * k - 1) * vm * j) % sz];
             }
             for (int j = 1; j <= 2 * idx - 1; j++) {
-                s2 += A[ioff + 2 * idx + j] *
+                s2 += a[2 * idx + j] *
                     A[Sin + ((2 * k - 1) * vm * j) % sz];
             }
             int idx2 = (1 << (s - 1)) * (2 * k - 1);
-            A[yoff + idx2]  = s1;
-            A[_yoff + idx2] = s2;
+            S[yoff + idx2]  = s1;
+            S[_yoff + idx2] = s2;
         }
     }
 
-    padvance(ioff, 1 << (n - (n-1)));
-    A[yoff+(1 << (n - 2))]  = A[ioff + 2];
-    A[_yoff+(1 << (n - 2))] = A[ioff + 3];
+    padvance(a, 1 << (n - (n-1)));
+    S[yoff+(1 << (n - 2))]  = a[2];
+    S[_yoff+(1 << (n - 2))] = a[3];
 
-    padvance(ioff, 1 << (n - n));
-    A[yoff + 0]             = A[ioff + 0];
-    A[yoff + N_2]           = A[ioff + 1];
+    padvance(a, 1 << (n - n));
+    S[yoff + 0]             = a[0];
+    S[yoff + N_2]           = a[1];
 
     for (int k = 0; k <= N_2; k++) {
-        A[yoff + k] = A[yoff + k] * dx;
+        S[yoff + k] = S[yoff + k] * dx;
     }
 
     for (int k = 1; k <= N_2-1; k++) {
-        A[_yoff + k] = A[_yoff + k] * dx;
+        S[_yoff + k] = S[_yoff + k] * dx;
     }
 
     for (int k = 1; k < N_2/2; k++) {
-        float tmp = A[_yoff + k];
-        A[_yoff + k] = A[_yoff+N_2-k];
-        A[_yoff+N_2-k] = tmp;
+        float tmp = S[_yoff + k];
+        S[_yoff + k] = S[_yoff+N_2-k];
+        S[_yoff+N_2-k] = tmp;
     }
 }
 
-void sFFT(int ooff,int ioff, float dx, int N, int n, int sz, int nr) {
+void sFFT(int ooff,int ioff, float dx, int N, int n, int nr) {
     for (int s = 1; s <= n - 1; s++) {
         int idx = 1 << (n - s);
         int vm  = 1 << (s - 1);
@@ -141,7 +158,7 @@ void sFFT(int ooff,int ioff, float dx, int N, int n, int sz, int nr) {
     A[ooff+idx] = A[ioff+1] * dx;
 }
 
-void cFFT(int ooff, int ioff, float dx, int N, int n, int sz, int nr) {
+void cFFT(int ooff, int ioff, float dx, int N, int n, int nr) {
     A[ioff+0] *= 0.5; A[ioff+N] *= 0.5; // samarskii, (15)-(16) p 66
 
     for (int s = 1; s <= n - 1; s++) {
@@ -164,11 +181,11 @@ void cFFT(int ooff, int ioff, float dx, int N, int n, int sz, int nr) {
     A[ooff+N/2] =  A[ioff+2] * dx;
 }
 
-void pFFT(int ooff, int ioff, float dx, int N, int n, int sz) {
+void pFFT(int ooff, int ioff, float dx, int N, int n) {
     int N_2 = N/2;
     int k;
 
-    //cFFT(&S[0], &s[0], dx, N_2,n-1,2);
+    cFFT(ooff, ioff, dx, N_2, n-1, 2);
 
     for (k = 1; k < N_2/2; k++) {
         float tmp = A[ioff+N_2 + k];
@@ -177,7 +194,7 @@ void pFFT(int ooff, int ioff, float dx, int N, int n, int sz) {
     }
 
     // S[N_2] not filled, N_2+1 first non empty
-    sFFT(ooff+N_2, ioff+N_2, dx, N_2, n-1, sz, 2);
+    sFFT(ooff+N_2, ioff+N_2, dx, N_2, n-1, 2);
 
     for (k = 1; k <= N_2 - 1; k ++) {
         float S_k   = (A[ooff+k] + A[ooff+N_2+k]);
@@ -192,4 +209,47 @@ void pFFT(int ooff, int ioff, float dx, int N, int n, int sz) {
     }
 }
 
-void main() { }
+#define off(i,k,j) ((i)*rs*nn+(k)*rs+(j))
+
+void main() {
+    uint k = gl_LocalInvocationID.y; //gl_WorkGroupSize.y;
+    uint j = gl_LocalInvocationID.x; //gl_WorkGroupSize.x;
+    float slh = sqrt(2./l);
+
+    if (k >= nn || j >= nn) {
+        return;
+    }
+
+    float S[rs], s[rs];
+    // along z
+    for (int i = 0; i < nn; i++) {
+        s[i] = A[In+off(i,k,j)];
+    }
+    pFFT_1(S,s,h*slh,nn,n);
+    for (int i = 0; i < nn; i++) {
+        A[Out+off(i,k,j)] = S[i];
+    }
+    barrier();
+
+    // along y
+    uint i = gl_LocalInvocationID.y;
+    for (int k = 0; k < nn; k++) {
+        s[k] = A[Out+off(i,k,j)];
+    }
+    pFFT_1(S,s,h*slh,nn,n);
+    for (int k = 0; k < nn; k++) {
+        A[Out+off(i,k,j)] = S[k];
+    }
+    barrier();
+
+    // along x
+    k = gl_LocalInvocationID.x;
+    for (int j = 0; j < nn; j++) {
+        s[j] = A[Out+off(i,k,j)];
+    }
+    pFFT_1(S,s,h*slh,nn,n);
+    for (int j = 0; j < nn; j++) {
+        A[Out+off(i,k,j)] = S[j];
+    }
+    barrier();
+}
