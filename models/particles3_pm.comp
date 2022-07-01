@@ -233,7 +233,7 @@ void main() {
     barrier();
 
     // along y
-    i = gl_LocalInvocationID.y; k = gl_LocalInvocationID.y;
+    i = gl_LocalInvocationID.y; k = gl_LocalInvocationID.x;
     for (int k = 0; k < nn; k++) {
         s[k] = A[Out+off(i,k,j)];
     }
@@ -277,11 +277,11 @@ void main() {
     barrier();
 
     // along y
-    i = gl_LocalInvocationID.y; k = gl_LocalInvocationID.y;
+    i = gl_LocalInvocationID.y; k = gl_LocalInvocationID.x;
     for (int k = 0; k < nn; k++) {
         s[k] = A[Out+off(i,k,j)];
     }
-    //pFFT(S,s,slh,nn,n);
+    pFFT(S,s,slh,nn,n);
     for (int k = 0; k < nn; k++) {
         A[Out+off(i,k,j)] = S[k];
     }
@@ -292,7 +292,7 @@ void main() {
     for (int i = 0; i < nn; i++) {
         s[i] = A[Out+off(i,k,j)];
     }
-    //pFFT(S,s,slh,nn,n);
+    pFFT(S,s,slh,nn,n);
     for (int i = 0; i < nn; i++) {
         A[Out+off(i,k,j)] = S[i];
     }
