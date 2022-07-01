@@ -41,32 +41,55 @@ layout(std430, binding=4) buffer DensityBuffer {
     float A[];
 };
 
+void padvance(int ioff, int idx)
+{
+    for (int j = 0; j <= idx - 1; j++) {
+        float a1 = A[ioff+j] + A[ioff+idx + j];
+        float a2 = A[ioff+j] - A[ioff+idx + j];
+        A[ioff+j]       = a1;
+        A[ioff+idx + j] = a2;
+    }
+}
+
+void sadvance(int ioff, int idx) {
+    for (int j = 1; j <= idx - 1; j ++) {
+        float a1 = A[ioff+j] - A[ioff+2 * idx - j];
+        float a2 = A[ioff+j] + A[ioff+2 * idx - j];
+        A[ioff+j]           = a1;
+        A[ioff+2 * idx - j] = a2;
+    }
+}
+
+void cadvance(int ioff, int idx) {
+    for (int j = 0; j <= idx - 1; j ++) {
+        float a1 = A[ioff+j] + A[ioff+2 * idx - j];
+        float a2 = A[ioff+j] - A[ioff+2 * idx - j];
+        A[ioff+j]           = a1;
+        A[ioff+2 * idx - j] = a2;
+    }
+}
+
 // fft s->S
 void pFFT_1(int ooff, int ioff, float dx, int N, int n, int sz) {
     int N_2 = N/2;
     int yoff = ooff; // [0..N/2]
-    int _yoff = ooff+N_2+1; // [N/2+1..N-1]
-
-    for (int p = 1; p <= n; p++) {
-        int idx = 1 << (n - p);
-        for (int j = 0; j <= idx - 1; j++) {
-            A[ioff + p * N + j]       = A[ioff + (p - 1) * N + j] + A[ioff + (p - 1) * N + idx + j];
-            A[ioff + p * N + idx + j] = A[ioff + (p - 1) * N + j] - A[ioff + (p - 1) * N + idx + j];
-        }
-    }
+    int _yoff = ooff+N_2; // [N/2+1..N-1]
 
     for (int s = 1; s <= n - 2; s++) {
         int idx = 1 << (n - s - 1);
         int vm  = 1 << s;
+
+        padvance(ioff, 2*idx);
+
         for (int k = 1; k <= idx; k++) {
             float s1 = 0.0;
             float s2 = 0.0;
             for (int j = 0; j <= 2 * idx - 1; j++) {
-                s1 += A[ioff + s * N + 2 * idx + j] *
+                s1 += A[ioff + 2 * idx + j] *
                     A[Cos + ((2 * k - 1) * vm * j) % sz];
             }
             for (int j = 1; j <= 2 * idx - 1; j++) {
-                s2 += A[ioff + s * N + 2 * idx + j] *
+                s2 += A[ioff + 2 * idx + j] *
                     A[Sin + ((2 * k - 1) * vm * j) % sz];
             }
             int idx2 = (1 << (s - 1)) * (2 * k - 1);
@@ -75,11 +98,13 @@ void pFFT_1(int ooff, int ioff, float dx, int N, int n, int sz) {
         }
     }
 
-    A[yoff + N_2]           = A[ioff + n * N + 1];
-    A[_yoff + 1 << (n - 2)] = A[ioff + (n - 1) * N + 2];
+    padvance(ioff, 1 << (n - (n-1)));
+    A[yoff+(1 << (n - 2))]  = A[ioff + 2];
+    A[_yoff+(1 << (n - 2))] = A[ioff + 3];
 
-    A[yoff + 0]             = A[ioff + n * N + 0];
-    A[_yoff + 1 << (n - 2)] = A[ioff + (n - 1) * N + 3];
+    padvance(ioff, 1 << (n - n));
+    A[yoff + 0]             = A[ioff + 0];
+    A[yoff + N_2]           = A[ioff + 1];
 
     for (int k = 0; k <= N_2; k++) {
         A[yoff + k] = A[yoff + k] * dx;
@@ -93,6 +118,77 @@ void pFFT_1(int ooff, int ioff, float dx, int N, int n, int sz) {
         float tmp = A[_yoff + k];
         A[_yoff + k] = A[_yoff+N_2-k];
         A[_yoff+N_2-k] = tmp;
+    }
+}
+
+void sFFT(int ooff,int ioff, float dx, int N, int n, int sz, int nr) {
+    for (int s = 1; s <= n - 1; s++) {
+        int idx = 1 << (n - s);
+        int vm  = 1 << (s - 1);
+        sadvance(ioff, idx);
+
+        for (int k = 1; k <= idx; k++) {
+            float y = 0;
+            for (int j = 1; j <= idx; j++) {
+                y += A[ioff+idx * 2 - j] *
+                    A[Sin+((2 * k - 1) * vm * nr * j) % sz];
+
+            }
+            A[ooff+(2 * k - 1) * vm] = y * dx;
+        }
+    }
+    int idx = 1 << (n - 1);
+    A[ooff+idx] = A[ioff+1] * dx;
+}
+
+void cFFT(int ooff, int ioff, float dx, int N, int n, int sz, int nr) {
+    A[ioff+0] *= 0.5; A[ioff+N] *= 0.5; // samarskii, (15)-(16) p 66
+
+    for (int s = 1; s <= n - 1; s++) {
+        int idx = 1 << (n - s);
+        int vm  = 1 << (s - 1);
+        cadvance(ioff, idx);
+
+        for (int k = 1; k <= idx; k++) {
+            float y = 0;
+            for (int j = 0; j <= idx - 1; j++) {
+                y += A[ioff+idx * 2 - j] *
+                    A[Cos+((2 * k - 1) * vm * nr * j) % sz];
+            }
+            A[ooff+(2 * k - 1) * vm] = y * dx;
+        }
+    }
+    cadvance(ioff, 1 << (n-n));
+    A[ooff+0]   = (A[ioff+0] + A[ioff+1]) * dx;
+    A[ooff+N]   = (A[ioff+0] - A[ioff+1]) * dx;
+    A[ooff+N/2] =  A[ioff+2] * dx;
+}
+
+void pFFT(int ooff, int ioff, float dx, int N, int n, int sz) {
+    int N_2 = N/2;
+    int k;
+
+    //cFFT(&S[0], &s[0], dx, N_2,n-1,2);
+
+    for (k = 1; k < N_2/2; k++) {
+        float tmp = A[ioff+N_2 + k];
+        A[ioff+N_2 + k] = A[ioff+N-k];
+        A[ioff+N-k] = tmp;
+    }
+
+    // S[N_2] not filled, N_2+1 first non empty
+    sFFT(ooff+N_2, ioff+N_2, dx, N_2, n-1, sz, 2);
+
+    for (k = 1; k <= N_2 - 1; k ++) {
+        float S_k   = (A[ooff+k] + A[ooff+N_2+k]);
+        float S_N_k = (A[ooff+k] - A[ooff+N_2+k]);
+        A[ooff+k]    = S_k;
+        A[ooff+N_2+k]= S_N_k;
+    }
+    for (int k = 1; k < N_2/2; k++) {
+        float tmp = A[ooff+N_2 + k];
+        A[ooff+N_2+k] = A[ooff+N-k];
+        A[ooff+N  -k] = tmp;
     }
 }
 
