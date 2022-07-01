@@ -82,6 +82,7 @@ SOURCES=main.c\
 	models/particles_data.c\
 	models/particles.c\
 	models/particles2.c\
+	models/particles3.c\
 	models/stl.c\
 	opengl/buffer.c\
 	opengl/program.c\

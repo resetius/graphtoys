@@ -20,6 +20,7 @@
 #include <models/stl.h>
 #include <models/particles.h>
 #include <models/particles2.h>
+#include <models/particles3.h>
 
 struct Object* CreateGltf(struct Render* r, struct Config* cfg);
 
@@ -211,6 +212,7 @@ int main(int argc, char** argv)
         {"stl", (ConstructorT)CreateStl},
         {"particles", (ConstructorT)CreateParticles},
         {"particles2", (ConstructorT)CreateParticles2},
+        {"particles3", (ConstructorT)CreateParticles3},
         {"gltf", (ConstructorT)CreateGltf},
         {"test", NULL},
         {NULL, NULL}

@@ -84,6 +84,7 @@ set(SHADERS
     models/stl.frag
     models/triangle.frag
     models/particles.comp
+    models/particles3_pm.comp
     font/font.frag
     font/font.vert
     )
@@ -120,6 +121,7 @@ add_library(engine
     models/particles_data.c
     models/particles.c
     models/particles2.c
+    models/particles3.c
     models/stl.c
     opengl/buffer.c
     opengl/program.c
