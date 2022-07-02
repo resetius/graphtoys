@@ -238,15 +238,17 @@ void main() {
     const uint ioff = off;
     const uint ooff = off+rs;
     // along z
+
     k = gl_LocalInvocationID.y; j = gl_LocalInvocationID.x;
     for (i = 0; i < nn; i++) {
         W[ioff+i] = Rho[off(i,k,j)];
     }
-    pFFT_1(off,off+rs,h*slh,nn,n);
+    pFFT_1(ooff,ioff,h*slh,nn,n);
     for (i = 0; i < nn; i++) {
         Psi[off(i,k,j)] = W[ooff+i];
     }
     barrier();
+
     // along y
     i = gl_LocalInvocationID.y; k = gl_LocalInvocationID.x;
     for (k = 0; k < nn; k++) {
