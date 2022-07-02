@@ -28,7 +28,10 @@ struct Particles {
     int nn; // grid nn x nn xnn
     int density_index;
     float* density;
+    int psi_index;
+    float* psi;
     int fft_table_index;
+    int work_index;
 
     int uniform;
     int pos;
@@ -167,7 +170,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_mul(mvp, p, mv);
 
     //printf("particles %d\n", t->particles);
-    t->comp->start_compute(t->comp, max(1, t->particles/100), 1, 1);
+//    t->comp->start_compute(t->comp, max(1, t->particles/100), 1, 1);
 
     //t->pl->buffer_copy(t->pl, t->pos, t->new_pos);
 
@@ -178,7 +181,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     t->pl->draw(t->pl, t->pos_vao);
 
     int tt = t->pos_vao; t->pos_vao = t->new_pos_vao; t->new_pos_vao = tt;
-    t->comp->storage_swap(t->comp, 0, 3);
+//    t->comp->storage_swap(t->comp, 0, 3);
 }
 
 static void free_(struct Object* obj) {
@@ -223,18 +226,21 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     t->b = r->buffer_manager(r);
 
+    printf("Build comp shader\n");
     t->comp = pl
         ->set_bmgr(pl, t->b)
         ->begin_program(pl)
         ->add_cs(pl, compute_shader)
         ->end_program(pl)
 
-        ->storage_add(pl, 0, "Pos")
-        ->storage_add(pl, 1, "Vel")
-        ->storage_add(pl, 2, "Tmp")
-        ->storage_add(pl, 3, "NewPos")
+        ->uniform_add(pl, 0, "Settings")
+
+        ->storage_add(pl, 1, "FFTBuffer")
+        ->storage_add(pl, 2, "DensityBuffer")
+        ->storage_add(pl, 3, "PotentialBuffer")
 
         ->build(pl);
+    printf("Done\n");
 
     pl = r->pipeline(r);
 
@@ -270,6 +276,10 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->density = NULL;
     t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, NULL,
                                     t->nn*t->nn*t->nn*sizeof(float));
+    t->psi = NULL;
+    t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, NULL,
+                                t->nn*t->nn*t->nn*sizeof(float));
+
     int fft_table_size = 2*2*t->nn*sizeof(float);
     float* fft_table = malloc(2*2*t->nn*sizeof(float));
     int m = 0;
@@ -281,6 +291,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     }
     t->fft_table_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, fft_table, fft_table_size);
     free(fft_table);
+    t->work_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, t->nn*t->nn*t->nn);
 
     t->uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(mat4x4));
 
