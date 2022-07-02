@@ -318,9 +318,9 @@ void main() {
     // diff
     i = gl_LocalInvocationID.y; k = gl_LocalInvocationID.x;
     for (j = 0; j < nn; j++) {
-        E[off(i,k,j)].x = (Psi[poff(i,k,j+1)]-Psi[poff(i,k,j-1)])/2.0/h;
-        E[off(i,k,j)].y = (Psi[poff(i,k+1,j)]-Psi[poff(i,k-1,j)])/2.0/h;
-        E[off(i,k,j)].z = (Psi[poff(i+1,k,j)]-Psi[poff(i-1,k,j)])/2.0/h;
+        E[off(i,k,j)].x = -(Psi[poff(i,k,j+1)]-Psi[poff(i,k,j-1)])/2.0/h;
+        E[off(i,k,j)].y = -(Psi[poff(i,k+1,j)]-Psi[poff(i,k-1,j)])/2.0/h;
+        E[off(i,k,j)].z = -(Psi[poff(i+1,k,j)]-Psi[poff(i-1,k,j)])/2.0/h;
         E[off(i,k,j)].w = 0; // unused
     }
 
