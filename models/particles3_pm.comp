@@ -12,8 +12,6 @@ layout(std140, binding=0) uniform Settings {
 
 int sz = 2*nn;
 // max grid size 1024x1024x1024
-// TODO
-const int rs = 32;
 const float M_PI = 3.14159265359;
 int Cos = 0;
 int Sin = 2*nn;
@@ -224,8 +222,8 @@ void pFFT(uint ooff, uint ioff, float dx, int N, int n) {
     }
 }
 
-#define off(i,k,j) ((i)*rs*nn+(k)*rs+(j))
-#define poff(i,k,j) (((i+nn)%nn)*rs*nn+((k+nn)%nn)*rs+((j+nn)%nn))
+#define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
+#define poff(i,k,j) (((i+nn)%nn)*nn*nn+((k+nn)%nn)*nn+((j+nn)%nn))
 
 void main() {
     uint i,k,j;
@@ -235,9 +233,9 @@ void main() {
         return;
     }
 
-    const uint off = 2 * rs * gl_LocalInvocationID.y * gl_LocalInvocationID.x;
+    const uint off = 2 * nn * gl_LocalInvocationID.y * gl_LocalInvocationID.x;
     const uint ioff = off;
-    const uint ooff = off+rs;
+    const uint ooff = off+nn;
     // along z
 
     k = gl_LocalInvocationID.y; j = gl_LocalInvocationID.x;

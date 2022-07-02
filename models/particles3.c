@@ -25,6 +25,13 @@ struct CompSettings {
     float l; // length of cube edge
 };
 
+struct VertBlock {
+    mat4x4 mvp;
+    vec4 origin;
+    float h;
+    int nn;
+};
+
 struct Particles {
     struct Object base;
     struct Pipeline* comp;
@@ -46,6 +53,7 @@ struct Particles {
     int comp_settings;
     //
 
+    struct VertBlock vert;
     int indices;
     int indices_vao;
     int uniform;
@@ -53,6 +61,7 @@ struct Particles {
     int new_pos;
     int accel;
     int vel;
+    float* pos_data;
 
     int model;
     float z;
@@ -149,61 +158,6 @@ static void zoom_out(struct Object* obj, int mods) {
     }
 }
 
-static void draw_(struct Object* obj, struct DrawContext* ctx) {
-    struct Particles* t = (struct Particles*)obj;
-    mat4x4 m, p, v, mv, mvp;
-    mat4x4_identity(m);
-    mat4x4_from_quat(m, t->q);
-
-    //mat4x4_scale(m, m, 10000);
-    //mat4x4_rotate_X(m, m, ctx->time);
-    //mat4x4_rotate_Y(m, m, ctx->time);
-    //mat4x4_rotate_Z(m, m, ctx->time);
-    /*for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            printf("%f ", m[i][j]);
-        }
-        printf("\n");
-    }
-    printf("\n");*/
-    //mat4x4_ortho(p, -ctx->ratio, ctx->ratio, -1.f, 1.f, 1.f, -1.f);
-    //mat4x4_mul(mvp, p, m);
-
-    //vec3 eye = {.0f, .0f, 10.f};
-    vec3 eye = {.0f, .0f, t->z};
-    vec3 center = {.0f, .0f, .0f};
-    //vec3 up = {.0f, 1.f, .0f};
-    vec3 up = {.0f, 1.f, .0f};
-    mat4x4_look_at(v, eye, center, up);
-
-    mat4x4_mul(mv, v, m);
-
-    mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 1000.f);
-    mat4x4_mul(mvp, p, mv);
-
-    //printf("particles %d\n", t->particles);
-//    buffer_update(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set));
-//    t->comp->start_compute(t->comp, 1, 1, 1);
-//    int nn = t->comp_set.nn;
-//    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
-
-    t->pl->start(t->pl);
-    buffer_update(t->b, t->uniform, &mvp[0][0], 0, sizeof(mat4x4));
-
-    t->pl->draw(t->pl, t->indices_vao);
-
-    t->pl->storage_swap(t->pl, 1, 2);
-}
-
-static void free_(struct Object* obj) {
-    struct Particles* t = (struct Particles*)obj;
-    t->pl->free(t->pl);
-    t->comp->free(t->comp);
-    t->b->free(t->b);
-    free(t->psi);
-    free(obj);
-}
-
 static void cic3(float M[2][2][2], float x, float y, float  z, int* x0, int* y0, int* z0, float h) {
     int j = floor(x / h);
     int k = floor(y / h);
@@ -253,6 +207,78 @@ static void distribute(int nn, float G, float* density, float* coord, int nparti
     }
 
 #undef off
+}
+
+static void draw_(struct Object* obj, struct DrawContext* ctx) {
+    struct Particles* t = (struct Particles*)obj;
+    mat4x4 m, p, v, mv, mvp;
+    mat4x4_identity(m);
+    mat4x4_from_quat(m, t->q);
+
+    //mat4x4_scale(m, m, 10000);
+    //mat4x4_rotate_X(m, m, ctx->time);
+    //mat4x4_rotate_Y(m, m, ctx->time);
+    //mat4x4_rotate_Z(m, m, ctx->time);
+    /*for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            printf("%f ", m[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n");*/
+    //mat4x4_ortho(p, -ctx->ratio, ctx->ratio, -1.f, 1.f, 1.f, -1.f);
+    //mat4x4_mul(mvp, p, m);
+
+    //vec3 eye = {.0f, .0f, 10.f};
+    vec3 eye = {.0f, .0f, t->z};
+    vec3 center = {.0f, .0f, .0f};
+    //vec3 up = {.0f, 1.f, .0f};
+    vec3 up = {.0f, 1.f, .0f};
+    mat4x4_look_at(v, eye, center, up);
+
+    mat4x4_mul(mv, v, m);
+
+    mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 1000.f);
+    mat4x4_mul(mvp, p, mv);
+
+    int nn = t->vert.nn;
+    t->b->read(t->b, t->pos, t->pos_data, 0, 4*t->particles*sizeof(float));
+    for (int i = 0; i < t->particles; i++) {
+        float* p = &t->pos_data[i*4];
+        printf("%d: %e %e %e\n", i, p[0], p[1], p[2]);
+        for (int m = 0; m < 3; m++) {
+            verify (p[m] >= t->vert.origin[m]);
+            verify (p[m] < t->vert.origin[m] + t->comp_set.l);
+        }
+    }
+
+    distribute(nn, 1, t->density, t->pos_data, t->particles, t->vert.h, t->vert.origin);
+    buffer_update(t->b, t->density_index, t->density, 0, nn*nn*nn*sizeof(float));
+
+    //printf("particles %d\n", t->particles);
+    buffer_update(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set));
+    t->comp->start_compute(t->comp, 1, 1, 1);
+//    int nn = t->comp_set.nn;
+//    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
+
+    t->pl->start(t->pl);
+    memcpy(t->vert.mvp, &mvp[0][0], sizeof(mat4x4));
+    buffer_update(t->b, t->uniform, &t->vert, 0, sizeof(t->vert));
+
+    t->pl->draw(t->pl, t->indices_vao);
+
+//    t->pl->storage_swap(t->pl, 1, 2);
+}
+
+static void free_(struct Object* obj) {
+    struct Particles* t = (struct Particles*)obj;
+    t->pl->free(t->pl);
+    t->comp->free(t->comp);
+    t->b->free(t->b);
+    free(t->psi);
+    free(t->pos_data);
+    free(t->density);
+    free(obj);
 }
 
 struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
@@ -323,6 +349,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 2, "NewPosBuffer")
         ->storage_add(pl, 3, "VelBuffer")
         ->storage_add(pl, 4, "AccelBuffer")
+        ->storage_add(pl, 5, "EBuffer")
 
         ->begin_buffer(pl, 4)
         ->buffer_attribute(pl, 1, 1, DATA_INT, 0)
@@ -351,12 +378,15 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_set.h = h;
     t->comp_set.l = l;
 
+    memcpy(t->vert.origin, origin, 3*sizeof(float));
+    t->vert.h = h;
+    t->vert.nn = nn;
+
     t->density = NULL;
-    float* density = malloc(nn*nn*nn*sizeof(float));
-    distribute(nn, 1, density, data.coords, t->particles, h, origin);
-    t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, density,
+    t->density = malloc(nn*nn*nn*sizeof(float));
+    distribute(nn, 1, t->density, data.coords, t->particles, h, origin);
+    t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, t->density,
                                     nn*nn*nn*sizeof(float));
-    free(density);
     t->psi = malloc(nn*nn*nn*sizeof(float));
     t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, NULL,
                                 nn*nn*nn*sizeof(float));
@@ -380,10 +410,12 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     t->indices = t->b->create(t->b, BUFFER_ARRAY, MEMORY_STATIC, data.indices, t->particles*sizeof(int));
 
-    t->uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(mat4x4));
+    t->uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct VertBlock));
 
-    t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
-    t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
+    t->pos_data = malloc(size);
+
+    t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, data.coords, size);
+    t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, data.coords, size);
     t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.vels, size);
     t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.accel, size);
 
@@ -394,6 +426,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->pl->storage_assign(t->pl, 2, t->new_pos);
     t->pl->storage_assign(t->pl, 3, t->vel);
     t->pl->storage_assign(t->pl, 4, t->accel);
+    t->pl->storage_assign(t->pl, 5, t->e_index);
 
     t->comp->uniform_assign(t->comp, 0, t->comp_settings);
     t->comp->storage_assign(t->comp, 1, t->fft_table_index);
