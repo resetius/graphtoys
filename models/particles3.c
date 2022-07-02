@@ -40,6 +40,7 @@ struct Particles {
     float* density;
     int psi_index;
     float* psi;
+    int e_index;
     int fft_table_index;
     int work_index;
     int comp_settings;
@@ -184,7 +185,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     //printf("particles %d\n", t->particles);
     buffer_update(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set));
     t->comp->start_compute(t->comp, 1, 1, 1);
-    int nn = t->comp_set.nn;
+//    int nn = t->comp_set.nn;
 //    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
 
     //t->pl->buffer_copy(t->pl, t->pos, t->new_pos);
@@ -204,6 +205,7 @@ static void free_(struct Object* obj) {
     t->pl->free(t->pl);
     t->comp->free(t->comp);
     t->b->free(t->b);
+    free(t->psi);
     free(obj);
 }
 
@@ -305,6 +307,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 2, "WorkBuffer")
         ->storage_add(pl, 3, "DensityBuffer")
         ->storage_add(pl, 4, "PotentialBuffer")
+        ->storage_add(pl, 5, "EBuffer")
 
         ->build(pl);
     printf("Done\n");
@@ -358,6 +361,9 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, NULL,
                                 nn*nn*nn*sizeof(float));
 
+    t->e_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, NULL,
+                              4*nn*nn*nn*sizeof(float));
+
     int fft_table_size = 2*2*nn*sizeof(float);
     float* fft_table = malloc(2*2*nn*sizeof(float));
     int m = 0, m1;
@@ -390,6 +396,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp->storage_assign(t->comp, 2, t->work_index);
     t->comp->storage_assign(t->comp, 3, t->density_index);
     t->comp->storage_assign(t->comp, 4, t->psi_index);
+    t->comp->storage_assign(t->comp, 5, t->e_index);
 
     return (struct Object*)t;
 }

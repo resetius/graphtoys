@@ -38,9 +38,9 @@ layout(std430, binding=4) buffer PotentialBuffer {
 };
 
 // field (w-component unused)
-/*layout(std430, binding=2) buffer EBuffer {
+layout(std430, binding=5) buffer EBuffer {
     vec4 E[];
-};*/
+};
 
 /*
 struct Body {
@@ -225,6 +225,7 @@ void pFFT(uint ooff, uint ioff, float dx, int N, int n) {
 }
 
 #define off(i,k,j) ((i)*rs*nn+(k)*rs+(j))
+#define poff(i,k,j) (((i+nn)%nn)*rs*nn+((k+nn)%nn)*rs+((j+nn)%nn))
 
 void main() {
     uint i,k,j;
@@ -313,5 +314,16 @@ void main() {
     for (i = 0; i < nn; i++) {
         Psi[off(i,k,j)] = W[ooff+i];
     }
+    barrier();
+
+    // diff
+    i = gl_LocalInvocationID.y; k = gl_LocalInvocationID.x;
+    for (j = 0; j < nn; j++) {
+        E[off(i,k,j)].x = (Psi[poff(i,k,j+1)]-Psi[poff(i,k,j-1)])/2.0/h;
+        E[off(i,k,j)].y = (Psi[poff(i,k+1,j)]-Psi[poff(i,k-1,j)])/2.0/h;
+        E[off(i,k,j)].z = (Psi[poff(i+1,k,j)]-Psi[poff(i-1,k,j)])/2.0/h;
+        E[off(i,k,j)].w = 0; // unused
+    }
+
     barrier();
 }
