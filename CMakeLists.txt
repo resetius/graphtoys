@@ -70,6 +70,7 @@ set(SHADERS
     models/dot.vert
     models/mandelbrot.vert
     models/mandelbulb.vert
+    models/particles3.vert
     models/particles2.vert
     models/particles.vert
     models/stl.vert

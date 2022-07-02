@@ -7,11 +7,11 @@
 
 #include <lib/linmath.h>
 
-#include <models/particles.vert.h>
-#include <models/particles.frag.h>
+#include <models/particles3.vert.h>
+#include <models/particles2.frag.h>
 #include <models/particles3_pm.comp.h>
-#include <models/particles.vert.spv.h>
-#include <models/particles.frag.spv.h>
+#include <models/particles3.vert.spv.h>
+#include <models/particles2.frag.spv.h>
 #include <models/particles3_pm.comp.spv.h>
 
 #include <lib/verify.h>
@@ -46,14 +46,13 @@ struct Particles {
     int comp_settings;
     //
 
+    int indices;
+    int indices_vao;
     int uniform;
     int pos;
     int new_pos;
     int accel;
     int vel;
-
-    int pos_vao;
-    int new_pos_vao;
 
     int model;
     float z;
@@ -188,16 +187,12 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 //    int nn = t->comp_set.nn;
 //    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
 
-    //t->pl->buffer_copy(t->pl, t->pos, t->new_pos);
-
     t->pl->start(t->pl);
     buffer_update(t->b, t->uniform, &mvp[0][0], 0, sizeof(mat4x4));
 
-    //t->pl->draw(t->pl, t->new_pos_vao);
-    t->pl->draw(t->pl, t->pos_vao);
+    t->pl->draw(t->pl, t->indices_vao);
 
-    int tt = t->pos_vao; t->pos_vao = t->new_pos_vao; t->new_pos_vao = tt;
-//    t->comp->storage_swap(t->comp, 0, 3);
+    t->pl->storage_swap(t->pl, 1, 2);
 }
 
 static void free_(struct Object* obj) {
@@ -277,14 +272,14 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     struct PipelineBuilder* pl = r->pipeline(r);
     struct ShaderCode vertex_shader = {
-        .glsl = models_particles_vert,
-        .spir_v = models_particles_vert_spv,
-        .size = models_particles_vert_spv_size,
+        .glsl = models_particles3_vert,
+        .spir_v = models_particles3_vert_spv,
+        .size = models_particles3_vert_spv_size,
     };
     struct ShaderCode fragment_shader = {
-        .glsl = models_particles_frag,
-        .spir_v = models_particles_frag_spv,
-        .size = models_particles_frag_spv_size,
+        .glsl = models_particles2_frag,
+        .spir_v = models_particles2_frag_spv,
+        .size = models_particles2_frag_spv_size,
     };
     struct ShaderCode compute_shader = {
         .glsl = models_particles3_pm_comp,
@@ -324,8 +319,13 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
         ->uniform_add(pl, 0, "MatrixBlock")
 
-        ->begin_buffer(pl, 4*sizeof(float))
-        ->buffer_attribute(pl, 1, 4, DATA_FLOAT, 0)
+        ->storage_add(pl, 1, "PosBuffer")
+        ->storage_add(pl, 2, "NewPosBuffer")
+        ->storage_add(pl, 3, "VelBuffer")
+        ->storage_add(pl, 4, "AccelBuffer")
+
+        ->begin_buffer(pl, 4)
+        ->buffer_attribute(pl, 1, 4, DATA_INT, 0)
         ->end_buffer(pl)
 
         ->geometry(pl, GEOM_POINTS)
@@ -379,17 +379,22 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_settings = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct CompSettings));
 
 
+    t->indices = t->b->create(t->b, BUFFER_ARRAY, MEMORY_STATIC, data.indices, t->particles*sizeof(int));
+
     t->uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(mat4x4));
 
     t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, data.coords, size);
+    t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, data.coords, size);
     t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, data.vels, size);
     t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, data.accel, size);
-    t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, data.coords, size);
 
-    t->pos_vao = t->pl->buffer_assign(t->pl, 0, t->pos);
-    t->new_pos_vao = t->pl->buffer_assign(t->pl, 0, t->new_pos);
+    t->indices_vao = t->pl->buffer_assign(t->pl, 0, t->indices);
 
     t->pl->uniform_assign(t->pl, 0, t->uniform);
+    t->pl->storage_assign(t->pl, 1, t->pos);
+    t->pl->storage_assign(t->pl, 2, t->new_pos);
+    t->pl->storage_assign(t->pl, 3, t->vel);
+    t->pl->storage_assign(t->pl, 4, t->accel);
 
     t->comp->uniform_assign(t->comp, 0, t->comp_settings);
     t->comp->storage_assign(t->comp, 1, t->fft_table_index);
