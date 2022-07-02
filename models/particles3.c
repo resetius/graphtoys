@@ -182,7 +182,10 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_mul(mvp, p, mv);
 
     //printf("particles %d\n", t->particles);
-    t->comp->start_compute(t->comp, max(1, t->particles/100), 1, 1);
+    buffer_update(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set));
+    t->comp->start_compute(t->comp, 1, 1, 1);
+    int nn = t->comp_set.nn;
+//    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
 
     //t->pl->buffer_copy(t->pl, t->pos, t->new_pos);
 
@@ -233,6 +236,7 @@ static void cic3(float M[2][2][2], float x, float y, float  z, int* x0, int* y0,
 
 static void distribute(int nn, float G, float* density, float* coord, int nparticles, float h, float origin[3]) {
     float M[2][2][2] = {0};
+    memset(density, 0, nn*nn*nn*sizeof(float));
 #define off(i,k,j) ((i)%nn)*nn*nn+((k)%nn)*nn+((j)%nn)
     for (int index = 0; index < nparticles; index++) {
         float* c = &coord[index*4];
@@ -250,6 +254,7 @@ static void distribute(int nn, float G, float* density, float* coord, int nparti
             }
         }
     }
+
 #undef off
 }
 
@@ -335,7 +340,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     int size = t->particles*4*sizeof(float);
 
     float origin[] = {-1000, -1000, -1000};
-    int nn = 64; // TODO: parameters
+    int nn = 32; // TODO: parameters
     float l = 2000;
     float h = l/nn;
     t->comp_set.nn = nn;
@@ -349,18 +354,18 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, density,
                                     nn*nn*nn*sizeof(float));
     free(density);
-    t->psi = NULL;
-    t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, NULL,
+    t->psi = malloc(nn*nn*nn*sizeof(float));
+    t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, NULL,
                                 nn*nn*nn*sizeof(float));
 
     int fft_table_size = 2*2*nn*sizeof(float);
     float* fft_table = malloc(2*2*nn*sizeof(float));
-    int m = 0;
+    int m = 0, m1;
     for (; m < 2*nn; m++) {
         fft_table[m] = cos(m * M_PI/nn);
     }
-    for (; m < 2*nn; m++) {
-        fft_table[m] = sin(m * M_PI/nn);
+    for (m1 = 0; m1 < 2*nn; m++, m1++) {
+        fft_table[m] = sin(m1 * M_PI/nn);
     }
     t->fft_table_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, fft_table, fft_table_size);
     free(fft_table);
