@@ -23,7 +23,12 @@ struct Particles {
     struct Pipeline* pl;
     struct BufferManager* b;
 
-    int particles;
+    int particles; // number of particles
+
+    int nn; // grid nn x nn xnn
+    int density_index;
+    float* density;
+    int fft_table_index;
 
     int uniform;
     int pos;
@@ -260,6 +265,22 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->particles = data.n_particles;
 
     int size = t->particles*4*sizeof(float);
+
+    t->nn = 64; // TODO: parameters
+    t->density = NULL;
+    t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, NULL,
+                                    t->nn*t->nn*t->nn*sizeof(float));
+    int fft_table_size = 2*2*t->nn*sizeof(float);
+    float* fft_table = malloc(2*2*t->nn*sizeof(float));
+    int m = 0;
+    for (; m < 2*t->nn; m++) {
+        fft_table[m] = cos(m * M_PI/t->nn);
+    }
+    for (; m < 2*t->nn; m++) {
+        fft_table[m] = sin(m * M_PI/t->nn);
+    }
+    t->fft_table_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, fft_table, fft_table_size);
+    free(fft_table);
 
     t->uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(mat4x4));
 

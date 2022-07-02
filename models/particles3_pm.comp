@@ -7,8 +7,6 @@ layout(std140, binding=0) uniform Settings {
     int n;   // log(nn)
     int Out; // fft output
     int In;  // fft input
-    int Cos; // cos table for fft
-    int Sin; // sin table for fft
     float h;
     float l;
 };
@@ -17,6 +15,8 @@ int sz = 2*nn;
 // max grid size 1024x1024x1024
 const int rs = 1024;
 const float M_PI = 3.14159265359;
+int Cos = 0;
+int Sin = 2*nn;
 
 // density + psi + sin/cos tables
 layout(std430, binding=1) buffer DensityBuffer {
@@ -26,6 +26,10 @@ layout(std430, binding=1) buffer DensityBuffer {
 // field (w-component unused)
 layout(std430, binding=2) buffer EBuffer {
     vec4 E[];
+};
+
+layout(std430, binding=3) buffer FFTBuffer {
+    float FFT[];
 };
 
 /*
@@ -104,11 +108,11 @@ void pFFT_1(inout float S[rs], inout float a[rs], float dx, int N, int n) {
             float s2 = 0.0;
             for (int j = 0; j <= 2 * idx - 1; j++) {
                 s1 += a[2 * idx + j] *
-                    A[Cos + ((2 * k - 1) * vm * j) % sz];
+                    FFT[Cos + ((2 * k - 1) * vm * j) % sz];
             }
             for (int j = 1; j <= 2 * idx - 1; j++) {
                 s2 += a[2 * idx + j] *
-                    A[Sin + ((2 * k - 1) * vm * j) % sz];
+                    FFT[Sin + ((2 * k - 1) * vm * j) % sz];
             }
             int idx2 = (1 << (s - 1)) * (2 * k - 1);
             S[yoff + idx2]  = s1;
@@ -149,7 +153,7 @@ void sFFT(inout float S[rs], inout float a[rs], int ooff,int ioff, float dx, int
             float y = 0;
             for (int j = 1; j <= idx; j++) {
                 y += S[ioff+idx * 2 - j] *
-                    A[Sin+((2 * k - 1) * vm * nr * j) % sz];
+                    FFT[Sin+((2 * k - 1) * vm * nr * j) % sz];
 
             }
             S[ooff+(2 * k - 1) * vm] = y * dx;
@@ -171,7 +175,7 @@ void cFFT(inout float S[rs], inout float a[rs], int ooff, int ioff, float dx, in
             float y = 0;
             for (int j = 0; j <= idx - 1; j++) {
                 y += a[ioff+idx * 2 - j] *
-                    A[Cos+((2 * k - 1) * vm * nr * j) % sz];
+                    FFT[Cos+((2 * k - 1) * vm * nr * j) % sz];
             }
             S[ooff+(2 * k - 1) * vm] = y * dx;
         }
