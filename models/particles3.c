@@ -18,6 +18,13 @@
 #include "particles3.h"
 #include "particles_data.h"
 
+struct CompSettings {
+    int nn;  // grid nn x nn xnn
+    int n;   // log2(n)
+    float h; // l/h
+    float l; // length of cube edge
+};
+
 struct Particles {
     struct Object base;
     struct Pipeline* comp;
@@ -26,13 +33,17 @@ struct Particles {
 
     int particles; // number of particles
 
-    int nn; // grid nn x nn xnn
+    // compute
+    struct CompSettings comp_set;
+
     int density_index;
     float* density;
     int psi_index;
     float* psi;
     int fft_table_index;
     int work_index;
+    int comp_settings;
+    //
 
     int uniform;
     int pos;
@@ -171,7 +182,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_mul(mvp, p, mv);
 
     //printf("particles %d\n", t->particles);
-//    t->comp->start_compute(t->comp, max(1, t->particles/100), 1, 1);
+    t->comp->start_compute(t->comp, max(1, t->particles/100), 1, 1);
 
     //t->pl->buffer_copy(t->pl, t->pos, t->new_pos);
 
@@ -286,8 +297,9 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->uniform_add(pl, 0, "Settings")
 
         ->storage_add(pl, 1, "FFTBuffer")
-        ->storage_add(pl, 2, "DensityBuffer")
-        ->storage_add(pl, 3, "PotentialBuffer")
+        ->storage_add(pl, 2, "WorkBuffer")
+        ->storage_add(pl, 3, "DensityBuffer")
+        ->storage_add(pl, 4, "PotentialBuffer")
 
         ->build(pl);
     printf("Done\n");
@@ -323,31 +335,38 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     int size = t->particles*4*sizeof(float);
 
     float origin[] = {-1000, -1000, -1000};
+    int nn = 64; // TODO: parameters
     float l = 2000;
-    float h = l/t->nn;
-    t->nn = 64; // TODO: parameters
-    t->density = NULL;
-    float* density = malloc(t->nn*t->nn*t->nn*sizeof(float));
-    distribute(t->nn, 1, density, data.coords, t->particles, h, origin);
+    float h = l/nn;
+    t->comp_set.nn = nn;
+    t->comp_set.n = 31-__builtin_clz(nn);
+    t->comp_set.h = h;
+    t->comp_set.l = l;
 
-    t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, NULL,
-                                    t->nn*t->nn*t->nn*sizeof(float));
+    t->density = NULL;
+    float* density = malloc(nn*nn*nn*sizeof(float));
+    distribute(nn, 1, density, data.coords, t->particles, h, origin);
+    t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, density,
+                                    nn*nn*nn*sizeof(float));
+    free(density);
     t->psi = NULL;
     t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, NULL,
-                                t->nn*t->nn*t->nn*sizeof(float));
+                                nn*nn*nn*sizeof(float));
 
-    int fft_table_size = 2*2*t->nn*sizeof(float);
-    float* fft_table = malloc(2*2*t->nn*sizeof(float));
+    int fft_table_size = 2*2*nn*sizeof(float);
+    float* fft_table = malloc(2*2*nn*sizeof(float));
     int m = 0;
-    for (; m < 2*t->nn; m++) {
-        fft_table[m] = cos(m * M_PI/t->nn);
+    for (; m < 2*nn; m++) {
+        fft_table[m] = cos(m * M_PI/nn);
     }
-    for (; m < 2*t->nn; m++) {
-        fft_table[m] = sin(m * M_PI/t->nn);
+    for (; m < 2*nn; m++) {
+        fft_table[m] = sin(m * M_PI/nn);
     }
     t->fft_table_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, fft_table, fft_table_size);
     free(fft_table);
-    t->work_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, t->nn*t->nn*t->nn);
+    t->work_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, 2*nn*nn*nn*sizeof(float));
+    t->comp_settings = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct CompSettings));
+
 
     t->uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(mat4x4));
 
@@ -361,10 +380,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     t->pl->uniform_assign(t->pl, 0, t->uniform);
 
-    t->comp->storage_assign(t->comp, 0, t->pos);
-    t->comp->storage_assign(t->comp, 1, t->vel);
-    t->comp->storage_assign(t->comp, 2, t->accel);
-    t->comp->storage_assign(t->comp, 3, t->new_pos);
+    t->comp->uniform_assign(t->comp, 0, t->comp_settings);
+    t->comp->storage_assign(t->comp, 1, t->fft_table_index);
+    t->comp->storage_assign(t->comp, 2, t->work_index);
+    t->comp->storage_assign(t->comp, 3, t->density_index);
+    t->comp->storage_assign(t->comp, 4, t->psi_index);
 
     return (struct Object*)t;
 }
