@@ -14,6 +14,7 @@
 #include <models/particles.frag.spv.h>
 #include <models/particles3_pm.comp.spv.h>
 
+#include <lib/verify.h>
 #include "particles3.h"
 #include "particles_data.h"
 
@@ -192,6 +193,55 @@ static void free_(struct Object* obj) {
     free(obj);
 }
 
+static void cic3(float M[2][2][2], float x, float y, float  z, int* x0, int* y0, int* z0, float h) {
+    int j = floor(x / h);
+    int k = floor(y / h);
+    int i = floor(z / h);
+    *x0 = j;
+    *y0 = k;
+    *z0 = i;
+
+    x = (x-j*h)/h;
+    y = (y-k*h)/h;
+    z = (z-i*h)/h;
+
+    verify(0 <= x && x <= 1);
+    verify(0 <= y && y <= 1);
+    verify(0 <= z && z <= 1);
+
+    M[0][0][0] = (1-z)*(1-y)*(1-x);
+    M[0][0][1] = (1-z)*(1-y)*(x);
+    M[0][1][0] = (1-z)*(y)*(1-x);
+    M[0][1][1] = (1-z)*(y)*(x);
+
+    M[1][0][0] = (z)*(1-y)*(1-x);
+    M[1][0][1] = (z)*(1-y)*(x);
+    M[1][1][0] = (z)*(y)*(1-x);
+    M[1][1][1] = (z)*(y)*(x);
+}
+
+static void distribute(int nn, float G, float* density, float* coord, int nparticles, float h, float origin[3]) {
+    float M[2][2][2] = {0};
+#define off(i,k,j) ((i)%nn)*nn*nn+((k)%nn)*nn+((j)%nn)
+    for (int index = 0; index < nparticles; index++) {
+        float* c = &coord[index*4];
+        float x = c[0]; float y = c[1]; float z = c[2];
+        float mass = c[3];
+        int i0, k0, j0;
+
+        cic3(M, x-origin[0], y-origin[1], z-origin[2], &i0, &k0, &j0, h);
+
+        for (int i = 0; i < 2; i++) {
+            for (int k = 0; k < 2; k++) {
+                for (int j = 0; j < 2; j++) {
+                    density[off(i+i0,k+k0,j+j0)] += 4*M_PI*G*mass*M[i][k][j]/h/h/h;
+                }
+            }
+        }
+    }
+#undef off
+}
+
 struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     struct Particles* t = calloc(1, sizeof(struct Particles));
     struct Object base = {
@@ -272,8 +322,14 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     int size = t->particles*4*sizeof(float);
 
+    float origin[] = {-1000, -1000, -1000};
+    float l = 2000;
+    float h = l/t->nn;
     t->nn = 64; // TODO: parameters
     t->density = NULL;
+    float* density = malloc(t->nn*t->nn*t->nn*sizeof(float));
+    distribute(t->nn, 1, density, data.coords, t->particles, h, origin);
+
     t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, NULL,
                                     t->nn*t->nn*t->nn*sizeof(float));
     t->psi = NULL;
