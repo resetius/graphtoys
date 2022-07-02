@@ -1,4 +1,4 @@
-#version 460
+#version 430
 #extension GL_ARB_separate_shader_objects : enable
 
 layout(std140, binding=0) uniform MatrixBlock {
@@ -29,6 +29,7 @@ void main()
     vec4 vPos = Position[idx];
     float mass = vPos.w;
     gl_Position = MVP * vec4(vec3(vPos), 1);
+    gl_PointSize = max(1, min(30, pow(vPos.w, 1./3.))); // mass
     if (mass > 0) {
         color = vec4(1.0, 0.0, 1.0, 1.0);
     } else {

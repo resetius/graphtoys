@@ -182,8 +182,8 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_mul(mvp, p, mv);
 
     //printf("particles %d\n", t->particles);
-    buffer_update(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set));
-    t->comp->start_compute(t->comp, 1, 1, 1);
+//    buffer_update(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set));
+//    t->comp->start_compute(t->comp, 1, 1, 1);
 //    int nn = t->comp_set.nn;
 //    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
 
@@ -325,7 +325,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 4, "AccelBuffer")
 
         ->begin_buffer(pl, 4)
-        ->buffer_attribute(pl, 1, 4, DATA_INT, 0)
+        ->buffer_attribute(pl, 1, 1, DATA_INT, 0)
         ->end_buffer(pl)
 
         ->geometry(pl, GEOM_POINTS)
@@ -378,15 +378,14 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->work_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, 2*nn*nn*nn*sizeof(float));
     t->comp_settings = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct CompSettings));
 
-
     t->indices = t->b->create(t->b, BUFFER_ARRAY, MEMORY_STATIC, data.indices, t->particles*sizeof(int));
 
     t->uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(mat4x4));
 
-    t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, data.coords, size);
-    t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, data.coords, size);
-    t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, data.vels, size);
-    t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, data.accel, size);
+    t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
+    t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
+    t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.vels, size);
+    t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.accel, size);
 
     t->indices_vao = t->pl->buffer_assign(t->pl, 0, t->indices);
 
@@ -403,5 +402,6 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp->storage_assign(t->comp, 4, t->psi_index);
     t->comp->storage_assign(t->comp, 5, t->e_index);
 
+    particles_data_destroy(&data);
     return (struct Object*)t;
 }
