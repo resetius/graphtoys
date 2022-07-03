@@ -20,6 +20,8 @@
 #include "particles_data.h"
 
 struct CompSettings {
+    vec4 origin;
+    int particles;
     int nn;  // grid nn x nn xnn
     int n;   // log2(n)
     float h; // l/h
@@ -384,8 +386,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_set.n = 31-__builtin_clz(nn);
     t->comp_set.h = h;
     t->comp_set.l = l;
+    t->comp_set.particles = t->particles;
 
     memcpy(t->vert.origin, origin, 3*sizeof(float));
+    memcpy(t->comp_set.origin, origin, 3*sizeof(float));
+
     t->vert.h = h;
     t->vert.nn = nn;
 
