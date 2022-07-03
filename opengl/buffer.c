@@ -48,6 +48,9 @@ static GLenum memory_type(enum BufferMemoryType type) {
     case MEMORY_DYNAMIC_COPY:
         ret = GL_DYNAMIC_COPY;
         break;
+    case MEMORY_DYNAMIC_READ:
+        ret = GL_DYNAMIC_READ;
+        break;
     default:
         assert(0);
         break;

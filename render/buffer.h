@@ -12,7 +12,8 @@ enum BufferType {
 enum BufferMemoryType {
     MEMORY_STATIC,
     MEMORY_DYNAMIC,
-    MEMORY_DYNAMIC_COPY
+    MEMORY_DYNAMIC_COPY,
+    MEMORY_DYNAMIC_READ
 };
 
 // Создаем все виды буферов (vertex, storage, uniform) ...
@@ -36,6 +37,13 @@ struct BufferManager {
         struct BufferManager* mgr,
         int id,
         const void* data,
+        int offset,
+        int size);
+
+   void (*read)(
+        struct BufferManager* mgr,
+        int id,
+        void* data,
         int offset,
         int size);
 
