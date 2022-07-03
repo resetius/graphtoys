@@ -15,10 +15,7 @@ struct body
 };
 
 void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
-    int n_x = cfg_geti_def(cfg, "nx", 23);
-    int n_y = cfg_geti_def(cfg, "ny", 23);
-    int n_z = cfg_geti_def(cfg, "nz", 23);
-    int n_particles = n_x*n_y*n_z;
+    int n_particles = cfg_geti_def(cfg, "particles", 12000);
     int size = n_particles*4*sizeof(float);
     float* coords = malloc(size);
     int* indices = malloc(n_particles*sizeof(int));
@@ -27,9 +24,6 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
     int i,j,k,n=0;
     //float side = 4.0f;
     float side = cfg_getf_def(cfg, "side", 7.5f);
-    float dx = side/(n_x-1);
-    float dy = side/(n_y-1);
-    float dz = side/(n_z-1);
 
     srand(time(NULL));
 
@@ -88,36 +82,33 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
         }
     } else if (!strcmp(name, "cube")) {
 
-        for (i = 0; i < n_x; i++) {
-            for (j = 0; j < n_y; j++) {
-                for (k = 0; k < n_z; k++) {
-                    coords[n] = dx * i - side/2 + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
-                    coords[n+1] = dy * j - side/2 + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
-                    coords[n+2] = dz * k - side/2 + (0.5 * (double)rand() / (double)RAND_MAX - 0.25);
-                    coords[n+3] = 0.2 + 1.5*(double)rand() / (double)RAND_MAX;
-
-                    double R =
-                        coords[n]*coords[n]+
-                        coords[n+1]*coords[n+1]+
-                        coords[n+2]*coords[n+2];
-                    R = sqrt(R);
-                    double V = sqrt(1000)/sqrt(R); // sqrt(100/R);
-
-                    vels[n] = V*coords[n+1];
-                    vels[n+1] = -V*coords[n];
-                    vels[n+2] = 0;
-
-                    //vels[n] = rand() / (double) RAND_MAX;
-                    //vels[n+1] = rand() / (double) RAND_MAX;
-                    //vels[n+2] = rand() / (double) RAND_MAX;
-                    vels[n+3] = 0;
-                    n += 4;
-                }
+        for (i = 0; i < n_particles; i++) {
+            for (j = 0; j < 3; j++) {
+                coords[n+j] = side * (double)rand() / (double)RAND_MAX - side/2;
             }
+
+            coords[n+3] = 0.2 + 1.5*(double)rand() / (double)RAND_MAX;
+
+            double R =
+                coords[n]*coords[n]+
+                coords[n+1]*coords[n+1]+
+                coords[n+2]*coords[n+2];
+            R = sqrt(R);
+            double V = sqrt(1000)/sqrt(R); // sqrt(100/R);
+
+            vels[n] = V*coords[n+1];
+            vels[n+1] = -V*coords[n];
+            vels[n+2] = 0;
+
+            //vels[n] = rand() / (double) RAND_MAX;
+            //vels[n+1] = rand() / (double) RAND_MAX;
+            //vels[n+2] = rand() / (double) RAND_MAX;
+            vels[n+3] = 0;
+            n += 4;
         }
     } else { // sphere
 
-        while (n < 4*n_x*n_y*n_z) {
+        while (n < 4*n_particles) {
             double x = 2*side*(double)rand() / RAND_MAX - side;
             double y = 2*side*(double)rand() / RAND_MAX - side;
             double z = 2*side*(double)rand() / RAND_MAX - side;
