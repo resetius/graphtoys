@@ -16,12 +16,14 @@ struct body
 
 void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
     int n_particles = cfg_geti_def(cfg, "particles", 12000);
+    double V0 = cfg_getf_def(cfg, "V", sqrt(200));
+
     int size = n_particles*4*sizeof(float);
     float* coords = malloc(size);
     int* indices = malloc(n_particles*sizeof(int));
     float* vels = calloc(1, size);
     float* accel = calloc(1, size);
-    int i,j,k,n=0;
+    int i,j,n=0;
     //float side = 4.0f;
     float side = cfg_getf_def(cfg, "side", 7.5f);
 
@@ -94,7 +96,7 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
                 coords[n+1]*coords[n+1]+
                 coords[n+2]*coords[n+2];
             R = sqrt(R);
-            double V = sqrt(1000)/sqrt(R); // sqrt(100/R);
+            double V = V0/sqrt(R); // sqrt(100/R);
 
             vels[n] = V*coords[n+1];
             vels[n+1] = -V*coords[n];
@@ -124,7 +126,7 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
                     coords[n+1]*coords[n+1]+
                     coords[n+2]*coords[n+2];
                 R = sqrt(R);
-                double V = sqrt(200)/sqrt(R); // sqrt(100/R);
+                double V = V0/sqrt(R); // sqrt(100/R);
 
                 vels[n] = V*coords[n+1];
                 vels[n+1] = -V*coords[n];
