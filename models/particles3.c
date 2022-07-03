@@ -15,6 +15,7 @@
 #include <models/particles3_pm.comp.spv.h>
 
 #include <lib/verify.h>
+#include <lib/config.h>
 #include "particles3.h"
 #include "particles_data.h"
 
@@ -369,9 +370,13 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     int size = t->particles*4*sizeof(float);
 
-    float origin[] = {-1000, -1000, -1000};
+    float x0 = cfg_getf_def(cfg, "x0", -1000);
+    float y0 = cfg_getf_def(cfg, "y0", -1000);
+    float z0 = cfg_getf_def(cfg, "z0", -1000);
+    float l = cfg_getf_def(cfg, "l", 2000);
+
+    float origin[] = {x0, y0, z0};
     int nn = 32; // TODO: parameters
-    float l = 2000;
     float h = l/nn;
     t->comp_set.nn = nn;
     t->comp_set.n = 31-__builtin_clz(nn);
