@@ -243,6 +243,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_mul(mvp, p, mv);
 
     int nn = t->vert.nn;
+/*
     t->b->read(t->b, t->pos, t->pos_data, 0, 4*t->particles*sizeof(float));
     for (int i = 0; i < t->particles; i++) {
         float* p = &t->pos_data[i*4];
@@ -252,9 +253,9 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             verify (p[m] < t->vert.origin[m] + t->comp_set.l);
         }
     }
-
-    distribute(nn, 1, t->density, t->pos_data, t->particles, t->vert.h, t->vert.origin);
-    buffer_update(t->b, t->density_index, t->density, 0, nn*nn*nn*sizeof(float));
+*/
+//    distribute(nn, 1, t->density, t->pos_data, t->particles, t->vert.h, t->vert.origin);
+//    buffer_update(t->b, t->density_index, t->density, 0, nn*nn*nn*sizeof(float));
 
     //printf("particles %d\n", t->particles);
     buffer_update(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set));
@@ -330,6 +331,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 3, "DensityBuffer")
         ->storage_add(pl, 4, "PotentialBuffer")
         ->storage_add(pl, 5, "EBuffer")
+        ->storage_add(pl, 6, "PosBuffer")
 
         ->build(pl);
     printf("Done\n");
@@ -443,6 +445,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp->storage_assign(t->comp, 3, t->density_index);
     t->comp->storage_assign(t->comp, 4, t->psi_index);
     t->comp->storage_assign(t->comp, 5, t->e_index);
+    t->comp->storage_assign(t->comp, 6, t->pos);
 
     particles_data_destroy(&data);
     return (struct Object*)t;
