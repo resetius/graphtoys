@@ -92,6 +92,20 @@ static void update(
     glBindBuffer(buf->type, 0);
 }
 
+static void read(
+    struct BufferManager* mgr,
+    int id,
+    void* data,
+    int offset,
+    int size)
+{
+    struct BufferImpl* buf = (struct BufferImpl*)mgr->get(mgr, id);
+    glBindBuffer(buf->type, buf->buffer);
+    glGetBufferSubData(buf->type, offset, size, data);
+    glBindBuffer(buf->type, 0);
+}
+
+
 static void release(struct BufferManager* mgr, void* buf1) {
     struct BufferImpl* buf = buf1;
     if (buf->base.valid) {
@@ -106,6 +120,7 @@ struct BufferManager* buf_mgr_opengl_new(struct Render* r) {
     b->base.iface.create = create;
     b->base.iface.release = release;
     b->base.iface.update = update;
+    b->base.iface.read = read;
 
     return (struct BufferManager*)b;
 }
