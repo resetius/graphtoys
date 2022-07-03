@@ -241,7 +241,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     mat4x4_mul(mv, v, m);
 
-    mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 1000.f);
+    mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 20000.f);
     mat4x4_mul(mvp, p, mv);
 
     int nn = t->vert.nn;
@@ -396,14 +396,14 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     t->density = NULL;
     t->density = malloc(nn*nn*nn*sizeof(float));
-    distribute(nn, 1, t->density, data.coords, t->particles, h, origin);
-    t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, t->density,
+    //distribute(nn, 1, t->density, data.coords, t->particles, h, origin);
+    t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL /*t->density*/,
                                     nn*nn*nn*sizeof(float));
     t->psi = malloc(nn*nn*nn*sizeof(float));
-    t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, NULL,
+    t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL,
                                 nn*nn*nn*sizeof(float));
 
-    t->e_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, NULL,
+    t->e_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL,
                               4*nn*nn*nn*sizeof(float));
 
     int fft_table_size = 3*2*nn*sizeof(float);
@@ -430,8 +430,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     t->pos_data = malloc(size);
 
-    t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, data.coords, size);
-    t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, data.coords, size);
+    t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
+    t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
     t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.vels, size);
     t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.accel, size);
 

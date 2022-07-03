@@ -205,15 +205,6 @@ void pFFT(uint ooff, uint ioff, float dx, int N, int n) {
 // TODO: size
 shared uint locks[64][64];
 
-void lock(int i, int j) {
-    uint index = gl_LocalInvocationIndex;
-    while (atomicCompSwap(locks[i][j], 0, index) != 0) { }
-}
-
-void unlock(int i, int j) {
-    locks[i][j] = 0;
-}
-
 void distribute(in vec4 x) {
     float M[2][2][2];
 
@@ -235,15 +226,21 @@ void distribute(in vec4 x) {
     M[1][1][0] = (x.z)*(x.y)*(1-x.x);
     M[1][1][1] = (x.z)*(x.y)*(x.x);
 
+    float G = 1; // TODO: uniform
     for (int i = 0; i < 2; i++) {
         for (int k = 0; k < 2; k++) {
             for (int j = 0; j < 2; j ++) {
                 int z0 = (ii.z+i)%nn;
                 int y0 = (ii.y+k)%nn;
                 int x0 = (ii.x+j)%nn;
-                lock(z0, y0);
-                Rho[off(z0,y0,x0)] += x.w * M[i][k][j];
-                unlock(z0, y0);
+                uint lk;
+                do {
+                    lk = atomicCompSwap(locks[z0][y0], 0, 1+gl_LocalInvocationIndex);
+                    if (lk == 0) {
+                        Rho[off(z0,y0,x0)] += 4*M_PI*G*x.w * M[i][k][j];
+                        atomicExchange(locks[z0][y0], 0);
+                    }
+                } while (lk != 0);
             }
         }
     }
@@ -259,11 +256,17 @@ void main() {
 
     // particles distribution
     locks[gl_LocalInvocationID.y][gl_LocalInvocationID.x] = 0;
+    k = gl_LocalInvocationID.y; i = gl_LocalInvocationID.x;
+    for (j = 0; j < nn; j++) {
+        Rho[off(i,k,j)] = 0;
+    }
+ 
     barrier();
 
     uint threads = (gl_NumWorkGroups.x*gl_NumWorkGroups.y*gl_NumWorkGroups.z) * (gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z);
-    uint from =  particles / threads;
-    uint to = (particles + threads - 1) / threads;
+// TODO -> global
+    uint from =  gl_LocalInvocationIndex * particles / threads;
+    uint to = gl_LocalInvocationIndex * (particles + threads - 1) / threads;
     for (i = from; i < to && i < particles; i++) {
         distribute(Position[i]);
     }
