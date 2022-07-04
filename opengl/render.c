@@ -156,6 +156,27 @@ static void init_(struct Render* r1) {
     for (int i = 0; i < n_extensions; i++) {
         printf("Ext: '%s'\n", glGetStringi(GL_EXTENSIONS, i));
     }
+
+#define prnLimit(var)  do {                                        \
+        GLint i = 0;                                               \
+        glGetIntegerv(var, &i);                                    \
+        printf(#var ": %d\n", i);                                  \
+    } while (0)
+
+#define prnLimit3(var) do {                     \
+        for (int k = 0; k < 3; k++) {           \
+            GLint i = 0;                        \
+            glGetIntegeri_v(var, k, &i);        \
+            printf(#var ": %d %d\n", k, i);     \
+        }                                       \
+} while (0)
+
+    prnLimit(GL_MAX_COMPUTE_ATOMIC_COUNTERS);
+    prnLimit(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS);
+    prnLimit3(GL_MAX_COMPUTE_WORK_GROUP_COUNT);
+    prnLimit3(GL_MAX_COMPUTE_WORK_GROUP_SIZE);
+#undef prnLimit
+#undef prnLimit3
 }
 
 ktxTexture* ktx_ASTC2RGB(ktxTexture* tex);
