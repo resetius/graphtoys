@@ -263,10 +263,6 @@ static void pipeline_free(struct Pipeline* p1) {
         }
     }
     free(p->buffers);
-    for (i = 0; i < p->n_uniforms; i++) {
-        // TODO: remove me
-        p->b->destroy(p->b, p->uniforms[i].id);
-    }
     free(p->uniforms);
     for (i = 0; i < p->n_samplers; i++) {
         glDeleteSamplers(1, &p->samplers[i].id);
@@ -408,6 +404,7 @@ static void start_compute(struct Pipeline* p1, int sx, int sy, int sz) {
 
     assert(p->n_uniforms > 0);
     for (i = 0; i < p->n_uniforms; i++) {
+        // TODO: uniforms? bad naming
         glBindBufferBase(
             p->uniforms[i].base.type,
             p->uniforms[i].binding,
