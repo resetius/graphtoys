@@ -391,6 +391,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     float origin[] = {x0, y0, z0};
     int nn = cfg_geti_def(cfg, "nn", 32);
     float h = l/nn;
+    verify (nn % 32 == 0, "nn muste be divided by 32!\n");
     t->comp_set.nn = nn;
     t->comp_set.n = 31-__builtin_clz(nn);
     t->comp_set.h = h;
