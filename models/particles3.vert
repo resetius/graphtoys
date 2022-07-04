@@ -5,6 +5,7 @@ layout(std140, binding=0) uniform MatrixBlock {
     mat4 MVP;
     vec4 origin;
     float h;
+    float DeltaT;
     int nn;
 };
 
@@ -59,7 +60,6 @@ void main()
 {
     vec4 vPos = Position[idx];
     float mass = vPos.w;
-    float DeltaT = 0.001; // TODO: parameter
 
     gl_Position = MVP * vec4(vec3(vPos), 1);
     gl_PointSize = max(1, min(30, pow(vPos.w, 1./3.))); // mass

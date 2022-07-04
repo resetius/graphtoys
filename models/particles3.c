@@ -22,6 +22,7 @@
 struct CompSettings {
     vec4 origin;
     int particles;
+    int stage;
     int nn;  // grid nn x nn xnn
     int n;   // log2(n)
     float h; // l/h
@@ -32,6 +33,7 @@ struct VertBlock {
     mat4x4 mvp;
     vec4 origin;
     float h;
+    float dt;
     int nn;
 };
 
@@ -260,8 +262,15 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 //    buffer_update(t->b, t->density_index, t->density, 0, nn*nn*nn*sizeof(float));
 
     //printf("particles %d\n", t->particles);
-    buffer_update(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set));
-    t->comp->start_compute(t->comp, 1, 1, 1);
+    for (int stage = 1; stage <= 9; stage ++) {
+        t->comp_set.stage = stage;
+        buffer_update(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set));
+        int groups = 1;
+        if (stage > 1 && stage < 9) {
+            groups = nn / 32;
+        }
+        t->comp->start_compute(t->comp, groups, groups, 1);
+    }
 //    int nn = t->comp_set.nn;
 //    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
 
@@ -380,7 +389,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     float l = cfg_getf_def(cfg, "l", 2000);
 
     float origin[] = {x0, y0, z0};
-    int nn = 32; // TODO: parameters
+    int nn = cfg_geti_def(cfg, "nn", 32);
     float h = l/nn;
     t->comp_set.nn = nn;
     t->comp_set.n = 31-__builtin_clz(nn);
@@ -393,6 +402,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     t->vert.h = h;
     t->vert.nn = nn;
+    t->vert.dt = cfg_getf_def(cfg, "dt", 0.001);
 
     t->density = NULL;
     t->density = malloc(nn*nn*nn*sizeof(float));
