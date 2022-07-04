@@ -246,21 +246,15 @@ void distribute(in vec4 x) {
     }
 }
 
-void main() {
+void mass_distribution() {
     uint i,k,j;
-    const float slh = sqrt(2./l);
-
-    if (gl_LocalInvocationID.y >= nn || gl_LocalInvocationID.x >= nn) {
-        return;
-    }
-
     // particles distribution
     locks[gl_LocalInvocationID.y][gl_LocalInvocationID.x] = 0;
     k = gl_LocalInvocationID.y; i = gl_LocalInvocationID.x;
     for (j = 0; j < nn; j++) {
         Rho[off(i,k,j)] = 0;
     }
- 
+
     barrier();
 
     uint threads = (gl_NumWorkGroups.x*gl_NumWorkGroups.y*gl_NumWorkGroups.z) * (gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z);
@@ -272,6 +266,17 @@ void main() {
     }
 
     barrier();
+}
+
+void main() {
+    uint i,k,j;
+    const float slh = sqrt(2./l);
+
+    if (gl_LocalInvocationID.y >= nn || gl_LocalInvocationID.x >= nn) {
+        return;
+    }
+
+    mass_distribution();
 
     const uint off = 2 * nn * gl_LocalInvocationIndex;
     const uint ioff = off;
