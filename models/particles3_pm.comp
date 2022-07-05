@@ -20,6 +20,15 @@ int Cos = 0;
 int Sin = 2*nn;
 int La = Sin+2*nn;
 
+uint xsize = gl_NumWorkGroups.x*gl_WorkGroupSize.x;
+uint ysize = gl_NumWorkGroups.y*gl_WorkGroupSize.y;
+uint zsize = gl_NumWorkGroups.z*gl_WorkGroupSize.z;
+
+uint globalIndex =
+    gl_GlobalInvocationID.z*xsize*ysize+
+    gl_GlobalInvocationID.y*xsize+
+    gl_GlobalInvocationID.x;
+
 layout(std430, binding=1) buffer FFTBuffer {
     float FFT[];
 };
@@ -207,7 +216,28 @@ void pFFT(uint ooff, uint ioff, float dx, int N, int n) {
 const uint nl = 64; // 64 is max
 shared uint locks[nl][nl];
 
-void distribute(in vec4 x) {
+void flush(in ivec4 ii, inout float Cur[2][2][2]) {
+    for (int i = 0; i < 2; i++) {
+        for (int k = 0; k < 2; k++) {
+            for (int j = 0; j < 2; j ++) {
+                int z0 = (ii.z+i)%nn;
+                int y0 = (ii.y+k)%nn;
+                int x0 = (ii.x+j)%nn;
+                uint lk;
+                do {
+                    lk = atomicCompSwap(locks[z0%nl][y0%nl], 0, 1+gl_LocalInvocationIndex);
+                    if (lk == 0) {
+                        Rho[off(z0,y0,x0)] += Cur[i][k][j];
+                        atomicExchange(locks[z0%nl][y0%nl], 0);
+                    }
+                } while (lk != 0);
+                Cur[i][k][j] = 0;
+            }
+        }
+    }
+}
+
+void distribute(in vec4 x, inout ivec4 prev, inout float Cur[2][2][2]) {
     float M[2][2][2];
 
     ivec4 ii = ivec4(
@@ -217,6 +247,10 @@ void distribute(in vec4 x) {
         0
         );
     x = (x-ii*h)/h;
+
+    if (prev.x != -1 && prev != ii) {
+        flush(prev, Cur);
+    }
 
     M[0][0][0] = (1-x.z)*(1-x.y)*(1-x.x);
     M[0][0][1] = (1-x.z)*(1-x.y)*(x.x);
@@ -232,31 +266,13 @@ void distribute(in vec4 x) {
     for (int i = 0; i < 2; i++) {
         for (int k = 0; k < 2; k++) {
             for (int j = 0; j < 2; j ++) {
-                int z0 = (ii.z+i)%nn;
-                int y0 = (ii.y+k)%nn;
-                int x0 = (ii.x+j)%nn;
-                uint lk;
-                do {
-                    lk = atomicCompSwap(locks[z0%nl][y0%nl], 0, 1+gl_LocalInvocationIndex);
-                    if (lk == 0) {
-                        Rho[off(z0,y0,x0)] += 4*M_PI*G*x.w * M[i][k][j];
-                        atomicExchange(locks[z0%nl][y0%nl], 0);
-                    }
-                } while (lk != 0);
+                Cur[i][k][j] += 4*M_PI*G*x.w * M[i][k][j];
             }
         }
     }
+
+    prev = ii;
 }
-
-uint xsize = gl_NumWorkGroups.x*gl_WorkGroupSize.x;
-uint ysize = gl_NumWorkGroups.y*gl_WorkGroupSize.y;
-uint zsize = gl_NumWorkGroups.z*gl_WorkGroupSize.z;
-
-uint globalIndex =
-    gl_GlobalInvocationID.z*xsize*ysize+
-    gl_GlobalInvocationID.y*xsize+
-    gl_GlobalInvocationID.x;
-
 
 void mass_distribution() {
     uint i,k,j;
@@ -283,9 +299,19 @@ void mass_distribution() {
 
     uint from =  globalIndex * particles / threads;
     uint to = globalIndex * (particles + threads - 1) / threads;
-    for (i = from; i < to && i < particles; i++) {
-        distribute(Position[i]);
+    ivec4 prev = ivec4(-1,-1,-1,-1);
+    float Cur[2][2][2];
+    for (int i = 0; i < 2; i++) {
+        for (int k = 0; k < 2; k++) {
+            for (int j = 0; j < 2; j ++) {
+                Cur[i][k][j] = 0;
+            }
+        }
     }
+    for (i = from; i < to && i < particles; i++) {
+        distribute(Position[i], prev, Cur);
+    }
+    flush(prev, Cur);
 }
 
 void split(out uint i, out uint j) {
