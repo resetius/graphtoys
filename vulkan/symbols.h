@@ -68,6 +68,7 @@ L2_FUNC(vkCmdBindPipeline);
 L2_FUNC(vkCmdBindVertexBuffers);
 L2_FUNC(vkCmdCopyBuffer);
 L2_FUNC(vkCmdCopyBufferToImage);
+L2_FUNC(vkCmdDispatch);
 L2_FUNC(vkCmdDraw);
 L2_FUNC(vkCmdDrawIndexed);
 L2_FUNC(vkCmdEndRenderPass);

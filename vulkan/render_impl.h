@@ -43,6 +43,7 @@ struct RenderImpl {
     VkDevice log_dev;
     VkQueue g_queue;
     VkQueue p_queue;
+    VkQueue c_queue;
     // GLFW specific
     GLFWwindow* window;
 

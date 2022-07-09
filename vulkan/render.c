@@ -192,6 +192,10 @@ static void find_queue_families(struct RenderImpl* r) {
     free(families);
 }
 
+static int cmp_int(const void* a, const void* b) {
+    return *(const int*)a-*(const int*)b;
+}
+
 static void init_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
     uint32_t deviceCount = 0;
@@ -205,7 +209,7 @@ static void init_(struct Render* r1) {
     VkDeviceQueueCreateInfo queueCreateInfo[2];
     uint32_t nQueueCreateInfo = 2;
     float queuePriority = 1.0f;
-    int i;
+    int i,j;
     if (glfwCreateWindowSurface(r->instance, r->window, NULL, &r->surface) != VK_SUCCESS)
     {
         fprintf(stderr, "Cannot create window surface\n");
@@ -228,7 +232,7 @@ static void init_(struct Render* r1) {
         printf("Name: %d: '%s'\n", i, r->properties.deviceName);
         // TODO: check device
     }
-    
+
     int dev_id = cfg_geti_def(r->cfg.cfg, "dev", 0);
     if (dev_id < deviceCount) {
         printf("Using device: %d\n", dev_id);
@@ -239,16 +243,23 @@ static void init_(struct Render* r1) {
 	vkGetPhysicalDeviceMemoryProperties(r->phy_dev, &r->memory_properties);
 
     find_queue_families(r);
-    printf("graphics_family: %d, present_family: %d\n",
+    printf("graphics_family: %d, present_family: %d, compute_family: %d\n",
            r->graphics_family,
-           r->present_family);
+           r->present_family,
+           r->compute_family);
 
-    if (r->graphics_family == r->present_family) {
-        nQueueCreateInfo = 1;
-        queueCreateInfo[0].queueFamilyIndex = r->graphics_family;
-    } else {
-        queueCreateInfo[0].queueFamilyIndex = r->graphics_family;
-        queueCreateInfo[1].queueFamilyIndex = r->present_family;
+    int families[3] = {r->graphics_family, r->present_family, r->compute_family};
+    qsort(families, 3, sizeof(int), cmp_int);
+
+    j = 0;
+    for (i = 0; i < 3; i++) {
+        if (j == 0 || families[i] != families[j-1]) {
+            families[j++] = families[i];
+        }
+    }
+    nQueueCreateInfo = j;
+    for (i = 0; i < j; i++) {
+        queueCreateInfo[i].queueFamilyIndex = families[i];
     }
 
     // TODO: hide into Device
@@ -269,6 +280,7 @@ static void init_(struct Render* r1) {
 
     vkGetDeviceQueue(r->log_dev, r->graphics_family, 0, &r->g_queue);
     vkGetDeviceQueue(r->log_dev, r->present_family, 0, &r->p_queue);
+    vkGetDeviceQueue(r->log_dev, r->compute_family, 0, &r->c_queue);
 
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(r->phy_dev, r->surface, &r->caps);
 

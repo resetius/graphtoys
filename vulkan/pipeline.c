@@ -235,7 +235,24 @@ static void start_compute(struct Pipeline* p1, int sx, int sy, int sz) {
     VkCommandBuffer buffer = r->buffer; // use different command buffer?
 
     vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_COMPUTE, p->computePipeline);
+    vkCmdDispatch(buffer, sx, sy, sz);
 
+    VkBufferMemoryBarrier barrier = {
+        VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+        NULL,
+        VK_ACCESS_SHADER_WRITE_BIT, // src
+        VK_ACCESS_SHADER_READ_BIT, // dst
+        r->graphics_family, // src
+        r->graphics_family, // dst ?
+        // buffer,
+        // offset,
+        // size
+    };
+
+    vkCmdPipelineBarrier(
+        buffer,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 0, NULL, 1, &barrier, 0, NULL);
 }
 
 static VkDescriptorSet currentDescriptorSet(struct PipelineImpl* p)
