@@ -234,8 +234,9 @@ static void start_compute(struct Pipeline* p1, int sx, int sy, int sz) {
 
     VkCommandBuffer buffer = r->buffer; // use different command buffer?
 
-    vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_COMPUTE, p->computePipeline);
-    vkCmdDispatch(buffer, sx, sy, sz);
+// use computeBuffer
+//    vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_COMPUTE, p->computePipeline);
+//    vkCmdDispatch(buffer, sx, sy, sz);
 
     VkBufferMemoryBarrier barrier = {
         VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
@@ -252,7 +253,11 @@ static void start_compute(struct Pipeline* p1, int sx, int sy, int sz) {
     vkCmdPipelineBarrier(
         buffer,
         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 0, NULL, 1, &barrier, 0, NULL);
+        VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+        0,
+        0, NULL,
+        1, &barrier,
+        0, NULL);
 }
 
 static VkDescriptorSet currentDescriptorSet(struct PipelineImpl* p)
@@ -778,6 +783,9 @@ static void builder_free(struct PipelineBuilderImpl* p) {
     for (i = 0; i < p->n_frag_shaders; i++) {
         vkDestroyShaderModule(p->r->log_dev, p->frag_shaders[i], NULL);
     }
+    for (i = 0; i < p->n_comp_shaders; i++) {
+        vkDestroyShaderModule(p->r->log_dev, p->comp_shaders[i], NULL);
+    }
 
     free(p->shader_stages);
     free(p->attr_descrs);
@@ -814,6 +822,7 @@ static void pipeline_free(struct Pipeline* p1) {
 
     vkDestroyPipeline(r->log_dev, p->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(r->log_dev, p->pipelineLayout, NULL);
+    vkDestroyPipeline(r->log_dev, p->computePipeline, NULL);
     free(p->descriptorSets); p->descriptorSets = NULL; p->n_descriptor_sets = 0;
     free(p->descriptorSetFlags); p->descriptorSetFlags = NULL;
     free(p);

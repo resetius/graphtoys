@@ -41,7 +41,8 @@ static int create(
     }
 
     if (type == BUFFER_SHADER_STORAGE) {
-        vk_type = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        // TODO: strange or
+        vk_type |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     }
 
     if (type == BUFFER_INDEX) {
@@ -49,6 +50,9 @@ static int create(
     }
 
     const uint32_t families[] = {r->graphics_family, r->compute_family};
+    int n_families = r->graphics_family == r->compute_family
+        ? 0
+        : 2;
 
     for (i = 0; i < buf->n_buffers; i++) {
         create_buffer(
@@ -59,7 +63,7 @@ static int create(
             //VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             &stagingBuffer,
             &stagingBufferMemory,
-            2,
+            n_families,
             families);
 
         assert(data || mem_type == MEMORY_DYNAMIC);
@@ -82,7 +86,7 @@ static int create(
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 &buf->buffer[i],
                 &buf->memory[i],
-                2, families);
+                n_families, families);
 
             copy_buffer(
                 r->graphics_family,
