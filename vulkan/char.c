@@ -64,7 +64,7 @@ struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm) {
         imageSize,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        &stagingBuffer, &stagingBufferMemory);
+        &stagingBuffer, &stagingBufferMemory, 0, NULL);
 
     char* data;
     vkMapMemory(r->log_dev, stagingBufferMemory, 0, imageSize, 0, (void*)&data);

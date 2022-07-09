@@ -31,13 +31,19 @@ void create_buffer(
     VkBufferUsageFlags usage,
     VkMemoryPropertyFlags properties,
     VkBuffer* buffer,
-    VkDeviceMemory* bufferMemory)
+    VkDeviceMemory* bufferMemory,
+    int n_families,
+    const uint32_t* families)
 {
     VkBufferCreateInfo bufferInfo = {
         .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
         .size = size,
         .usage = usage,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE
+        .sharingMode = n_families == 0
+            ? VK_SHARING_MODE_EXCLUSIVE
+            : VK_SHARING_MODE_CONCURRENT,
+        .queueFamilyIndexCount = n_families,
+        .pQueueFamilyIndices = families
     };
 
     assert(size);

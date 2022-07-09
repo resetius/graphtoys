@@ -48,6 +48,8 @@ static int create(
         vk_type = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     }
 
+    const uint32_t families[] = {r->graphics_family, r->compute_family};
+
     for (i = 0; i < buf->n_buffers; i++) {
         create_buffer(
             r->memory_properties, r->log_dev,
@@ -56,7 +58,9 @@ static int create(
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             //VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             &stagingBuffer,
-            &stagingBufferMemory);
+            &stagingBufferMemory,
+            2,
+            families);
 
         assert(data || mem_type == MEMORY_DYNAMIC);
 
@@ -77,7 +81,8 @@ static int create(
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT|vk_type,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 &buf->buffer[i],
-                &buf->memory[i]);
+                &buf->memory[i],
+                2, families);
 
             copy_buffer(
                 r->graphics_family,

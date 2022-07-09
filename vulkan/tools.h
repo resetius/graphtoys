@@ -9,7 +9,9 @@ void create_buffer(
     VkBufferUsageFlags usage,
     VkMemoryPropertyFlags properties,
     VkBuffer* buffer,
-    VkDeviceMemory* bufferMemory);
+    VkDeviceMemory* bufferMemory,
+    int n_families,
+    const uint32_t* families);
 
 void copy_buffer(
     int graphics_family,
