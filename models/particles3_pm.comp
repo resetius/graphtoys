@@ -239,7 +239,7 @@ void flush(in ivec4 ii, inout float Cur[2][2][2]) {
 
 void distribute(in vec4 x, inout ivec4 prev, inout float Cur[2][2][2]) {
     float M[2][2][2];
-
+    float mass = x.w;
     ivec4 ii = ivec4(
         floor(x.x / h),
         floor(x.y / h),
@@ -266,7 +266,7 @@ void distribute(in vec4 x, inout ivec4 prev, inout float Cur[2][2][2]) {
     for (int i = 0; i < 2; i++) {
         for (int k = 0; k < 2; k++) {
             for (int j = 0; j < 2; j ++) {
-                Cur[i][k][j] += 4*M_PI*G*x.w * M[i][k][j];
+                Cur[i][k][j] += 4*M_PI*G*mass * M[i][k][j];
             }
         }
     }
