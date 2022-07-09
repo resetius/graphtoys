@@ -2,25 +2,33 @@
 
 layout( local_size_x = 1024 ) in;
 
-layout(std430, binding=0) buffer Pos {
+layout (std140, binding = 0)
+uniform MatrixBlock {
+    int total;
+};
+
+layout(std430, binding=1) buffer Pos {
     vec4 Position[];
 };
 
-layout(std430, binding=1) buffer Vel {
+layout(std430, binding=2) buffer Vel {
     vec4 Velocity[];
 };
 
-layout(std430, binding=2) buffer Tmp {
+layout(std430, binding=3) buffer Tmp {
     vec4 Accel[];
 };
 
-layout(std430, binding=3) buffer NewPos {
+layout(std430, binding=4) buffer NewPos {
     vec4 NewPosition[];
 };
 
 void main() {
     uint idx = gl_GlobalInvocationID.x;
-    uint total = gl_NumWorkGroups.x*gl_WorkGroupSize.x;
+    if (idx >= total) {
+        return;
+    }
+
     float DeltaT = 0.001;
 
     float newMass = Position[idx].w;
