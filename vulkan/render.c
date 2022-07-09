@@ -121,6 +121,20 @@ static void draw_end_(struct Render* r1) {
     rp_end(&r->rp, r->buffer);
     cb_end(&r->frame->cb, r->buffer);
 
+    VkPipelineStageFlags computeWaitStages[] = {VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT};
+/*
+    VkSubmitInfo computeSubmitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &r->compute_buffer,
+        .pWaitDstStageMask = computeWaitStages,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &r->frame->acquire_image,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores = NULL, // TODO &compute.semaphore,
+    };
+    vkQueueSubmit(r->c_queue, 1, &computeSubmitInfo, VK_NULL_HANDLE);
+*/
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
     VkSubmitInfo submitInfo = {

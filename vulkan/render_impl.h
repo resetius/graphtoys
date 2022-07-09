@@ -63,6 +63,9 @@ struct RenderImpl {
     uint32_t image_index;
     VkCommandBuffer buffer;
 
+    struct CommandBuffer compute_cmd;
+    VkCommandBuffer compute_buffer;
+
     VkSemaphore recycled_semaphores[10];
     int n_recycled_semaphores;
 
