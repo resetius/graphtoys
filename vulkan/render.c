@@ -30,6 +30,7 @@ static void free_(struct Render* r1) {
     rt_destroy(&r->rt);
     rp_destroy(&r->rp);
     sc_destroy(&r->sc);
+    cb_destroy(&r->compute_cmd);
     vk_stats_free(r->stats);
 
     for (i = 0; i < r->sc.n_images; i++) {
@@ -90,8 +91,10 @@ static void draw_begin_(struct Render* r1) {
     vkResetFences(r->log_dev, 1, &r->frame->fence);
 
     r->buffer = frame_cb(r->frame);
-
     cb_begin(&r->frame->cb, r->buffer);
+
+    r->compute_buffer = cb_acquire(&r->compute_cmd);
+    cb_begin(&r->compute_cmd, r->compute_buffer);
 
     vkCmdSetViewport(r->buffer, 0, 1, &r->viewport);
     vkCmdSetScissor(r->buffer, 0, 1, &r->scissor);
@@ -120,9 +123,10 @@ static void draw_end_(struct Render* r1) {
 
     rp_end(&r->rp, r->buffer);
     cb_end(&r->frame->cb, r->buffer);
+    cb_end(&r->compute_cmd, r->compute_buffer);
 
     VkPipelineStageFlags computeWaitStages[] = {VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT};
-/*
+
     VkSubmitInfo computeSubmitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .commandBufferCount = 1,
@@ -131,11 +135,16 @@ static void draw_end_(struct Render* r1) {
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = &r->frame->acquire_image,
         .signalSemaphoreCount = 1,
-        .pSignalSemaphores = NULL, // TODO &compute.semaphore,
+        .pSignalSemaphores = &r->compute_semaphore,
     };
     vkQueueSubmit(r->c_queue, 1, &computeSubmitInfo, VK_NULL_HANDLE);
-*/
+    //cb_reset(&r->compute_cmd);
+
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    VkSemaphore waitSemaphores[] = {
+        //r->frame->acquire_image,
+        r->compute_semaphore
+    };
 
     VkSubmitInfo submitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -143,7 +152,7 @@ static void draw_end_(struct Render* r1) {
         .pCommandBuffers = &r->buffer,
         .pWaitDstStageMask = waitStages,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &r->frame->acquire_image,
+        .pWaitSemaphores = waitSemaphores,
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &r->frame->render_finished
     };
@@ -323,6 +332,11 @@ static void init_(struct Render* r1) {
     VkSemaphoreCreateInfo semaphoreInfo = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
+
+    // compute {
+    cb_init(&r->compute_cmd, r);
+    vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->compute_semaphore);
+    // compute }
 
     r->n_recycled_semaphores = sizeof(r->recycled_semaphores)/sizeof(VkSemaphore);
     for (int i = 0; i < r->n_recycled_semaphores; i++) {
