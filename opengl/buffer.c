@@ -92,6 +92,17 @@ static void update(
     glBindBuffer(buf->type, 0);
 }
 
+static void update_sync(
+    struct BufferManager* mgr,
+    int id,
+    const void* data,
+    int offset,
+    int size,
+    int unused)
+{
+    update(mgr, id, data, offset, size);
+}
+
 static void read(
     struct BufferManager* mgr,
     int id,
@@ -120,6 +131,7 @@ struct BufferManager* buf_mgr_opengl_new(struct Render* r) {
     b->base.iface.create = create;
     b->base.iface.release = release;
     b->base.iface.update = update;
+    b->base.iface.update_sync = update_sync;
     b->base.iface.read = read;
 
     return (struct BufferManager*)b;

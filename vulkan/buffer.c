@@ -120,6 +120,47 @@ static void update(
     vkUnmapMemory(r->log_dev, buf->memory[i]);
 }
 
+
+static void update_sync(
+    struct BufferManager* mgr,
+    int id,
+    const void* data,
+    int offset,
+    int size,
+    int flags)
+{
+    struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
+    struct BufferImpl* buf = (struct BufferImpl*)mgr->get(mgr, id);
+    struct RenderImpl* r = b->r;
+    int i = (buf->n_buffers == 1)
+        ? 0
+        : r->image_index;
+
+    vkCmdUpdateBuffer(
+        flags == 0 ? r->buffer : r->compute_buffer,
+        buf->buffer[i],
+        offset,
+        size,
+        data);
+
+    VkMemoryBarrier barrier = {
+        VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+        NULL,
+        VK_ACCESS_MEMORY_WRITE_BIT,
+        VK_ACCESS_MEMORY_READ_BIT
+    };
+
+    vkCmdPipelineBarrier(
+        flags == 0 ? r->buffer : r->compute_buffer,
+        VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        0,
+        1, &barrier,
+        0, NULL,
+        0, NULL
+        );
+}
+
 static void release(struct BufferManager* mgr, void* buf1) {
     int i;
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
@@ -138,6 +179,7 @@ struct BufferManager* buf_mgr_vulkan_new(struct Render* r) {
     b->base.iface.create = create;
     b->base.iface.release = release;
     b->base.iface.update = update;
+    b->base.iface.update_sync = update_sync;
 
     b->r = (struct RenderImpl*)r;
 

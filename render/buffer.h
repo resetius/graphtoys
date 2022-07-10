@@ -40,7 +40,18 @@ struct BufferManager {
         int offset,
         int size);
 
-   void (*read)(
+    // for OpenGL update_sync == update
+    // for Vulkan vkCmdUpdateBuffer is used with Barrier
+    void (*update_sync)(
+        struct BufferManager* mgr,
+        int id,
+        const void* data,
+        int offset,
+        int size,
+        int flags // 0 for graphics queue, 1 for compute queue
+        );
+
+    void (*read)(
         struct BufferManager* mgr,
         int id,
         void* data,

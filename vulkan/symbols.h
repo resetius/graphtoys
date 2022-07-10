@@ -109,6 +109,7 @@ L2_FUNC(vkGetSwapchainImagesKHR);
 L2_FUNC(vkQueuePresentKHR);
 L2_FUNC(vkQueueWaitIdle);
 L2_FUNC(vkResetFences);
+L2_FUNC(vkCmdUpdateBuffer);
 L2_FUNC(vkUpdateDescriptorSets);
 L2_FUNC(vkWaitForFences);
 
