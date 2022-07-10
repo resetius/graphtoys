@@ -37,6 +37,8 @@ static void free_(struct Render* r1) {
         frame_destroy(&r->frames[i]);
     }
 
+    vkDestroySemaphore(r->log_dev, r->compute_semaphore, NULL);
+
     for (i = 0; i < r->n_recycled_semaphores; i++) {
         vkDestroySemaphore(r->log_dev, r->recycled_semaphores[i], NULL);
     }
