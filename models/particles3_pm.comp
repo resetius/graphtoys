@@ -240,6 +240,7 @@ void flush(in ivec4 ii, inout float Cur[2][2][2]) {
 void distribute(in vec4 x, inout ivec4 prev, inout float Cur[2][2][2]) {
     float M[2][2][2];
     float mass = x.w;
+    x = x - origin;
     ivec4 ii = ivec4(
         floor(x.x / h),
         floor(x.y / h),
@@ -310,6 +311,7 @@ void mass_distribution() {
     }
     for (i = from; i < to && i < particles; i++) {
         distribute(Position[i], prev, Cur);
+        //flush(prev, Cur);
     }
     flush(prev, Cur);
 }
@@ -408,8 +410,8 @@ void main() {
         uint kk = nn/32;
         for (uint y = 0; y < kk; y++) {
             for (uint x = 0; x < kk; x ++) {
-                uint i0 = y*gl_WorkGroupSize.y+i;
-                uint k0 = x*gl_WorkGroupSize.x+k;
+                uint i0 = y*gl_WorkGroupSize.y;
+                uint k0 = x*gl_WorkGroupSize.x;
                 for (j = 0; j < nn; j++) {
                     uint ii = off(i0+i,k0+k,j);
                     E[ii].x = -(Psi[poff(i0+i,k0+k,j+1)]-Psi[poff(i0+i,k0+k,j-1)])/2.0/h;
