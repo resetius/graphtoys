@@ -66,8 +66,6 @@ static int create(
             n_families,
             families);
 
-        assert(data || mem_type == MEMORY_DYNAMIC);
-
         if (data) {
             void* dst;
             vkMapMemory(r->log_dev, stagingBufferMemory, 0, size, 0, &dst);
