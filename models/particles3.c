@@ -267,12 +267,12 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         verify(nn == 32);
         int stage = 0;
         t->comp_set.stage = stage;
-        buffer_update(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set));
+        t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
         t->comp->start_compute(t->comp, 1, 1, 1);
     } else {
         for (int stage = 1; stage <= 9; stage ++) {
             t->comp_set.stage = stage;
-            buffer_update(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set));
+            t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
             int groups = 1;
             if (stage > 1 && stage < 9) {
                 groups = nn / 32;
