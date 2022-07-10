@@ -44,6 +44,7 @@ struct Particles {
     struct BufferManager* b;
 
     int particles; // number of particles
+    int single_pass;
 
     // compute
     struct CompSettings comp_set;
@@ -262,14 +263,22 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 //    buffer_update(t->b, t->density_index, t->density, 0, nn*nn*nn*sizeof(float));
 
     //printf("particles %d\n", t->particles);
-    for (int stage = 1; stage <= 9; stage ++) {
+    if (t->single_pass) {
+        verify(nn == 32);
+        int stage = 0;
         t->comp_set.stage = stage;
         buffer_update(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set));
-        int groups = 1;
-        if (stage > 1 && stage < 9) {
-            groups = nn / 32;
+        t->comp->start_compute(t->comp, 1, 1, 1);
+    } else {
+        for (int stage = 1; stage <= 9; stage ++) {
+            t->comp_set.stage = stage;
+            buffer_update(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set));
+            int groups = 1;
+            if (stage > 1 && stage < 9) {
+                groups = nn / 32;
+            }
+            t->comp->start_compute(t->comp, groups, groups, 1);
         }
-        t->comp->start_compute(t->comp, groups, groups, 1);
     }
 //    int nn = t->comp_set.nn;
 //    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
@@ -387,6 +396,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     float y0 = cfg_getf_def(cfg, "y0", -1000);
     float z0 = cfg_getf_def(cfg, "z0", -1000);
     float l = cfg_getf_def(cfg, "l", 2000);
+    t->single_pass = cfg_geti_def(cfg, "single_pass", 0);
 
     float origin[] = {x0, y0, z0};
     int nn = cfg_geti_def(cfg, "nn", 32);

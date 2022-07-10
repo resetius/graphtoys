@@ -224,13 +224,15 @@ void flush(in ivec4 ii, inout float Cur[2][2][2]) {
                 int y0 = (ii.y+k)%nn;
                 int x0 = (ii.x+j)%nn;
                 uint lk;
+                int it = 0;
                 do {
                     lk = atomicCompSwap(locks[z0%nl][y0%nl], 0, 1+gl_LocalInvocationIndex);
                     if (lk == 0) {
                         Rho[off(z0,y0,x0)] += Cur[i][k][j];
                         atomicExchange(locks[z0%nl][y0%nl], 0);
                     }
-                } while (lk != 0);
+                    it ++;
+                } while (lk != 0 && it < 10000);
                 Cur[i][k][j] = 0;
             }
         }
@@ -333,9 +335,10 @@ void main() {
     const uint ioff = _off;
     const uint ooff = _off+nn;
 
-    if (stage == 1) {
-        mass_distribution();
-    } else if (stage == 2) {
+    if (stage == 1 || stage == 0) {
+        mass_distribution(); barrier();
+    }
+    if (stage == 2 || stage == 0) {
         // along z
         split(k, j);
         for (i = 0; i < nn; i++) {
@@ -345,7 +348,9 @@ void main() {
         for (i = 0; i < nn; i++) {
             Psi[off(i,k,j)] = W[ooff+i];
         }
-    } else if (stage == 3) {
+        barrier();
+    }
+    if (stage == 3 || stage == 0) {
         // along y
         split(i, j);
         for (k = 0; k < nn; k++) {
@@ -355,7 +360,9 @@ void main() {
         for (k = 0; k < nn; k++) {
             Psi[off(i,k,j)] = W[ooff+k];
         }
-    } else if (stage == 4) {
+        barrier();
+    }
+    if (stage == 4 || stage == 0) {
         // along x
         split(i, k);
         for (j = 0; j < nn; j++) {
@@ -365,14 +372,18 @@ void main() {
         for (j = 0; j < nn; j++) {
             Psi[off(i,k,j)] = W[ooff+j];
         }
-    } else if (stage == 5) {
+        barrier();
+    }
+    if (stage == 5 || stage == 0) {
         split(i, k);
         for (j = 0; j < nn; j++) {
             Psi[off(i,k,j)] /= -FFT[La+i]-FFT[La+k]-FFT[La+j];
         }
 
         Psi[off(0,0,0)] = 1;
-    } else if (stage == 6) {
+        barrier();
+    }
+    if (stage == 6 || stage == 0) {
         // along x
         split(i, k);
         for (j = 0; j < nn; j++) {
@@ -382,7 +393,9 @@ void main() {
         for (j = 0; j < nn; j++) {
             Psi[off(i,k,j)] = W[ooff+j];
         }
-    } else if (stage == 7) {
+        barrier();
+    }
+    if (stage == 7 || stage == 0) {
         // along y
         split(i, j);
         for (k = 0; k < nn; k++) {
@@ -392,7 +405,9 @@ void main() {
         for (k = 0; k < nn; k++) {
             Psi[off(i,k,j)] = W[ooff+k];
         }
-    } else if (stage == 8) {
+        barrier();
+    }
+    if (stage == 8 || stage == 0) {
         // along z
         split(k, j);
         for (i = 0; i < nn; i++) {
@@ -402,7 +417,9 @@ void main() {
         for (i = 0; i < nn; i++) {
             Psi[off(i,k,j)] = W[ooff+i];
         }
-    } else if (stage == 9) {
+        barrier();
+    }
+    if (stage == 9 || stage == 0) {
         // diff
         split(i, k);
 
@@ -421,5 +438,6 @@ void main() {
                 }
             }
         }
+        barrier();
     }
 }
