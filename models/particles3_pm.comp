@@ -242,13 +242,8 @@ void flush(in ivec4 ii, inout float Cur[2][2][2]) {
 void distribute(in vec4 x, inout ivec4 prev, inout float Cur[2][2][2]) {
     float M[2][2][2];
     float mass = x.w;
-    x = x - origin;
-    ivec4 ii = ivec4(
-        floor(x.x / h),
-        floor(x.y / h),
-        floor(x.z / h),
-        0
-        );
+    x -= origin;
+    ivec4 ii = ivec4(floor(x / h)); ii.w = 0;
     x = (x-ii*h)/h;
 
     if (prev.x != -1 && prev != ii) {

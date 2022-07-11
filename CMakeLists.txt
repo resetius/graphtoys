@@ -8,7 +8,7 @@ pkg_check_modules(VULKAN REQUIRED vulkan)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-add_library(astc_codec 
+add_library(astc_codec
     contrib/astc-codec/src/decoder/astc_file.cc
     contrib/astc-codec/src/decoder/codec.cc
     contrib/astc-codec/src/decoder/endpoint_codec.cc
@@ -50,9 +50,9 @@ add_library(ktx
     contrib/ktx/lib/writer1.c
     contrib/ktx/lib/writer2.c)
 target_include_directories(ktx PRIVATE
-    contrib/ktx/lib/basisu/zstd 
-    contrib/ktx/other_include 
-    contrib/ktx/lib/dfdutils 
+    contrib/ktx/lib/basisu/zstd
+    contrib/ktx/other_include
+    contrib/ktx/lib/dfdutils
     contrib/ktx/utils
     contrib/ktx/include
     ${CMAKE_SOURCE_DIR}
@@ -86,6 +86,7 @@ set(SHADERS
     models/triangle.frag
     models/particles.comp
     models/particles3_pm.comp
+    models/particles3_pp.comp
     font/font.frag
     font/font.vert
     )
@@ -94,20 +95,20 @@ set(GENERATED "")
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/models)
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/font)
 foreach (shader ${SHADERS})
-    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${shader}.h 
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${shader}.h
         COMMAND rcc ${CMAKE_SOURCE_DIR}/${shader} -o ${CMAKE_BINARY_DIR}/${shader}.h --strip ${CMAKE_BINARY_DIR}/ -q
         DEPENDS ${CMAKE_SOURCE_DIR}/${shader} rcc)
-    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${shader}.spv 
-        COMMAND glslc -DGLSLC -fauto-bind-uniforms ${CMAKE_SOURCE_DIR}/${shader} -o ${CMAKE_BINARY_DIR}/${shader}.spv 
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${shader}.spv
+        COMMAND glslc -DGLSLC -fauto-bind-uniforms ${CMAKE_SOURCE_DIR}/${shader} -o ${CMAKE_BINARY_DIR}/${shader}.spv
         DEPENDS ${CMAKE_SOURCE_DIR}/${shader} rcc)
-    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${shader}.spv.h 
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${shader}.spv.h
         COMMAND rcc ${CMAKE_BINARY_DIR}/${shader}.spv -o ${CMAKE_BINARY_DIR}/${shader}.spv.h --strip ${CMAKE_BINARY_DIR}/ -q
         DEPENDS ${CMAKE_SOURCE_DIR}/${shader} ${CMAKE_BINARY_DIR}/${shader}.spv rcc)
     list(APPEND GENERATED ${CMAKE_BINARY_DIR}/${shader}.h)
     list(APPEND GENERATED ${CMAKE_BINARY_DIR}/${shader}.spv.h)
 endforeach ()
 foreach (font ${FONTS})
-    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${font}.h 
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${font}.h
         COMMAND rcc ${CMAKE_SOURCE_DIR}/${font} -o ${CMAKE_BINARY_DIR}/${font}.h --strip ${CMAKE_BINARY_DIR}/ -q
         DEPENDS ${CMAKE_SOURCE_DIR}/${font} rcc)
     list(APPEND GENERATED ${CMAKE_BINARY_DIR}/${font}.h)
@@ -157,8 +158,8 @@ add_library(engine
     ${GENERATED}
     )
 
-target_include_directories(engine 
-    PRIVATE ${FREETYPE2_INCLUDE_DIRS} ${VULKAN_INCLUDE_DIRS} contrib/ktx/other_include contrib/ktx/include 
+target_include_directories(engine
+    PRIVATE ${FREETYPE2_INCLUDE_DIRS} ${VULKAN_INCLUDE_DIRS} contrib/ktx/other_include contrib/ktx/include
     PUBLIC ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${GLFW3_INCLUDE_DIRS})
 target_compile_options(engine PRIVATE ${FREETYPE2_CFLAGS_OTHER})
 target_link_directories(engine PUBLIC ${FREETYPE2_STATIC_LIBRARY_DIRS} ${GLFW3_STATIC_LIBRARY_DIRS})
@@ -197,4 +198,3 @@ add_test(NAME test_config COMMAND ${CMAKE_BINARY_DIR}/test_config ${CMAKE_SOURCE
 set_tests_properties(test_gltf PROPERTIES ENVIRONMENT "CMOCKA_MESSAGE_OUTPUT=xml;CMOCKA_XML_FILE=test_gltf.xml")
 set_tests_properties(test_base64 PROPERTIES ENVIRONMENT "CMOCKA_MESSAGE_OUTPUT=xml;CMOCKA_XML_FILE=test_base64.xml")
 set_tests_properties(test_config PROPERTIES ENVIRONMENT "CMOCKA_MESSAGE_OUTPUT=xml;CMOCKA_XML_FILE=test_config.xml")
-

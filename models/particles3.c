@@ -10,9 +10,11 @@
 #include <models/particles3.vert.h>
 #include <models/particles2.frag.h>
 #include <models/particles3_pm.comp.h>
+#include <models/particles3_pp.comp.h>
 #include <models/particles3.vert.spv.h>
 #include <models/particles2.frag.spv.h>
 #include <models/particles3_pm.comp.spv.h>
+#include <models/particles3_pp.comp.spv.h>
 
 #include <lib/verify.h>
 #include <lib/config.h>
@@ -34,6 +36,8 @@ struct VertBlock {
     vec4 origin;
     float h;
     float dt;
+    float a;
+    float dota;
     int nn;
 };
 
@@ -71,8 +75,10 @@ struct Particles {
 
     int model;
     float z;
+    double rho;
     quat q;
     double ax, ay, az;
+    double T;
 };
 
 static int max(int a, int b) {
@@ -244,7 +250,13 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     mat4x4_mul(mv, v, m);
 
-    mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 20000.f);
+    mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 500000.f);
+
+    //float b,tt,l,r;
+    //r = 100000*ctx->ratio; tt = 100000;
+    //l = -r; b = -tt;
+    //mat4x4_ortho(p, l, r, b, tt, -150000.f, 150000.f);
+
     mat4x4_mul(mvp, p, mv);
 
     int nn = t->vert.nn;
@@ -288,6 +300,24 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     buffer_update(t->b, t->uniform, &t->vert, 0, sizeof(t->vert));
 
     t->pl->draw(t->pl, t->indices_vao);
+
+    //t->T += t->vert.dt;
+    //t->vert.a = 10000*pow(t->T, 2./3.);
+    //t->vert.dota = 10000*2./3.*pow(t->T, -1./3.);
+
+    // dota = -4 pi G / 3 / a / a * rho0
+    //double rho0 = 10*t->rho; // TODO
+    //double dota = t->vert.dota;
+    //double a = t->vert.a;
+    //double dt = t->vert.dt;
+    //double Lambda = -100;
+
+    //t->vert.a += dt*a*sqrt(8.*M_PI/3.*rho0 - Lambda/a/a);
+    //t->vert.dota = a*sqrt(8.*M_PI/3.*rho0 - Lambda/a/a);
+    //t->vert.dota += -dt*4*M_PI/3./a/a*rho0;
+    //t->vert.a += dt*dota;
+
+    //printf("%e %e %e\n", rho0, t->vert.a, t->vert.dota);
 
 //    t->pl->storage_swap(t->pl, 1, 2);
 }
@@ -414,6 +444,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->vert.h = h;
     t->vert.nn = nn;
     t->vert.dt = cfg_getf_def(cfg, "dt", 0.001);
+    t->vert.a = 1;
+    t->vert.dota = 0;
 
     t->density = NULL;
     t->density = malloc(nn*nn*nn*sizeof(float));
@@ -450,6 +482,14 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct VertBlock));
 
     t->pos_data = malloc(size);
+
+    double mass = 0;
+    for (int i = 0; i < data.n_particles; i++) {
+        mass += data.coords[4*i+3];
+    }
+    t->rho = mass/(l*l*l);
+    //printf("%e %e %e\n", t->rho, mass, l*l*l);
+    //abort();
 
     t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
     t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);

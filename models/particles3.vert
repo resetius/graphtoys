@@ -6,6 +6,8 @@ layout(std140, binding=0) uniform MatrixBlock {
     vec4 origin;
     float h;
     float DeltaT;
+    float a;
+    float dota;
     int nn;
 };
 
@@ -70,7 +72,7 @@ void main()
     }
 
     float M[2][2][2];
-    vec4 r = Position[idx] + DeltaT*Velocity[idx] + 0.5 * DeltaT * DeltaT * Accel[idx];
+    vec4 r = Position[idx] + DeltaT*Velocity[idx]/a + 0.5 * DeltaT*DeltaT*Accel[idx];
     vec4 A = vec4(0);
     ivec4 ii;
     distribute(M, vPos-origin, ii, h);
@@ -83,6 +85,7 @@ void main()
             }
         }
     }
+    A -= DeltaT*dota/a * Velocity[idx];
     Velocity[idx] = Velocity[idx] + 0.5 * DeltaT * (vec4(vec3(A),0) + Accel[idx]);
     Accel[idx] = vec4(vec3(A), 0);
     //NewPosition[idx] = vec4(vec3(r), mass);
