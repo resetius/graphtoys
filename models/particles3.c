@@ -44,13 +44,14 @@ struct VertBlock {
 struct Particles {
     struct Object base;
     struct Pipeline* comp;
+    struct Pipeline* comp_pp;
     struct Pipeline* pl;
     struct BufferManager* b;
 
     int particles; // number of particles
     int single_pass;
 
-    // compute
+    // compute pm
     struct CompSettings comp_set;
 
     int density_index;
@@ -61,6 +62,10 @@ struct Particles {
     int fft_table_index;
     int work_index;
     int comp_settings;
+    //
+
+    // compute pp
+
     //
 
     struct VertBlock vert;
@@ -364,6 +369,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         .spir_v = models_particles3_pm_comp_spv,
         .size = models_particles3_pm_comp_spv_size,
     };
+    struct ShaderCode compute_pp_shader = {
+        .glsl = models_particles3_pp_comp,
+        .spir_v = models_particles3_pp_comp_spv,
+        .size = models_particles3_pp_comp_spv_size,
+    };
 
     t->b = r->buffer_manager(r);
 
@@ -382,6 +392,24 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 4, "PotentialBuffer")
         ->storage_add(pl, 5, "EBuffer")
         ->storage_add(pl, 6, "PosBuffer")
+
+        ->build(pl);
+    printf("Done\n");
+
+    printf("Build comp pp shader\n");
+    pl = r->pipeline(r);
+
+    t->comp_pp = pl
+        ->set_bmgr(pl, t->b)
+        ->begin_program(pl)
+        ->add_cs(pl, compute_pp_shader)
+        ->end_program(pl)
+
+        ->uniform_add(pl, 0, "Settings")
+
+        ->storage_add(pl, 1, "CellsBuffer")
+        ->storage_add(pl, 2, "PosBuffer")
+        ->storage_add(pl, 3, "ForceBuffer")
 
         ->build(pl);
     printf("Done\n");

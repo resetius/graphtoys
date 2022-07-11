@@ -8,6 +8,7 @@ layout(std140, binding=0) uniform Settings {
     int particles;
     int nn; // nn for chain-grid
     float h; // h for chain-grid
+    float rcrit;
 };
 
 const float G = 1; // TODO
@@ -27,16 +28,16 @@ struct Cell {
     uint n;
 };
 
-layout(std430, binding=0) buffer CellsBuffer {
+layout(std430, binding=1) buffer CellsBuffer {
     Cell cells[];
 };
 
 // positions, mass in w-coordinate
-layout(std430, binding=1) buffer PosBuffer {
+layout(std430, binding=2) buffer PosBuffer {
     vec4 Position[];
 };
 
-layout(std430, binding=2) buffer ForceBuffer {
+layout(std430, binding=3) buffer ForceBuffer {
     vec4 F[];
 };
 
@@ -96,7 +97,9 @@ void process(in Cell cell, in Cell other) {
             uint j = other.indices[j0];
             float R = length(vec3(Position[j])-vec3(Position[i]));
             R = sqrt(R)+eps;
-            F[i] += - Position[j].w * G * (Position[i]-Position[j])/R/R/R;
+            if (R < rcrit) {
+                F[i] += - Position[j].w * G * (Position[i]-Position[j])/R/R/R;
+            }
         }
     }
 }
