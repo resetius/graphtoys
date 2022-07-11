@@ -309,8 +309,8 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         }
     }
 
-    //t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
-    //t->comp_pp->start_compute(t->comp_pp, 1, 1, 1);
+    t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
+    t->comp_pp->start_compute(t->comp_pp, 1, 1, 1);
 
 //    int nn = t->comp_set.nn;
 //    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));

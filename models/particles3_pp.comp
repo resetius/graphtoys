@@ -68,10 +68,11 @@ void flush(in ivec3 index) {
             for (uint i = 0; i < cur_size; i++) {
                 cells[cell_id].indices[i+n] = cur[i];
             }
-            atomicExchange(locks[cell_id], 0);
+            atomicExchange(locks[cell_id%nl], 0);
         }
         it ++;
     } while (lk != 0 && it < 10000);
+    cur_size = 0;
 }
 
 void place(in vec4 x, uint i) {
