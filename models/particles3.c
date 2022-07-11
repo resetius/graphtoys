@@ -31,6 +31,14 @@ struct CompSettings {
     float l; // length of cube edge
 };
 
+struct CompPPSettings {
+    vec4 origin;
+    int particles;
+    int nn; // chain grid, 32x32x32
+    float h; // l/nn
+    float rcrit;
+};
+
 struct VertBlock {
     mat4x4 mvp;
     vec4 origin;
@@ -65,7 +73,10 @@ struct Particles {
     //
 
     // compute pp
-
+    struct CompPPSettings comp_pp_set;
+    int comp_pp_settings;
+    int pp_force;
+    int cells;
     //
 
     struct VertBlock vert;
@@ -297,6 +308,10 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             t->comp->start_compute(t->comp, groups, groups, 1);
         }
     }
+
+    //t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
+    //t->comp_pp->start_compute(t->comp_pp, 1, 1, 1);
+
 //    int nn = t->comp_set.nn;
 //    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
 
@@ -504,6 +519,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     free(fft_table);
     t->work_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, 2*nn*nn*nn*sizeof(float));
     t->comp_settings = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct CompSettings));
+    t->comp_pp_settings = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct CompPPSettings));
 
     t->indices = t->b->create(t->b, BUFFER_ARRAY, MEMORY_STATIC, data.indices, t->particles*sizeof(int));
 
@@ -524,6 +540,16 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.vels, size);
     t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.accel, size);
 
+    t->comp_pp_set.nn = 32;
+    memcpy(t->comp_pp_set.origin, t->comp_set.origin, sizeof(t->comp_pp_set.origin));
+    t->comp_pp_set.particles = t->particles;
+    t->comp_pp_set.h = t->comp_pp_set.nn / l;
+    t->comp_pp_set.rcrit = t->comp_pp_set.h/2; // TODO
+
+    t->pp_force = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);
+    int cells_size = 32*32*32*(4096*sizeof(int)+sizeof(int));
+    t->cells = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,NULL,cells_size);
+
     t->indices_vao = t->pl->buffer_assign(t->pl, 0, t->indices);
 
     t->pl->uniform_assign(t->pl, 0, t->uniform);
@@ -532,6 +558,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->pl->storage_assign(t->pl, 3, t->vel);
     t->pl->storage_assign(t->pl, 4, t->accel);
     t->pl->storage_assign(t->pl, 5, t->e_index);
+    t->pl->storage_assign(t->pl, 6, t->pp_force);
 
     t->comp->uniform_assign(t->comp, 0, t->comp_settings);
     t->comp->storage_assign(t->comp, 1, t->fft_table_index);
@@ -540,6 +567,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp->storage_assign(t->comp, 4, t->psi_index);
     t->comp->storage_assign(t->comp, 5, t->e_index);
     t->comp->storage_assign(t->comp, 6, t->pos);
+
+    t->comp_pp->uniform_assign(t->comp_pp, 0, t->comp_pp_settings);
+    t->comp_pp->storage_assign(t->comp_pp, 1, t->cells);
+    t->comp_pp->storage_assign(t->comp_pp, 2, t->pos);
+    t->comp_pp->storage_assign(t->comp_pp, 3, t->pp_force);
 
     particles_data_destroy(&data);
     return (struct Object*)t;

@@ -33,6 +33,11 @@ layout(std430, binding=5) buffer EBuffer {
     vec4 E[];
 };
 
+// pp-force
+layout(std430, binding=6) buffer ForceBuffer {
+    vec4 F[];
+};
+
 layout (location = 1) in int idx;
 layout (location = 0) out vec4 color;
 

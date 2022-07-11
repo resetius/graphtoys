@@ -115,6 +115,11 @@ void main() {
             locks[64*(y*32+i)+x*32+j] = 0;
         }
     }
+    i = gl_LocalInvocationID.y;
+    k = gl_LocalInvocationID.x;
+    for (j = 0; j < nn; j++) {
+        cells[off(i,k,j)].n = 0;
+    }
     barrier();
 
     // 1. "sort" points
