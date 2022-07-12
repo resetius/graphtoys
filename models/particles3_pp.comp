@@ -1,11 +1,12 @@
 #version 460
 
 // TODO
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout(std140, binding=0) uniform Settings {
     vec4 origin;
     int particles;
+    int stage;
     int nn; // nn for chain-grid
     float h; // h for chain-grid
     float rcrit;
@@ -56,7 +57,7 @@ ivec3 prev_index;
 void flush(in ivec3 index) {
     uint lk = 0;
     int it = 0; // protection GPU hang
-    const uint cell_id = off(index.z,index.y,index.x);
+    const uint cell_id = poff(index.z,index.y,index.x);
     if (cells[cell_id].n >= max_per_cell) {
         cur_size = 0;
         return;
@@ -65,10 +66,11 @@ void flush(in ivec3 index) {
         lk = atomicCompSwap(locks[cell_id%nl], 0, 1+gl_LocalInvocationIndex);
         if (lk == 0) {
             uint n = cells[cell_id].n;
-            for (uint i = 0; i < cur_size && (i+n)<max_per_cell; i++) {
+            uint i = 0;
+            for (i = 0; i < cur_size && (i+n)<max_per_cell; i++) {
                 cells[cell_id].indices[i+n] = cur[i];
             }
-            cells[cell_id].n = n+cur_size;
+            cells[cell_id].n = n+i;
             atomicExchange(locks[cell_id%nl], 0);
         }
         it ++;
@@ -89,18 +91,49 @@ void place(in vec4 x, uint i) {
 }
 
 // TODO: periodic boundary (see off[] in cpu-version)
-void process(in Cell cell, in Cell other) {
+void process(uint id, uint other, int from, int to) {
     uint i0,j0;
     const float eps = 0.001; // TODO
-    for (i0 = 0; i0 < cell.n; i0++) {
-        uint i = cell.indices[i0];
-        F[i] = vec4(0);
-        for (j0 = 0; j0 < other.n; j0++) {
-            uint j = other.indices[j0];
-            float R = length(vec3(Position[j])-vec3(Position[i]));
-            R = sqrt(R)+eps;
-            if (R < rcrit) {
-                F[i] += - Position[j].w * G * (Position[i]-Position[j])/R/R/R;
+    const uint n1 = cells[id].n;
+    const uint n2 = cells[other].n;
+
+    for (i0 = from; i0 < to && i0 < n1; i0++) {
+        uint i = cells[id].indices[i0];
+        vec3 ri = vec3(Position[i]);
+
+        for (j0 = 0; j0 < n2; j0++) {
+            uint j = cells[other].indices[j0];
+            if (i != j) {
+                vec3 rj = vec3(Position[j]);
+                float R = length(rj-ri);
+                R += eps;
+                if (R < rcrit) {
+                    F[i] += - Position[j].w * G * vec4((ri-rj),0)/R/R/R;
+                }
+            }
+        }
+    }
+}
+
+void calc_force_single()
+{
+    int i,k,j;
+    int i0,k0,j0;
+
+    i = int(gl_LocalInvocationID.y);
+    k = int(gl_LocalInvocationID.x);
+
+    for (j = 0; j < nn; j++) {
+        const uint id = off(i,k,j);
+        const int n1 = int(cells[id].n);
+        for (i0 = 0; i0 < n1; i0++) {
+            F[cells[id].indices[i0]] = vec4(0);
+        }
+        for (i0 = -1; i0 <= 1; i0++) {
+            for (k0 = -1; k0 <= 1; k0++) {
+                for (j0 = -1; j0 <= 1; j0++) {
+                    process(off(i,k,j), poff(i+i0,k+k0,j+j0), 0, n1);
+                }
             }
         }
     }
@@ -111,50 +144,67 @@ void calc_force()
     int i,k,j;
     int i0,k0,j0;
 
-    i = int(gl_LocalInvocationID.x);
-    k = int(gl_LocalInvocationID.y);
+    i = int(gl_WorkGroupID.z);
+    k = int(gl_WorkGroupID.y);
+    j = int(gl_WorkGroupID.x);
 
-    for (j = 0; j < nn; j++) {
+    uint threads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+        const int id = off(i,k,j);
+        const uint n1 = cells[id].n;
+        int work_size = int((n1+threads-1)/threads);
+        int from = int(gl_LocalInvocationIndex*work_size);
+        int to = from+work_size;
+        for (i0 = from; i0 < to; i0++) {
+            F[cells[id].indices[i0]] = vec4(0);
+        }
         for (i0 = -1; i0 <= 1; i0++) {
             for (k0 = -1; k0 <= 1; k0++) {
                 for (j0 = -1; j0 <= 1; j0++) {
-                    process(cells[off(i,k,j)], cells[poff(i+i0,k+k0,j+j0)]);
+                    process(id, poff(i+i0,k+k0,j+j0), from, to);
                 }
             }
         }
-    }
 }
 
 void main() {
     uint kk = 2; // 64/32 TODO: const
     uint i,k,j;
-    i = gl_LocalInvocationID.y;
-    j = gl_LocalInvocationID.x;
-    for (uint y = 0; y < kk; y++) {
-        for (uint x = 0; x < kk; x ++) {
-            locks[64*(y*32+i)+x*32+j] = 0;
+
+    if (stage == 1 || stage == 0) {
+        i = gl_LocalInvocationID.y;
+        j = gl_LocalInvocationID.x;
+        for (uint y = 0; y < kk; y++) {
+            for (uint x = 0; x < kk; x ++) {
+                locks[64*(y*32+i)+x*32+j] = 0;
+            }
         }
-    }
-    i = gl_LocalInvocationID.y;
-    k = gl_LocalInvocationID.x;
-    for (j = 0; j < nn; j++) {
-        cells[off(i,k,j)].n = 0;
-    }
-    barrier();
+        i = gl_LocalInvocationID.y;
+        k = gl_LocalInvocationID.x;
+        for (j = 0; j < nn; j++) {
+            cells[off(i,k,j)].n = 0;
+        }
 
-    // 1. "sort" points
-    uint threads = xsize*ysize*zsize;
-    uint from =  globalIndex * particles / threads;
-    uint to = globalIndex * (particles + threads - 1) / threads;
-    cur_size = 0;
-    prev_index = ivec3(-1,-1,-1);
-    for (i = from; i < to && i < particles; i++) {
-        place(Position[i], i);
-        //F[i].y= 1000;
-    }
-    flush(prev_index);
-    // 2. use sorted
-    barrier();
+        barrier();
 
-    calc_force();
+        // 1. "sort" points
+        uint threads = xsize*ysize*zsize;
+        uint work_size = (particles + threads - 1) / threads;
+        uint from = globalIndex * work_size;
+        uint to = from+work_size;
+        cur_size = 0;
+        prev_index = ivec3(-1,-1,-1);
+        for (i = from; i < to && i < particles; i++) {
+            place(Position[i], i);
+        }
+        flush(prev_index);
+        // 2. use sorted
+        barrier();
+    }
+
+    if (stage == 0) {
+        calc_force_single();
+    } else if (stage == 2) {
+        calc_force();
+    }
 }

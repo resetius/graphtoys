@@ -34,6 +34,7 @@ struct CompSettings {
 struct CompPPSettings {
     vec4 origin;
     int particles;
+    int stage;
     int nn; // chain grid, 32x32x32
     float h; // l/nn
     float rcrit;
@@ -309,8 +310,18 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         }
     }
 
-    t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
-    t->comp_pp->start_compute(t->comp_pp, 1, 1, 1);
+    if (t->single_pass) {
+        t->comp_pp_set.stage = 0;
+        t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
+        t->comp_pp->start_compute(t->comp_pp, 1, 1, 1);
+    } else {
+        t->comp_pp_set.stage = 1;
+        t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
+        t->comp_pp->start_compute(t->comp_pp, 1, 1, 1);
+        t->comp_pp_set.stage = 2;
+        t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
+        t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
+    }
 
 //    int nn = t->comp_set.nn;
 //    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
