@@ -81,6 +81,7 @@ void main()
     vec4 A = vec4(0);
     ivec4 ii;
     distribute(M, vPos-origin, ii, h);
+
     for (int i = 0; i < 2; i++) {
         for (int k = 0; k < 2; k++) {
             for (int j = 0; j < 2; j ++) {
@@ -90,6 +91,8 @@ void main()
             }
         }
     }
+
+    A += F[idx];
     A -= DeltaT*dota/a * Velocity[idx];
     Velocity[idx] = Velocity[idx] + 0.5 * DeltaT * (vec4(vec3(A),0) + Accel[idx]);
     Accel[idx] = vec4(vec3(A), 0);

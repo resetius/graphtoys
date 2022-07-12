@@ -446,6 +446,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 3, "VelBuffer")
         ->storage_add(pl, 4, "AccelBuffer")
         ->storage_add(pl, 5, "EBuffer")
+        ->storage_add(pl, 6, "ForceBuffer")
 
         ->begin_buffer(pl, 4)
         ->buffer_attribute(pl, 1, 1, DATA_INT, 0)
@@ -544,7 +545,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     memcpy(t->comp_pp_set.origin, t->comp_set.origin, sizeof(t->comp_pp_set.origin));
     t->comp_pp_set.particles = t->particles;
     t->comp_pp_set.h = l / t->comp_pp_set.nn;
-    t->comp_pp_set.rcrit = t->comp_pp_set.h/2; // TODO
+    t->comp_pp_set.rcrit = 2*t->comp_pp_set.h; // TODO
 
     t->pp_force = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);
     int cells_size = 32*32*32*1024*sizeof(int);

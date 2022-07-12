@@ -65,14 +65,14 @@ void flush(in ivec3 index) {
         lk = atomicCompSwap(locks[cell_id%nl], 0, 1+gl_LocalInvocationIndex);
         if (lk == 0) {
             uint n = cells[cell_id].n;
-            cells[cell_id].n += cur_size;
-            for (uint i = 0; i < cur_size && i+n<max_per_cell; i++) {
+            for (uint i = 0; i < cur_size && (i+n)<max_per_cell; i++) {
                 cells[cell_id].indices[i+n] = cur[i];
             }
+            cells[cell_id].n = n+cur_size;
             atomicExchange(locks[cell_id%nl], 0);
         }
         it ++;
-    } while (lk != 0 && it < 1000);
+    } while (lk != 0 && it < 10000);
     cur_size = 0;
 }
 
@@ -94,7 +94,7 @@ void process(in Cell cell, in Cell other) {
     const float eps = 0.001; // TODO
     for (i0 = 0; i0 < cell.n; i0++) {
         uint i = cell.indices[i0];
-        F[i] = vec4(0);
+        F[i].x = vec4(0);
         for (j0 = 0; j0 < other.n; j0++) {
             uint j = other.indices[j0];
             float R = length(vec3(Position[j])-vec3(Position[i]));
@@ -106,10 +106,28 @@ void process(in Cell cell, in Cell other) {
     }
 }
 
+void calc_force()
+{
+    int i,k,j;
+    int i0,k0,j0;
+
+    i = int(gl_LocalInvocationID.x);
+    k = int(gl_LocalInvocationID.y);
+
+    for (j = 0; j < nn; j++) {
+        for (i0 = -1; i0 <= 1; i0++) {
+            for (k0 = -1; k0 <= 1; k0++) {
+                for (j0 = -1; j0 <= 1; j0++) {
+                    process(cells[off(i,k,j)], cells[poff(i+i0,k+k0,j+j0)]);
+                }
+            }
+        }
+    }
+}
+
 void main() {
     uint kk = 2; // 64/32 TODO: const
     uint i,k,j;
-    uint i0,k0,j0;
     i = gl_LocalInvocationID.y;
     j = gl_LocalInvocationID.x;
     for (uint y = 0; y < kk; y++) {
@@ -132,21 +150,11 @@ void main() {
     prev_index = ivec3(-1,-1,-1);
     for (i = from; i < to && i < particles; i++) {
         place(Position[i], i);
+        //F[i].y= 1000;
     }
     flush(prev_index);
     // 2. use sorted
     barrier();
 
-    i = gl_LocalInvocationID.x;
-    k = gl_LocalInvocationID.y;
-
-    for (j = 0; j < nn; j++) {
-        for (i0 = -1; i0 <= 1; i0++) {
-            for (k0 = -1; k0 <= 1; k0++) {
-                for (j0 = -1; j0 <= 1; j0++) {
-                    process(cells[off(i,k,j)], cells[poff(i+i0,k+k0,j+j0)]);
-                }
-            }
-        }
-    }
+    calc_force();
 }
