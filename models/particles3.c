@@ -74,6 +74,7 @@ struct Particles {
     //
 
     // compute pp
+    int pp_enabled;
     struct CompPPSettings comp_pp_set;
     int comp_pp_settings;
     int pp_force;
@@ -310,17 +311,19 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         }
     }
 
-    if (t->single_pass) {
-        t->comp_pp_set.stage = 0;
-        t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
-        t->comp_pp->start_compute(t->comp_pp, 1, 1, 1);
-    } else {
-        t->comp_pp_set.stage = 1;
-        t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
-        t->comp_pp->start_compute(t->comp_pp, 1, 1, 1);
-        t->comp_pp_set.stage = 2;
-        t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
-        t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
+    if (t->pp_enabled) {
+        if (t->single_pass) {
+            t->comp_pp_set.stage = 0;
+            t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
+            t->comp_pp->start_compute(t->comp_pp, 1, 1, 1);
+        } else {
+            t->comp_pp_set.stage = 1;
+            t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
+            t->comp_pp->start_compute(t->comp_pp, 1, 1, 1);
+            t->comp_pp_set.stage = 2;
+            t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
+            t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
+        }
     }
 
 //    int nn = t->comp_set.nn;
@@ -482,6 +485,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     float z0 = cfg_getf_def(cfg, "z0", -1000);
     float l = cfg_getf_def(cfg, "l", 2000);
     t->single_pass = cfg_geti_def(cfg, "single_pass", 0);
+    t->pp_enabled = cfg_geti_def(cfg, "pp", 0);
 
     float origin[] = {x0, y0, z0};
     int nn = cfg_geti_def(cfg, "nn", 32);
