@@ -150,21 +150,21 @@ void calc_force()
 
     uint threads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-        const int id = off(i,k,j);
-        const uint n1 = cells[id].n;
-        int work_size = int((n1+threads-1)/threads);
-        int from = int(gl_LocalInvocationIndex*work_size);
-        int to = from+work_size;
-        for (i0 = from; i0 < to; i0++) {
-            F[cells[id].indices[i0]] = vec4(0);
-        }
-        for (i0 = -1; i0 <= 1; i0++) {
-            for (k0 = -1; k0 <= 1; k0++) {
-                for (j0 = -1; j0 <= 1; j0++) {
-                    process(id, poff(i+i0,k+k0,j+j0), from, to);
-                }
+    const int id = off(i,k,j);
+    const uint n1 = cells[id].n;
+    int work_size = int((n1+threads-1)/threads);
+    int from = int(gl_LocalInvocationIndex*work_size);
+    int to = from+work_size;
+    for (i0 = from; i0 < to; i0++) {
+        F[cells[id].indices[i0]] = vec4(0);
+    }
+    for (i0 = -1; i0 <= 1; i0++) {
+        for (k0 = -1; k0 <= 1; k0++) {
+            for (j0 = -1; j0 <= 1; j0++) {
+                process(id, poff(i+i0,k+k0,j+j0), from, to);
             }
         }
+    }
 }
 
 void main() {
