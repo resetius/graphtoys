@@ -294,9 +294,9 @@ void mass_distribution() {
     barrier();
 
     uint threads = xsize*ysize*zsize;
-
-    uint from =  globalIndex * particles / threads;
-    uint to = globalIndex * (particles + threads - 1) / threads;
+    uint work_size = (particles + threads - 1) / threads;
+    uint from = globalIndex * work_size;
+    uint to = from+work_size;
     ivec4 prev = ivec4(-1,-1,-1,-1);
     float Cur[2][2][2];
     for (int i = 0; i < 2; i++) {
