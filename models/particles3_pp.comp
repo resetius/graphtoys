@@ -94,7 +94,7 @@ void process(in Cell cell, in Cell other) {
     const float eps = 0.001; // TODO
     for (i0 = 0; i0 < cell.n; i0++) {
         uint i = cell.indices[i0];
-        F[i].x = vec4(0);
+        F[i] = vec4(0);
         for (j0 = 0; j0 < other.n; j0++) {
             uint j = other.indices[j0];
             float R = length(vec3(Position[j])-vec3(Position[i]));
