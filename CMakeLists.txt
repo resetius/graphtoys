@@ -1,5 +1,10 @@
 project(graphtoys)
 cmake_minimum_required(VERSION 3.10)
+
+if (EXISTS ${CMAKE_BINARY_DIR}/local.cmake)
+include(${CMAKE_BINARY_DIR}/local.cmake)
+endif ()
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(FREETYPE2 REQUIRED freetype2)
 pkg_check_modules(GLFW3 REQUIRED glfw3)
