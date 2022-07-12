@@ -29,6 +29,8 @@ struct CompSettings {
     int n;   // log2(n)
     float h; // l/h
     float l; // length of cube edge
+    float rho;
+    float rcrit;
 };
 
 struct CompPPSettings {
@@ -37,6 +39,7 @@ struct CompPPSettings {
     int stage;
     int nn; // chain grid, 32x32x32
     float h; // l/nn
+    float l;
     float rcrit;
 };
 
@@ -548,6 +551,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         mass += data.coords[4*i+3];
     }
     t->rho = mass/(l*l*l);
+    t->comp_set.rho = t->rho;
     //printf("%e %e %e\n", t->rho, mass, l*l*l);
     //abort();
 
@@ -560,7 +564,9 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     memcpy(t->comp_pp_set.origin, t->comp_set.origin, sizeof(t->comp_pp_set.origin));
     t->comp_pp_set.particles = t->particles;
     t->comp_pp_set.h = l / t->comp_pp_set.nn;
-    t->comp_pp_set.rcrit = 2*t->comp_pp_set.h; // TODO
+    t->comp_pp_set.l = l;
+    t->comp_pp_set.rcrit = 0.25*t->comp_pp_set.h; // TODO
+    t->comp_set.rcrit = t->comp_pp_set.rcrit;
 
     t->pp_force = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);
     int cells_size = 32*32*32*1024*sizeof(int);

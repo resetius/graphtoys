@@ -11,6 +11,8 @@ layout(std140, binding=0) uniform Settings {
     int n;   // log(nn)
     float h;
     float l;
+    float rho;
+    float rcrit;
 };
 
 int sz = 2*nn;
@@ -223,7 +225,7 @@ void flush(in ivec4 ii, inout float Cur[2][2][2]) {
                 int z0 = (ii.z+i)%nn;
                 int y0 = (ii.y+k)%nn;
                 int x0 = (ii.x+j)%nn;
-                uint lk;
+                uint lk = 0;
                 int it = 0;
                 do {
                     lk = atomicCompSwap(locks[z0%nl][y0%nl], 0, 1+gl_LocalInvocationIndex);
@@ -284,7 +286,7 @@ void mass_distribution() {
         for (uint x = 0; x < kk; x ++) {
             for (j = 0; j < nn; j++) {
                 Rho[off(y*gl_WorkGroupSize.y+i,
-                        x*gl_WorkGroupSize.x+k,j)] = 0;
+                        x*gl_WorkGroupSize.x+k,j)] = 0; // -4*M_PI*rho;
             }
 
             locks[y*gl_WorkGroupSize.y+i][x*gl_WorkGroupSize.x+k] = 0;
@@ -308,7 +310,6 @@ void mass_distribution() {
     }
     for (i = from; i < to && i < particles; i++) {
         distribute(Position[i], prev, Cur);
-        //flush(prev, Cur);
     }
     flush(prev, Cur);
 }
@@ -373,6 +374,8 @@ void main() {
         split(i, k);
         for (j = 0; j < nn; j++) {
             Psi[off(i,k,j)] /= -FFT[La+i]-FFT[La+k]-FFT[La+j];
+            //Psi[off(i,k,j)] *= exp((-FFT[La+i]-FFT[La+k]-FFT[La+j])*rcrit*rcrit);
+            //Psi[off(i,k,j)] *= exp((-i*i-k*k-j*j)*rcrit*rcrit);
         }
 
         Psi[off(0,0,0)] = 1;
