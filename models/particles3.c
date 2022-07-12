@@ -543,11 +543,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_pp_set.nn = 32;
     memcpy(t->comp_pp_set.origin, t->comp_set.origin, sizeof(t->comp_pp_set.origin));
     t->comp_pp_set.particles = t->particles;
-    t->comp_pp_set.h = t->comp_pp_set.nn / l;
+    t->comp_pp_set.h = l / t->comp_pp_set.nn;
     t->comp_pp_set.rcrit = t->comp_pp_set.h/2; // TODO
 
     t->pp_force = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);
-    int cells_size = 32*32*32*(4096*sizeof(int)+sizeof(int));
+    int cells_size = 32*32*32*1024*sizeof(int);
     t->cells = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,NULL,cells_size);
 
     t->indices_vao = t->pl->buffer_assign(t->pl, 0, t->indices);

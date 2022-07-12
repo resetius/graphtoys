@@ -22,7 +22,7 @@ uint globalIndex =
     gl_GlobalInvocationID.x;
 
 
-const uint max_per_cell = 4096;
+const uint max_per_cell = 1023;
 struct Cell {
     uint indices[max_per_cell];
     uint n;
@@ -58,6 +58,7 @@ void flush(in ivec3 index) {
     int it = 0; // protection GPU hang
     const uint cell_id = off(index.z,index.y,index.x);
     if (cells[cell_id].n >= max_per_cell) {
+        cur_size = 0;
         return;
     }
     do {
@@ -65,13 +66,13 @@ void flush(in ivec3 index) {
         if (lk == 0) {
             uint n = cells[cell_id].n;
             cells[cell_id].n += cur_size;
-            for (uint i = 0; i < cur_size; i++) {
+            for (uint i = 0; i < cur_size && i+n<max_per_cell; i++) {
                 cells[cell_id].indices[i+n] = cur[i];
             }
             atomicExchange(locks[cell_id%nl], 0);
         }
         it ++;
-    } while (lk != 0 && it < 10000);
+    } while (lk != 0 && it < 1000);
     cur_size = 0;
 }
 
