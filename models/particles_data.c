@@ -26,8 +26,12 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
     int i,j,n=0;
     //float side = 4.0f;
     float side = cfg_getf_def(cfg, "side", 7.5f);
+    time_t seed = cfg_geti_def(cfg, "seed", -1);
+    if (seed == (time_t)-1) {
+        seed = time(NULL);
+    }
 
-    srand(time(NULL));
+    srand(seed);
 
     const double G = 2.92e-6;
     const char* name = cfg_gets_def(cfg, "name", "solar");
