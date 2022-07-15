@@ -1,4 +1,5 @@
 #version 460
+#extension GL_KHR_vulkan_glsl : enable
 
 // TODO
 layout(local_size_x = 32, local_size_y = 32) in;
@@ -41,7 +42,7 @@ layout(std430, binding=2) buffer WorkBuffer {
 };
 
 // density
-layout(std430, binding=3) buffer DensityBuffer {
+layout(std430, binding=3) volatile coherent buffer DensityBuffer {
     float Rho[];
 };
 
@@ -215,7 +216,7 @@ void pFFT(uint ooff, uint ioff, float dx, int N, int n) {
 #define poff(i,k,j) (((i+nn)%nn)*nn*nn+((k+nn)%nn)*nn+((j+nn)%nn))
 
 // TODO: size
-const uint nl = 64; // 64 is max
+const uint nl = 32; // 64 is max
 shared uint locks[nl][nl];
 
 void flush(in ivec4 ii, inout float Cur[2][2][2]) {

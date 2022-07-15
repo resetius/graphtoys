@@ -24,7 +24,7 @@ uint globalIndex =
     gl_GlobalInvocationID.y*xsize+
     gl_GlobalInvocationID.x;
 
-layout(std430, binding=1) buffer CellsBuffer {
+layout(std430, binding=1) volatile coherent buffer CellsBuffer {
     uint cell_data[];
 };
 
@@ -38,8 +38,8 @@ layout(std430, binding=3) buffer ForceBuffer {
 };
 
 uint max_per_cell = cell_size-1;
-const uint nl = 64*64;
-shared uint locks[nl];
+const uint nl = 32;
+shared uint locks[nl][nl];
 
 // per-thread chain
 const uint max_size = 128;
@@ -53,22 +53,24 @@ ivec3 prev_index;
 void flush(in ivec3 index) {
     uint lk = 0;
     int it = 0; // protection GPU hang
-    const uint cell_id = poff(index.z,index.y,index.x);
+    const uint cell_id = off(index.z,index.y,index.x);
     uint n = cell_data[cell_id*cell_size];
+    uint y = cell_id/nl;
+    uint x = cell_id%nl;
     if (n >= max_per_cell) {
         cur_size = 0;
         return;
     }
     do {
-        lk = atomicCompSwap(locks[cell_id%nl], 0, 1+gl_LocalInvocationIndex);
+        lk = atomicCompSwap(locks[y][x], 0, 1+gl_LocalInvocationIndex);
         if (lk == 0) {
             uint i = 0;
-            n = cell_data[cell_id*cell_size];
+            uint n = cell_data[cell_id*cell_size];
             for (i = 0; i < cur_size && (i+n)<max_per_cell; i++) {
                 cell_data[cell_id*cell_size+i+n+1] = cur[i];
             }
             cell_data[cell_id*cell_size] = n+i;
-            atomicExchange(locks[cell_id%nl], 0);
+            atomicExchange(locks[y][x], 0);
         }
         it ++;
     } while (lk != 0 && it < 10000);
@@ -83,7 +85,6 @@ void place(in vec4 x, uint i) {
     }
 
     cur[cur_size++] = i;
-
     prev_index = index;
 }
 
@@ -114,11 +115,11 @@ void process(uint id, uint other, vec3 dh, int from, int to) {
     const uint n1 = cell_data[id*cell_size];
     const uint n2 = cell_data[other*cell_size];
 
-    for (i0 = from; i0 < to && i0 < n1; i0++) {
+    for (i0 = from; i0 < to && i0 < n1 && i0 < max_per_cell; i0++) {
         uint i = cell_data[id*cell_size+i0+1];
         vec3 ri = vec3(Position[i]) + dh;
 
-        for (j0 = 0; j0 < n2; j0++) {
+        for (j0 = 0; j0 < n2 && j0 < max_per_cell; j0++) {
             uint j = cell_data[other*cell_size+j0+1];
             if (i != j) {
                 vec3 rj = vec3(Position[j]);
@@ -157,7 +158,7 @@ void calc_force_single()
 
     for (j = 0; j < nn; j++) {
         const uint id = off(i,k,j);
-        const int n1 = int(cell_data[id*cell_size]);
+        const uint n1 = cell_data[id*cell_size];
         for (i0 = 0; i0 < n1; i0++) {
             F[cell_data[id*cell_size+i0+1]] = vec4(0);
         }
@@ -165,7 +166,7 @@ void calc_force_single()
             for (k0 = -1; k0 <= 1; k0++) {
                 for (j0 = -1; j0 <= 1; j0++) {
                     calc_off(dh, i, k, j);
-                    process(off(i,k,j), poff(i+i0,k+k0,j+j0), dh, 0, n1);
+                    process(off(i,k,j), poff(i+i0,k+k0,j+j0), dh, 0, int(n1));
                 }
             }
         }
@@ -209,9 +210,11 @@ void main() {
     if (stage == 1 || stage == 0) {
         i = gl_LocalInvocationID.y;
         j = gl_LocalInvocationID.x;
-        for (uint y = 0; y < kk; y++) {
-            for (uint x = 0; x < kk; x ++) {
-                locks[64*(y*32+i)+x*32+j] = 0;
+        if (i == 0) {
+            for (uint y = 0; y < nl; y++) {
+                for (uint x = 0; x < nl; x ++) {
+                    locks[y][x] = 0;
+                }
             }
         }
         i = gl_LocalInvocationID.y;
