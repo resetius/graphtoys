@@ -6,6 +6,7 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 layout(std140, binding=0) uniform Settings {
     vec4 origin;
     int particles;
+    int cell_size;
     int stage;
     int nn; // nn for chain-grid
     float h; // h for chain-grid
@@ -23,15 +24,8 @@ uint globalIndex =
     gl_GlobalInvocationID.y*xsize+
     gl_GlobalInvocationID.x;
 
-
-const uint max_per_cell = 1023;
-struct Cell {
-    uint indices[max_per_cell];
-    uint n;
-};
-
 layout(std430, binding=1) buffer CellsBuffer {
-    Cell cells[];
+    uint cell_data[];
 };
 
 // positions, mass in w-coordinate
@@ -43,6 +37,7 @@ layout(std430, binding=3) buffer ForceBuffer {
     vec4 F[];
 };
 
+uint max_per_cell = cell_size-1;
 const uint nl = 64*64;
 shared uint locks[nl];
 
@@ -59,19 +54,20 @@ void flush(in ivec3 index) {
     uint lk = 0;
     int it = 0; // protection GPU hang
     const uint cell_id = poff(index.z,index.y,index.x);
-    if (cells[cell_id].n >= max_per_cell) {
+    uint n = cell_data[cell_id*cell_size];
+    if (n >= max_per_cell) {
         cur_size = 0;
         return;
     }
     do {
         lk = atomicCompSwap(locks[cell_id%nl], 0, 1+gl_LocalInvocationIndex);
         if (lk == 0) {
-            uint n = cells[cell_id].n;
             uint i = 0;
+            n = cell_data[cell_id*cell_size];
             for (i = 0; i < cur_size && (i+n)<max_per_cell; i++) {
-                cells[cell_id].indices[i+n] = cur[i];
+                cell_data[cell_id*cell_size+i+n+1] = cur[i];
             }
-            cells[cell_id].n = n+i;
+            cell_data[cell_id*cell_size] = n+i;
             atomicExchange(locks[cell_id%nl], 0);
         }
         it ++;
@@ -115,15 +111,15 @@ float erfc(float x) {
 void process(uint id, uint other, vec3 dh, int from, int to) {
     uint i0,j0;
     const float eps = 0.001; // TODO
-    const uint n1 = cells[id].n;
-    const uint n2 = cells[other].n;
+    const uint n1 = cell_data[id*cell_size];
+    const uint n2 = cell_data[other*cell_size];
 
     for (i0 = from; i0 < to && i0 < n1; i0++) {
-        uint i = cells[id].indices[i0];
+        uint i = cell_data[id*cell_size+i0+1];
         vec3 ri = vec3(Position[i]) + dh;
 
         for (j0 = 0; j0 < n2; j0++) {
-            uint j = cells[other].indices[j0];
+            uint j = cell_data[other*cell_size+j0+1];
             if (i != j) {
                 vec3 rj = vec3(Position[j]);
                 float R = length(rj-ri);
@@ -161,9 +157,9 @@ void calc_force_single()
 
     for (j = 0; j < nn; j++) {
         const uint id = off(i,k,j);
-        const int n1 = int(cells[id].n);
+        const int n1 = int(cell_data[id*cell_size]);
         for (i0 = 0; i0 < n1; i0++) {
-            F[cells[id].indices[i0]] = vec4(0);
+            F[cell_data[id*cell_size+i0+1]] = vec4(0);
         }
         for (i0 = -1; i0 <= 1; i0++) {
             for (k0 = -1; k0 <= 1; k0++) {
@@ -189,12 +185,12 @@ void calc_force()
     uint threads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
     const int id = off(i,k,j);
-    const uint n1 = cells[id].n;
+    const uint n1 = cell_data[id*cell_size];
     int work_size = int((n1+threads-1)/threads);
     int from = int(gl_LocalInvocationIndex*work_size);
     int to = from+work_size;
     for (i0 = from; i0 < to; i0++) {
-        F[cells[id].indices[i0]] = vec4(0);
+        F[cell_data[id*cell_size+i0+1]] = vec4(0);
     }
     for (i0 = -1; i0 <= 1; i0++) {
         for (k0 = -1; k0 <= 1; k0++) {
@@ -221,7 +217,7 @@ void main() {
         i = gl_LocalInvocationID.y;
         k = gl_LocalInvocationID.x;
         for (j = 0; j < nn; j++) {
-            cells[off(i,k,j)].n = 0;
+            cell_data[(off(i,k,j))*cell_size] = 0;
         }
 
         barrier();
