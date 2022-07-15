@@ -101,6 +101,7 @@ struct Particles {
     quat q;
     double ax, ay, az;
     double T;
+    double expansion;
 };
 
 static int max(int a, int b) {
@@ -339,10 +340,11 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     t->pl->draw(t->pl, t->indices_vao);
 
-    //t->T += t->vert.dt;
-    //t->vert.a = 10000*pow(t->T, 2./3.);
-    //t->vert.dota = 10000*2./3.*pow(t->T, -1./3.);
-
+    t->T += t->vert.dt;
+    if (t->expansion > 0.01) {
+        t->vert.a = t->expansion*pow(t->T, 2./3.);
+        t->vert.dota = t->expansion*2./3.*pow(t->T, -1./3.);
+    }
     // dota = -4 pi G / 3 / a / a * rho0
     //double rho0 = 10*t->rho; // TODO
     //double dota = t->vert.dota;
@@ -479,7 +481,6 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     struct ParticlesData data;
     particles_data_init(&data, cfg);
 
-    t->z = 1.0f;
     t->particles = data.n_particles;
 
     int size = t->particles*4*sizeof(float);
@@ -490,6 +491,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     float l = cfg_getf_def(cfg, "l", 2000);
     t->single_pass = cfg_geti_def(cfg, "single_pass", 0);
     t->pp_enabled = cfg_geti_def(cfg, "pp", 0);
+    t->z = z0 + l + 0.1;
+    t->expansion = cfg_getf_def(cfg, "expansion", 0);
 
     float origin[] = {x0, y0, z0};
     int nn = cfg_geti_def(cfg, "nn", 32);
@@ -567,7 +570,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_pp_set.cell_size = 1024;
     t->comp_pp_set.h = l / t->comp_pp_set.nn;
     t->comp_pp_set.l = l;
-    t->comp_pp_set.rcrit = 0.25*t->comp_pp_set.h; // TODO
+    t->comp_pp_set.rcrit = t->comp_pp_set.h; // TODO
     t->comp_set.rcrit = t->comp_pp_set.rcrit;
 
     t->pp_force = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);

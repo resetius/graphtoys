@@ -93,7 +93,7 @@ void main()
     }
 
     A += F[idx];
-    //A -= DeltaT*dota/a * Velocity[idx];
+    A -= DeltaT*dota/a * Velocity[idx];
     Velocity[idx] = Velocity[idx] + 0.5 * DeltaT * (vec4(vec3(A),0) + Accel[idx]);
     Accel[idx] = vec4(vec3(A), 0);
     //NewPosition[idx] = vec4(vec3(r), mass);
