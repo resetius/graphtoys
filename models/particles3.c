@@ -428,6 +428,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 4, "PotentialBuffer")
         ->storage_add(pl, 5, "EBuffer")
         ->storage_add(pl, 6, "PosBuffer")
+        ->storage_add(pl, 7, "ListBuffer")
 
         ->build(pl);
     printf("Done\n");
@@ -600,6 +601,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp->storage_assign(t->comp, 4, t->psi_index);
     t->comp->storage_assign(t->comp, 5, t->e_index);
     t->comp->storage_assign(t->comp, 6, t->pos);
+    t->comp->storage_assign(t->comp, 7, t->list);
 
     t->comp_pp->uniform_assign(t->comp_pp, 0, t->comp_pp_settings);
     t->comp_pp->storage_assign(t->comp_pp, 1, t->cells);
