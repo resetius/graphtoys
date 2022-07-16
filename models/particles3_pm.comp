@@ -51,7 +51,7 @@ layout(std430, binding=4) buffer PotentialBuffer {
 };
 
 // field (w-component unused)
-layout(std430, binding=5) buffer EBuffer {
+layout(std430, binding=5) writeonly buffer EBuffer {
     vec4 E[];
 };
 
@@ -421,20 +421,12 @@ void main() {
         // diff
         split(i, k);
 
-        // TODO: use workgroups
-        uint kk = nn/32;
-        for (uint y = 0; y < kk; y++) {
-            for (uint x = 0; x < kk; x ++) {
-                uint i0 = y*gl_WorkGroupSize.y;
-                uint k0 = x*gl_WorkGroupSize.x;
-                for (j = 0; j < nn; j++) {
-                    uint ii = off(i0+i,k0+k,j);
-                    E[ii].x = -(Psi[poff(i0+i,k0+k,j+1)]-Psi[poff(i0+i,k0+k,j-1)])/2.0/h;
-                    E[ii].y = -(Psi[poff(i0+i,k0+k+1,j)]-Psi[poff(i0+i,k0+k-1,j)])/2.0/h;
-                    E[ii].z = -(Psi[poff(i0+i+1,k0+k,j)]-Psi[poff(i0+i-1,k0+k,j)])/2.0/h;
-                    E[ii].w = 0; // unused
-                }
-            }
+        for (j = 0; j < nn; j++) {
+            uint ii = off(i,k,j);
+            E[ii].x = -(Psi[poff(i,k,j+1)]-Psi[poff(i,k,j-1)])/2.0/h;
+            E[ii].y = -(Psi[poff(i,k+1,j)]-Psi[poff(i,k-1,j)])/2.0/h;
+            E[ii].z = -(Psi[poff(i+1,k,j)]-Psi[poff(i-1,k,j)])/2.0/h;
+            E[ii].w = 0; // unused
         }
         barrier();
     }

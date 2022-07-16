@@ -310,7 +310,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             t->comp_set.stage = stage;
             t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
             int groups = 1;
-            if (stage > 1 && stage < 9) {
+            if (stage > 1) {
                 groups = nn / 32;
             }
             t->comp->start_compute(t->comp, groups, groups, 1);
