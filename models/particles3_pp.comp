@@ -163,7 +163,6 @@ void calc_force()
 }
 
 void main() {
-    uint kk = 2; // 64/32 TODO: const
     uint i,k,j;
 
     if (stage == 1 || stage == 0) {
@@ -198,7 +197,6 @@ void main() {
 
                 list[j] = atomicExchange(lists[index.y][index.x], j);
             }
-            memoryBarrierShared();
         }
 
         barrier();
