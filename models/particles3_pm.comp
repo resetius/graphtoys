@@ -1,5 +1,4 @@
 #version 460
-#extension GL_KHR_vulkan_glsl : enable
 
 // TODO
 layout(local_size_x = 32, local_size_y = 32) in;
@@ -32,7 +31,7 @@ uint globalIndex =
     gl_GlobalInvocationID.y*xsize+
     gl_GlobalInvocationID.x;
 
-layout(std430, binding=1) buffer FFTBuffer {
+layout(std430, binding=1) readonly buffer FFTBuffer {
     float FFT[];
 };
 
@@ -57,7 +56,7 @@ layout(std430, binding=5) buffer EBuffer {
 };
 
 // positions, mass in w-coordinate
-layout(std140, binding=6) buffer PosBuffer {
+layout(std140, binding=6) readonly buffer PosBuffer {
     vec4 Position[];
 };
 
@@ -287,7 +286,7 @@ void mass_distribution() {
         for (uint x = 0; x < kk; x ++) {
             for (j = 0; j < nn; j++) {
                 Rho[off(y*gl_WorkGroupSize.y+i,
-                        x*gl_WorkGroupSize.x+k,j)] = 0; // -4*M_PI*rho;
+                        x*gl_WorkGroupSize.x+k,j)] = -4*M_PI*rho;
             }
 
             locks[y*gl_WorkGroupSize.y+i][x*gl_WorkGroupSize.x+k] = 0;
