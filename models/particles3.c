@@ -83,6 +83,7 @@ struct Particles {
     int comp_pp_settings;
     int pp_force;
     int cells;
+    int list;
     //
 
     struct VertBlock vert;
@@ -445,6 +446,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 1, "CellsBuffer")
         ->storage_add(pl, 2, "PosBuffer")
         ->storage_add(pl, 3, "ForceBuffer")
+        ->storage_add(pl, 4, "ListBuffer")
 
         ->build(pl);
     printf("Done\n");
@@ -579,6 +581,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         t->comp_pp_set.cell_size*sizeof(int);
     t->cells = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,NULL,cells_size);
 
+    t->list = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, t->particles*sizeof(int));
+
     t->indices_vao = t->pl->buffer_assign(t->pl, 0, t->indices);
 
     t->pl->uniform_assign(t->pl, 0, t->uniform);
@@ -601,6 +605,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_pp->storage_assign(t->comp_pp, 1, t->cells);
     t->comp_pp->storage_assign(t->comp_pp, 2, t->pos);
     t->comp_pp->storage_assign(t->comp_pp, 3, t->pp_force);
+    t->comp_pp->storage_assign(t->comp_pp, 4, t->list);
 
     particles_data_destroy(&data);
     return (struct Object*)t;
