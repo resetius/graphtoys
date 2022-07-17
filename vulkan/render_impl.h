@@ -78,4 +78,6 @@ struct RenderImpl {
     int update_viewport;
 
     struct VkStats* stats;
+    VkQueryPool timestamps;
+    uint32_t timestamp;
 };

@@ -88,6 +88,7 @@ L2_FUNC(vkCreateRenderPass);
 L2_FUNC(vkCreateSampler);
 L2_FUNC(vkCreateShaderModule);
 L2_FUNC(vkCreateSwapchainKHR);
+L2_FUNC(vkCreateQueryPool);
 L2_FUNC(vkDestroyBuffer);
 L2_FUNC(vkDestroyDescriptorPool);
 L2_FUNC(vkDestroyDescriptorSetLayout);
@@ -110,6 +111,8 @@ L2_FUNC(vkQueuePresentKHR);
 L2_FUNC(vkQueueWaitIdle);
 L2_FUNC(vkResetFences);
 L2_FUNC(vkCmdUpdateBuffer);
+L2_FUNC(vkCmdWriteTimestamp);
+L2_FUNC(vkCmdResetQueryPool);
 L2_FUNC(vkUpdateDescriptorSets);
 L2_FUNC(vkWaitForFences);
 

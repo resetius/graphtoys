@@ -308,6 +308,12 @@ static void start_compute(struct Pipeline* p1, int sx, int sy, int sz) {
         0, NULL,
         0, NULL
         );
+    vkCmdWriteTimestamp(
+        r->compute_buffer,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        r->timestamps,
+        r->timestamp++
+        );
 }
 
 static void draw(struct Pipeline* p1, int id) {
