@@ -220,6 +220,7 @@ int main(int argc, char** argv)
     int i, j;
     ConstructorT constr = (ConstructorT)CreateTorus;
     const char* name = "torus";
+    const char* cfg_file_name = "main.ini";
     memset(&app, 0, sizeof(app));
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--help")) {
@@ -227,6 +228,11 @@ int main(int argc, char** argv)
                 printf("%s %s\n", argv[0], constructors[j].name);
             }
             return 0;
+
+        } else if (!strcmp(argv[i], "--cfg") || !strcmp(argv[i], "-c")) {
+            if (i < argc-1) {
+                cfg_file_name = argv[i+1];
+            }
         } else {
             for (j = 0; constructors[j].name; j++) {
                 if (!strcmp(constructors[j].name, argv[i])) {
@@ -247,7 +253,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    cfg = cfg_new("main.ini", argc, argv);
+    cfg = cfg_new(cfg_file_name, argc, argv);
     cfg_print(cfg);
     fill_render_config(&rcfg, cfg);
     enable_labels = rcfg.show_fps;
