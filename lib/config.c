@@ -20,7 +20,7 @@ static int is_comment(const char* s) {
     while (*s && isspace(*s)) {
         s++;
     }
-    return *s == ';';
+    return *s == ';' || *s == 0;
 }
 
 static const char* get_section(char* s) {
@@ -130,7 +130,7 @@ struct Config* cfg_new(const char* file, int argc, char** argv) {
             kv->next_key = section->next_key;
             section->next_key = kv;
         } else {
-            printf("Bad config syntax\n");
+            printf("Bad config syntax near '%s'\n", buf);
             exit(1);
         }
     }
