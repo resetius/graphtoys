@@ -52,6 +52,64 @@ static void free_(struct Render* r1) {
     free(r);
 }
 
+static void compute_counters_begin_(struct RenderImpl* r)
+{
+    r->timestamp = r->query*r->queries_per_frame;
+
+    vkCmdResetQueryPool(
+        r->compute_buffer, r->timestamps,
+        r->query*r->queries_per_frame, r->queries_per_frame);
+
+    vkCmdWriteTimestamp(
+        r->compute_buffer,
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        r->timestamps,
+        r->timestamp++
+        );
+}
+
+static void print_compute_stats_(struct Render* r1)
+{
+    struct RenderImpl* r = (struct RenderImpl*)r1;
+
+    for (int i = 0; i < 32; i++) {
+        if (r->counters[i].count) {
+            double value = r->counters[i].value
+                *r->properties.limits.timestampPeriod*1e-6
+                /r->counters[i].count;
+
+            printf("%02d %.2fms\n", i+1, value);
+
+            r->counters[i].count = 0;
+            r->counters[i].value = 0;
+        }
+    }
+}
+
+static void compute_counters_end_(struct RenderImpl* r)
+{
+    int prev_query = (r->query+1) % r->queries_delay;
+    uint64_t data[4*256];
+    VkResult result = vkGetQueryPoolResults(
+        r->log_dev, r->timestamps,
+        prev_query*r->queries_per_frame,
+        r->timestamp-r->query*r->queries_per_frame,
+        sizeof(data), data, sizeof(uint64_t),
+        VK_QUERY_RESULT_64_BIT);
+
+    if (result == VK_SUCCESS) {
+        uint64_t s = data[0];
+        // i = 0 -- technical counter
+        for (int i = 1; i < r->timestamp-r->query*r->queries_per_frame&&i<=32;i++) {
+            r->counters[i-1].value += data[i] - s;
+            r->counters[i-1].count ++;
+            s = data[i];
+        }
+    }
+
+    r->query = (r->query+1)%r->queries_delay;
+}
+
 static void draw_begin_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
 
@@ -118,10 +176,19 @@ static void draw_begin_(struct Render* r1) {
         r->buffer,
         r->rt.framebuffers[r->image_index],
         r->sc.extent);
+
+    compute_counters_begin_(r);
 }
 
 static void draw_end_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
+
+    vkCmdWriteTimestamp(
+        r->compute_buffer,
+        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+        r->timestamps,
+        r->timestamp++
+        );
 
     rp_end(&r->rp, r->buffer);
     cb_end(&r->frame->cb, r->buffer);
@@ -171,6 +238,8 @@ static void draw_end_(struct Render* r1) {
     };
 
     vkQueuePresentKHR(r->p_queue, &presentInfo);
+
+    compute_counters_end_(r);
 }
 
 static void set_window_(struct Render* r1, void* w) {
@@ -257,6 +326,7 @@ static void init_(struct Render* r1) {
         printf("Name: %d: '%s'\n", i, r->properties.deviceName);
         // TODO: check device
     }
+    printf("Timestamp period: %f\n", r->properties.limits.timestampPeriod);
 
     int dev_id = cfg_geti_def(r->cfg.cfg, "dev", 0);
     if (dev_id < deviceCount) {
@@ -363,6 +433,17 @@ static void init_(struct Render* r1) {
     r->scissor = scissor;
 
     r->stats = vk_stats_new(r);
+
+    VkQueryPoolCreateInfo queryPoolInfo = {
+        .sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
+        .queryType = VK_QUERY_TYPE_TIMESTAMP,
+        .queryCount = 256,
+    };
+    vkCreateQueryPool(r->log_dev, &queryPoolInfo, NULL, &r->timestamps);
+    r->timestamp = 0;
+    r->queries_per_frame = 32;
+    r->queries_delay = 3;
+    r->query = 0;
 }
 
 static void set_viewport_(struct Render* r1, int w, int h) {
@@ -396,6 +477,7 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg) {
         .char_new =  rend_vulkan_char_new,
         .buffer_manager = buf_mgr_vulkan_new,
         .tex_new = vk_tex_new,
+        .print_compute_stats = print_compute_stats_,
     };
     uint32_t extensionCount = 0;
     const char** glfwExtensionNames = glfwGetRequiredInstanceExtensions(&extensionCount);
@@ -427,7 +509,7 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg) {
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
         .pEngineName = "GraphToys",
         .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-        .apiVersion = VK_MAKE_VERSION(1, 2, 0)
+        .apiVersion = VK_MAKE_VERSION(1, 3, 0)
     };
 
     VkInstanceCreateInfo vkInstanceInfo = {

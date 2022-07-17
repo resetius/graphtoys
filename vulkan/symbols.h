@@ -107,6 +107,7 @@ L2_FUNC(vkGetBufferMemoryRequirements);
 L2_FUNC(vkGetImageMemoryRequirements);
 L2_FUNC(vkGetImageSubresourceLayout);
 L2_FUNC(vkGetSwapchainImagesKHR);
+L2_FUNC(vkGetQueryPoolResults);
 L2_FUNC(vkQueuePresentKHR);
 L2_FUNC(vkQueueWaitIdle);
 L2_FUNC(vkResetFences);

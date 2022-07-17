@@ -201,6 +201,8 @@ static struct Texture* tex_new(struct Render* r, void* data, enum TexType tex_ty
     return (struct Texture*)tex_id;
 }
 
+static void print_compute_stats_(struct Render* r) { /* unimplemented */ }
+
 struct PipelineBuilder* pipeline_builder_opengl(struct Render*);
 
 struct Render* rend_opengl_new(struct RenderConfig cfg)
@@ -217,6 +219,7 @@ struct Render* rend_opengl_new(struct RenderConfig cfg)
         .set_viewport = set_viewport,
         .buffer_manager = buf_mgr_opengl_new,
         .tex_new = tex_new,
+        .print_compute_stats = print_compute_stats_,
     };
     r->base = base;
     r->cfg = cfg;

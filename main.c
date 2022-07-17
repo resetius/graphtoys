@@ -384,6 +384,7 @@ int main(int argc, char** argv)
             printf("FPS:%.2f, %.1fms\n", fp, ms);
             frames = 0;
             t1 = t2;
+            render->print_compute_stats(render);
         }
     }
 

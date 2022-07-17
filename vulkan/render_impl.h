@@ -23,6 +23,13 @@ struct Texture {
     int has_set;
 };
 
+// TODO:
+struct Counter {
+    const char* name;
+    uint64_t value;
+    uint64_t count;
+};
+
 struct RenderImpl {
     struct Render base;
     struct RenderConfig cfg;
@@ -77,7 +84,15 @@ struct RenderImpl {
     VkRect2D scissor;
     int update_viewport;
 
-    struct VkStats* stats;
+    // stats
+    struct VkStats* stats; // unfinished
+
+    // stats new
+    // TODO: move to separate file
     VkQueryPool timestamps;
     uint32_t timestamp;
+    int queries_per_frame;
+    int queries_delay;
+    int query;
+    struct Counter counters[32];
 };
