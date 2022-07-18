@@ -111,10 +111,11 @@ static void print_compute_stats_(struct Render* r1)
     }
 }
 
-static int counter_new_(struct Render*r1, const char* name, enum CounterType counter_type)
+static int counter_new_(struct Render*r1, const char* name, enum CounterType type)
 {
     struct RenderImpl* r = (struct RenderImpl*)r1;
     r->counters[r->ncounters].name = name;
+    r->counters[r->ncounters].type = type;
     return r->ncounters++;
 }
 
@@ -124,12 +125,21 @@ static void counter_submit_(struct Render* r1, int id)
 
     r->query2counter[r->timestamp-r->query*r->queries_per_frame] = id;
 
-    vkCmdWriteTimestamp(
-        r->compute_buffer, // TODO
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // TODO
-        r->timestamps,
-        r->timestamp++
-        );
+    if (r->counters[id].type == COUNTER_COMPUTE) {
+        vkCmdWriteTimestamp(
+            r->compute_buffer,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            r->timestamps,
+            r->timestamp++
+            );
+    } else {
+        vkCmdWriteTimestamp(
+            r->buffer,
+            VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+            r->timestamps,
+            r->timestamp++
+            );
+    }
 }
 
 static void draw_begin_(struct Render* r1) {

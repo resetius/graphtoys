@@ -28,6 +28,7 @@ enum TexType {
 
 enum CounterType {
     COUNTER_COMPUTE = 0,
+    COUNTER_VERTEX = 1,
 };
 
 struct Render {
