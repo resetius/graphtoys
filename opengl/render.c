@@ -202,9 +202,9 @@ static struct Texture* tex_new(struct Render* r, void* data, enum TexType tex_ty
 }
 
 static void print_compute_stats_(struct Render* r) { /* unimplemented */ }
-static int counter_new(struct Render*, const char* name, enum CounterType counter_type)
+static int counter_new(struct Render* r, const char* name, enum CounterType counter_type)
 { /*unimplemented*/ return 0; }
-static void counter_submit(struct Render*, int id) { /* unimplemented */ }
+static void counter_submit(struct Render* r, int id) { /* unimplemented */ }
 
 struct PipelineBuilder* pipeline_builder_opengl(struct Render*);
 
