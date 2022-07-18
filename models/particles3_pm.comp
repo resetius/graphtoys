@@ -256,11 +256,12 @@ void mass_distribution() {
         lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x] = -1;
         barrier();
 
+        float h32 = l/32;
         // lists by x,y
         for (uint i = from; i < to; i++) {
             if (i < particles) {
                 vec2 x = vec2(Position[i])-vec2(origin);
-                ivec2 index = ivec2(floor(x/h)) % nl; // TODO: check
+                ivec2 index = ivec2(floor(x/h32));
 
                 list[i] = atomicExchange(lists[index.y][index.x], int(i));
             }
