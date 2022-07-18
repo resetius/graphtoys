@@ -202,8 +202,12 @@ static struct Texture* tex_new(struct Render* r, void* data, enum TexType tex_ty
 }
 
 static void print_compute_stats_(struct Render* r) { /* unimplemented */ }
+static int counter_new(struct Render*, const char* name, enum CounterType counter_type)
+{ /*unimplemented*/ return 0; }
+static void counter_submit(struct Render*, int id) { /* unimplemented */ }
 
 struct PipelineBuilder* pipeline_builder_opengl(struct Render*);
+
 
 struct Render* rend_opengl_new(struct RenderConfig cfg)
 {
@@ -220,6 +224,8 @@ struct Render* rend_opengl_new(struct RenderConfig cfg)
         .buffer_manager = buf_mgr_opengl_new,
         .tex_new = tex_new,
         .print_compute_stats = print_compute_stats_,
+        .counter_new = counter_new,
+        .counter_submit = counter_submit,
     };
     r->base = base;
     r->cfg = cfg;
