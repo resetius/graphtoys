@@ -597,10 +597,10 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.vels, size);
     t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.accel, size);
 
-    t->comp_pp_set.nn = 32;
+    t->comp_pp_set.nn = t->comp_set.nn; // 32;
     memcpy(t->comp_pp_set.origin, t->comp_set.origin, sizeof(t->comp_pp_set.origin));
     t->comp_pp_set.particles = t->particles;
-    t->comp_pp_set.cell_size = 1024;
+    t->comp_pp_set.cell_size = 512 / (t->comp_pp_set.nn/32);
     t->comp_pp_set.h = l / t->comp_pp_set.nn;
     t->comp_pp_set.l = l;
     t->comp_pp_set.rcrit = t->comp_pp_set.h; // TODO

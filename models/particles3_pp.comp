@@ -167,13 +167,19 @@ void main() {
 
     if (stage == 1 || stage == 0) {
         // 0. initial state
-        lists[i][j] = -1;
+//        lists[i][j] = -1;
+//        lists[i][k] = -1;
 
-        i = gl_LocalInvocationID.y;
-        k = gl_LocalInvocationID.x;
-        lists[i][k] = -1;
-        for (j = 0; j < nn; j++) {
-            cell_data[(off(i,k,j))*cell_size] = 0;
+        int kk = nn/32;
+
+        for (int y = 0; y < kk; y++) {
+            for (int x = 0; x < kk; x++) {
+                i = gl_LocalInvocationID.y;
+                k = gl_LocalInvocationID.x;
+                for (j = 0; j < nn; j++) {
+                    cell_data[(off(y*32+i,x*32+k,j))*cell_size] = 0;
+                }
+            }
         }
 
         barrier();
