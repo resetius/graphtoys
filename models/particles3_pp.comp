@@ -177,13 +177,12 @@ void main() {
         }
 
         barrier();
-
+/*
         // 1. "sort" points
         uint threads = xsize*ysize*zsize;
         uint work_size = (particles + threads - 1) / threads;
         uint from = globalIndex * work_size;
         uint to = from+work_size;
-
         for (i = from; i < to && i < particles; i++) {
             list[i] = -1;
         }
@@ -200,9 +199,11 @@ void main() {
         }
 
         barrier();
-
+*/
         // each thread works with own list[y][x]
-        int cur = lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x];
+        int cur = list[particles+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x];
+
+        //int cur = lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x];
         while (cur != -1) {
             vec3 x = vec3(Position[cur]) - vec3(origin);
             ivec3 index = ivec3(floor(x/h));

@@ -64,6 +64,10 @@ layout(std430, binding=7) buffer ListBuffer {
     int list[];
 };
 
+layout(std430, binding=8) buffer VDensityBuffer {
+    vec4 VRho[];
+};
+
 void padvance(uint ioff, int idx)
 {
     for (int j = 0; j <= idx - 1; j++) {
@@ -228,53 +232,129 @@ void mass_distribution() {
     uint to = from+work_size;
 
     uint kk = nn/32;
-    for (uint y = 0; y < kk; y++) {
-        for (uint x = 0; x < kk; x ++) {
-            for (int j = 0; j < nn; j++) {
-                Rho[off(y*gl_WorkGroupSize.y+gl_LocalInvocationID.y,
-                        x*gl_WorkGroupSize.x+gl_LocalInvocationID.x,
-                        j)] = -4*M_PI*rho;
+    if (stage == 1 || stage == 0) {
+        for (uint y = 0; y < kk; y++) {
+            for (uint x = 0; x < kk; x ++) {
+                for (int j = 0; j < nn; j++) {
+                    Rho[off(y*gl_WorkGroupSize.y+gl_LocalInvocationID.y,
+                            x*gl_WorkGroupSize.x+gl_LocalInvocationID.x,
+                            j)] = -4*M_PI*rho;
+
+                    VRho[off(y*gl_WorkGroupSize.y+gl_LocalInvocationID.y,
+                             x*gl_WorkGroupSize.x+gl_LocalInvocationID.x,
+                             j)] = vec4(0);
+                }
             }
         }
-    }
 
-    for (uint i = from; i < to; i++) {
-        if (i < particles) {
-            list[i] = -1;
-        }
-    }
-
-    lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x] = -1;
-    barrier();
-
-    // lists by x,y
-    for (uint i = from; i < to; i++) {
-        if (i < particles) {
-            vec2 x = vec2(Position[i])-vec2(origin);
-            ivec2 index = ivec2(floor(x/h)) % nl; // TODO: check
-
-            list[i] = atomicExchange(lists[index.y][index.x], int(i));
-        }
-    }
-
-    barrier();
-
-    for (int i = 0; i <= 1; i++) {
-        for (int j = 0; j <= 1; j++) {
-            int cur = lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x];
-            while (cur != -1) {
-                float mass = Position[cur].w;
-                vec3 x = vec3(Position[cur]) - vec3(origin);
-                ivec3 index = ivec3(floor(x/h));
-                x = (x-index*h)/h;
-
-                float value = abs((1.0-i-x.y)*(1.0-j-x.x));
-                Rho[poff(index.z+0,index.y+i,index.x+j)] += 4*M_PI*G*mass*(1-x.z)*value;
-                Rho[poff(index.z+1,index.y+i,index.x+j)] += 4*M_PI*G*mass*(x.z)*value;
-
-                cur = list[cur];
+        for (uint i = from; i < to; i++) {
+            if (i < particles) {
+                list[i] = -1;
             }
-            barrier();
+        }
+
+        lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x] = -1;
+        barrier();
+
+        // lists by x,y
+        for (uint i = from; i < to; i++) {
+            if (i < particles) {
+                vec2 x = vec2(Position[i])-vec2(origin);
+                ivec2 index = ivec2(floor(x/h)) % nl; // TODO: check
+
+                list[i] = atomicExchange(lists[index.y][index.x], int(i));
+            }
+        }
+
+        list[particles+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x] =
+            lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x];
+
+        barrier();
+    }
+
+    if (stage == 2 || stage == 0) {
+        /*
+        for (int i = 0; i <= 1; i++) {
+            for (int j = 0; j <= 1; j++) {
+                //int cur = lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x];
+                int cur = list[particles+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x];
+                while (cur != -1) {
+                    float mass = Position[cur].w;
+                    vec3 x = vec3(Position[cur]) - vec3(origin);
+                    ivec3 index = ivec3(floor(x/h));
+                    x = (x-index*h)/h;
+
+                    float value = abs((1.0-i-x.y)*(1.0-j-x.x));
+                    Rho[poff(index.z+0,index.y+i,index.x+j)] += 4*M_PI*G*mass*(1-x.z)*value;
+                    Rho[poff(index.z+1,index.y+i,index.x+j)] += 4*M_PI*G*mass*(x.z)*value;
+
+                    cur = list[cur];
+                }
+                barrier();
+            }
+        }
+        */
+        int cur = list[particles+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x];
+//        float M[2][2][2];
+        while (cur != -1) {
+            float mass = Position[cur].w;
+            vec3 x = vec3(Position[cur]) - vec3(origin);
+            ivec3 index = ivec3(floor(x/h));
+            x = (x-index*h)/h;
+/*
+            M[0][0][0] = (1-x.z)*(1-x.y)*(1-x.x);
+            M[0][0][1] = (1-x.z)*(1-x.y)*(x.x);
+            M[0][1][0] = (1-x.z)*(x.y)*(1-x.x);
+            M[0][1][1] = (1-x.z)*(x.y)*(x.x);
+
+            M[1][0][0] = (x.z)*(1-x.y)*(1-x.x);
+            M[1][0][1] = (x.z)*(1-x.y)*(x.x);
+            M[1][1][0] = (x.z)*(x.y)*(1-x.x);
+            M[1][1][1] = (x.z)*(x.y)*(x.x);
+*/
+            vec4 value = 4*M_PI*G*mass*vec4(
+                (1-x.y)*(1-x.x),
+                (1-x.y)*(x.x),
+                (x.y)*(1-x.x),
+                (x.y)*(x.x));
+
+            VRho[poff(index.z+0,index.y,index.x)] += (1-x.z)*value;
+            VRho[poff(index.z+1,index.y,index.x)] += (x.z)*value;
+
+/*
+            for (int i = 0; i < 2; i++) {
+                for (int k = 0; k < 2; k++) {
+                    for (int j = 0; j < 2; j++) {
+                        Rho[poff(index.z+i,index.y+k,index.x+j)] +=
+                            4*M_PI*G*mass*
+                            abs((1.0-i-x.z)*(1.0-k-x.y)*(1.0-j-x.x))
+                            ;
+
+                        VRho[poff(index.z+i,index.y,index.x)]
+                    }
+                }
+            }
+*/
+            cur = list[cur];
+        }
+
+        barrier();
+
+        for (int k0 = 0; k0 < 2; k0++) {
+            for (int j0 = 0; j0 < 2; j0++) {
+                uint k = gl_LocalInvocationID.y;
+                uint j = gl_LocalInvocationID.x;
+
+                for (uint y = 0; y < kk; y++) {
+                    for (uint x = 0; x < kk; x ++) {
+                        for (int i = 0; i < nn; i++) {
+                            Rho[off(i,y*gl_WorkGroupSize.y+k+k0,x*gl_WorkGroupSize.x+j+j0)] += VRho[off(i,y*gl_WorkGroupSize.y+k,x*gl_WorkGroupSize.x+j)][k0*2+j0];
+                        }
+                    }
+                }
+
+                barrier();
+            }
         }
     }
 }
@@ -296,11 +376,11 @@ void main() {
     const uint ioff = _off;
     const uint ooff = _off+nn;
 
-    if (stage == 1 || stage == 0) {
+    if (stage == 1 || stage == 2 || stage == 0) {
         mass_distribution();
         barrier();
     }
-    if (stage == 2 || stage == 0) {
+    if (stage == 3 || stage == 0) {
         // along z
         split(k, j);
         for (i = 0; i < nn; i++) {
@@ -312,7 +392,7 @@ void main() {
         }
         barrier();
     }
-    if (stage == 3 || stage == 0) {
+    if (stage == 4 || stage == 0) {
         // along y
         split(i, j);
         for (k = 0; k < nn; k++) {
@@ -324,7 +404,7 @@ void main() {
         }
         barrier();
     }
-    if (stage == 4 || stage == 0) {
+    if (stage == 5 || stage == 0) {
         // along x
         split(i, k);
         for (j = 0; j < nn; j++) {
@@ -336,7 +416,7 @@ void main() {
         }
         barrier();
     }
-    if (stage == 5 || stage == 0) {
+    if (stage == 6 || stage == 0) {
         split(i, k);
         for (j = 0; j < nn; j++) {
             Psi[off(i,k,j)] /= -FFT[La+i]-FFT[La+k]-FFT[La+j];
@@ -347,7 +427,7 @@ void main() {
         Psi[off(0,0,0)] = 1;
         barrier();
     }
-    if (stage == 6 || stage == 0) {
+    if (stage == 7 || stage == 0) {
         // along x
         split(i, k);
         for (j = 0; j < nn; j++) {
@@ -359,7 +439,7 @@ void main() {
         }
         barrier();
     }
-    if (stage == 7 || stage == 0) {
+    if (stage == 8 || stage == 0) {
         // along y
         split(i, j);
         for (k = 0; k < nn; k++) {
@@ -371,7 +451,7 @@ void main() {
         }
         barrier();
     }
-    if (stage == 8 || stage == 0) {
+    if (stage == 9 || stage == 0) {
         // along z
         split(k, j);
         for (i = 0; i < nn; i++) {
@@ -383,7 +463,7 @@ void main() {
         }
         barrier();
     }
-    if (stage == 9 || stage == 0) {
+    if (stage == 10 || stage == 0) {
         // diff
         split(i, k);
 

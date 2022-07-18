@@ -69,6 +69,7 @@ struct Particles {
     struct CompSettings comp_set;
 
     int density_index;
+    int vrho_index;
     float* density;
     int psi_index;
     float* psi;
@@ -86,11 +87,13 @@ struct Particles {
     int cells;
     int list;
 
+    int counter_density_sort;
     int counter_density;
     int counter_psi;
     int counter_e;
     int counter_pp_sort;
     int counter_pp;
+    int counter_pos;
     //
 
     struct VertBlock vert;
@@ -314,19 +317,21 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         t->comp->start_compute(t->comp, 1, 1, 1);
         t->r->counter_submit(t->r, t->counter_e);
     } else {
-        for (int stage = 1; stage <= 9; stage ++) {
+        for (int stage = 1; stage <= 10; stage ++) {
             t->comp_set.stage = stage;
             t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
 
             int groups = 1;
-            if (stage > 1) {
+            if (stage > 2) {
                 groups = nn / 32;
             }
             t->comp->start_compute(t->comp, groups, groups, 1);
 
             if (stage == 1) {
+                t->r->counter_submit(t->r, t->counter_density_sort);
+            } else if (stage == 2) {
                 t->r->counter_submit(t->r, t->counter_density);
-            } else if (stage < 9) {
+            } else if (stage < 10) {
                 t->r->counter_submit(t->r, t->counter_psi);
             } else {
                 t->r->counter_submit(t->r, t->counter_e);
@@ -360,6 +365,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     buffer_update(t->b, t->uniform, &t->vert, 0, sizeof(t->vert));
 
     t->pl->draw(t->pl, t->indices_vao);
+    t->r->counter_submit(t->r, t->counter_pos);
 
     t->T += t->vert.dt;
     if (t->expansion > 0.01) {
@@ -450,6 +456,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 5, "EBuffer")
         ->storage_add(pl, 6, "PosBuffer")
         ->storage_add(pl, 7, "ListBuffer")
+        ->storage_add(pl, 8, "VDensityBuffer")
 
         ->build(pl);
     printf("Done\n");
@@ -542,6 +549,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     //distribute(nn, 1, t->density, data.coords, t->particles, h, origin);
     t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL /*t->density*/,
                                     nn*nn*nn*sizeof(float));
+    t->vrho_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL,
+                                 4*nn*nn*nn*sizeof(float));
     t->psi = malloc(nn*nn*nn*sizeof(float));
     t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL,
                                 nn*nn*nn*sizeof(float));
@@ -603,7 +612,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         t->comp_pp_set.cell_size*sizeof(int);
     t->cells = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,NULL,cells_size);
 
-    t->list = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, t->particles*sizeof(int));
+    t->list = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, (t->particles+64*32*32)*sizeof(int));
 
     t->indices_vao = t->pl->buffer_assign(t->pl, 0, t->indices);
 
@@ -623,6 +632,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp->storage_assign(t->comp, 5, t->e_index);
     t->comp->storage_assign(t->comp, 6, t->pos);
     t->comp->storage_assign(t->comp, 7, t->list);
+    t->comp->storage_assign(t->comp, 8, t->vrho_index);
 
     t->comp_pp->uniform_assign(t->comp_pp, 0, t->comp_pp_settings);
     t->comp_pp->storage_assign(t->comp_pp, 1, t->cells);
@@ -630,11 +640,13 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_pp->storage_assign(t->comp_pp, 3, t->pp_force);
     t->comp_pp->storage_assign(t->comp_pp, 4, t->list);
 
+    t->counter_density_sort = r->counter_new(r, "density_sort", COUNTER_COMPUTE);
     t->counter_density = r->counter_new(r, "density", COUNTER_COMPUTE);
     t->counter_psi = r->counter_new(r, "psi", COUNTER_COMPUTE);
     t->counter_e = r->counter_new(r, "e", COUNTER_COMPUTE);
     t->counter_pp_sort = r->counter_new(r, "pp_sort", COUNTER_COMPUTE);
     t->counter_pp = r->counter_new(r, "pp", COUNTER_COMPUTE);
+    t->counter_pos = r->counter_new(r, "pos", COUNTER_VERTEX);
 
     particles_data_destroy(&data);
     return (struct Object*)t;
