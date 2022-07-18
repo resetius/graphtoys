@@ -60,6 +60,7 @@ struct Particles {
     struct Pipeline* comp_pp;
     struct Pipeline* pl;
     struct BufferManager* b;
+    struct Render* r;
 
     int particles; // number of particles
     int single_pass;
@@ -84,6 +85,11 @@ struct Particles {
     int pp_force;
     int cells;
     int list;
+
+    int counter_density;
+    int counter_psi;
+    int counter_e;
+    int counter_pp;
     //
 
     struct VertBlock vert;
@@ -305,15 +311,25 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         t->comp_set.stage = stage;
         t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
         t->comp->start_compute(t->comp, 1, 1, 1);
+        t->r->counter_submit(t->r, t->counter_e);
     } else {
         for (int stage = 1; stage <= 9; stage ++) {
             t->comp_set.stage = stage;
             t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
+
             int groups = 1;
             if (stage > 1) {
                 groups = nn / 32;
             }
             t->comp->start_compute(t->comp, groups, groups, 1);
+
+            if (stage == 1) {
+                t->r->counter_submit(t->r, t->counter_density);
+            } else if (stage < 9) {
+                t->r->counter_submit(t->r, t->counter_psi);
+            } else {
+                t->r->counter_submit(t->r, t->counter_e);
+            }
         }
     }
 
@@ -330,6 +346,8 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
             t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
         }
+
+        t->r->counter_submit(t->r, t->counter_pp);
     }
 
 //    int nn = t->comp_set.nn;
@@ -411,6 +429,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         .size = models_particles3_pp_comp_spv_size,
     };
 
+    t->r = r;
     t->b = r->buffer_manager(r);
 
     printf("Build comp shader\n");
@@ -608,6 +627,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_pp->storage_assign(t->comp_pp, 2, t->pos);
     t->comp_pp->storage_assign(t->comp_pp, 3, t->pp_force);
     t->comp_pp->storage_assign(t->comp_pp, 4, t->list);
+
+    t->counter_density = r->counter_new(r, "density", COUNTER_COMPUTE);
+    t->counter_psi = r->counter_new(r, "psi", COUNTER_COMPUTE);
+    t->counter_e = r->counter_new(r, "e", COUNTER_COMPUTE);
+    t->counter_pp = r->counter_new(r, "pp", COUNTER_COMPUTE);
 
     particles_data_destroy(&data);
     return (struct Object*)t;

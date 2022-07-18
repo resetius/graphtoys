@@ -95,4 +95,6 @@ struct RenderImpl {
     int queries_delay;
     int query;
     struct Counter counters[32];
+    int ncounters;
+    int query2counter[32];
 };

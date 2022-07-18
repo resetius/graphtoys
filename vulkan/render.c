@@ -68,24 +68,6 @@ static void compute_counters_begin_(struct RenderImpl* r)
         );
 }
 
-static void print_compute_stats_(struct Render* r1)
-{
-    struct RenderImpl* r = (struct RenderImpl*)r1;
-
-    for (int i = 0; i < 32; i++) {
-        if (r->counters[i].count) {
-            double value = r->counters[i].value
-                *r->properties.limits.timestampPeriod*1e-6
-                /r->counters[i].count;
-
-            printf("%02d %.2fms\n", i+1, value);
-
-            r->counters[i].count = 0;
-            r->counters[i].value = 0;
-        }
-    }
-}
-
 static void compute_counters_end_(struct RenderImpl* r)
 {
     int prev_query = (r->query+1) % r->queries_delay;
@@ -100,14 +82,54 @@ static void compute_counters_end_(struct RenderImpl* r)
     if (result == VK_SUCCESS) {
         uint64_t s = data[0];
         // i = 0 -- technical counter
-        for (int i = 1; i < r->timestamp-r->query*r->queries_per_frame&&i<=32;i++) {
-            r->counters[i-1].value += data[i] - s;
-            r->counters[i-1].count ++;
+        for (int i = 1; i < r->timestamp-r->query*r->queries_per_frame&&i<32;i++) {
+            int j = r->query2counter[i];
+            r->counters[j].value += data[i] - s;
+            r->counters[j].count ++;
             s = data[i];
         }
     }
 
     r->query = (r->query+1)%r->queries_delay;
+}
+
+static void print_compute_stats_(struct Render* r1)
+{
+    struct RenderImpl* r = (struct RenderImpl*)r1;
+
+    for (int i = 0; i < 32; i++) {
+        if (r->counters[i].count) {
+            double value = r->counters[i].value
+                *r->properties.limits.timestampPeriod*1e-6
+                /r->counters[i].count;
+
+            printf("%02d %s %.2fms\n", i, r->counters[i].name, value);
+
+            r->counters[i].count = 0;
+            r->counters[i].value = 0;
+        }
+    }
+}
+
+static int counter_new_(struct Render*r1, const char* name, enum CounterType counter_type)
+{
+    struct RenderImpl* r = (struct RenderImpl*)r1;
+    r->counters[r->ncounters].name = name;
+    return r->ncounters++;
+}
+
+static void counter_submit_(struct Render* r1, int id)
+{
+    struct RenderImpl* r = (struct RenderImpl*)r1;
+
+    r->query2counter[r->timestamp-r->query*r->queries_per_frame] = id;
+
+    vkCmdWriteTimestamp(
+        r->compute_buffer, // TODO
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // TODO
+        r->timestamps,
+        r->timestamp++
+        );
 }
 
 static void draw_begin_(struct Render* r1) {
@@ -182,13 +204,6 @@ static void draw_begin_(struct Render* r1) {
 
 static void draw_end_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
-
-    vkCmdWriteTimestamp(
-        r->compute_buffer,
-        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-        r->timestamps,
-        r->timestamp++
-        );
 
     rp_end(&r->rp, r->buffer);
     cb_end(&r->frame->cb, r->buffer);
@@ -478,6 +493,8 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg) {
         .buffer_manager = buf_mgr_vulkan_new,
         .tex_new = vk_tex_new,
         .print_compute_stats = print_compute_stats_,
+        .counter_new = counter_new_,
+        .counter_submit = counter_submit_,
     };
     uint32_t extensionCount = 0;
     const char** glfwExtensionNames = glfwGetRequiredInstanceExtensions(&extensionCount);

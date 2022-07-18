@@ -26,6 +26,10 @@ enum TexType {
     TEX_KTX = 0
 };
 
+enum CounterType {
+    COUNTER_COMPUTE = 0,
+};
+
 struct Render {
     struct PipelineBuilder* (*pipeline)(struct Render*);
     struct BufferManager* (*buffer_manager)(struct Render*);
@@ -40,6 +44,8 @@ struct Render {
     void (*set_viewport)(struct Render*, int w, int h);
 
     void (*print_compute_stats)(struct Render*);
+    int (*counter_new)(struct Render*, const char* name, enum CounterType counter_type);
+    void (*counter_submit)(struct Render*, int id);
 };
 
 struct Render* rend_opengl_new(struct RenderConfig cfg);
