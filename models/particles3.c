@@ -89,6 +89,7 @@ struct Particles {
     int counter_density;
     int counter_psi;
     int counter_e;
+    int counter_pp_sort;
     int counter_pp;
     //
 
@@ -338,16 +339,17 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             t->comp_pp_set.stage = 0;
             t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
             t->comp_pp->start_compute(t->comp_pp, 1, 1, 1);
+            t->r->counter_submit(t->r, t->counter_pp);
         } else {
             t->comp_pp_set.stage = 1;
             t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
             t->comp_pp->start_compute(t->comp_pp, 1, 1, 1);
+            t->r->counter_submit(t->r, t->counter_pp_sort);
             t->comp_pp_set.stage = 2;
             t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
             t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
+            t->r->counter_submit(t->r, t->counter_pp);
         }
-
-        t->r->counter_submit(t->r, t->counter_pp);
     }
 
 //    int nn = t->comp_set.nn;
@@ -631,6 +633,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->counter_density = r->counter_new(r, "density", COUNTER_COMPUTE);
     t->counter_psi = r->counter_new(r, "psi", COUNTER_COMPUTE);
     t->counter_e = r->counter_new(r, "e", COUNTER_COMPUTE);
+    t->counter_pp_sort = r->counter_new(r, "pp_sort", COUNTER_COMPUTE);
     t->counter_pp = r->counter_new(r, "pp", COUNTER_COMPUTE);
 
     particles_data_destroy(&data);
