@@ -348,7 +348,7 @@ void mass_distribution() {
                 for (uint y = 0; y < kk; y++) {
                     for (uint x = 0; x < kk; x ++) {
                         for (int i = 0; i < nn; i++) {
-                            Rho[off(i,y*gl_WorkGroupSize.y+k+k0,x*gl_WorkGroupSize.x+j+j0)] += VRho[off(i,y*gl_WorkGroupSize.y+k,x*gl_WorkGroupSize.x+j)][k0*2+j0];
+                            Rho[poff(i,y*gl_WorkGroupSize.y+k+k0,x*gl_WorkGroupSize.x+j+j0)] += VRho[poff(i,y*gl_WorkGroupSize.y+k,x*gl_WorkGroupSize.x+j)][k0*2+j0];
                         }
                     }
                 }
