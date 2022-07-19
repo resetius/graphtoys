@@ -11,10 +11,12 @@
 #include <models/particles2.frag.h>
 #include <models/particles3_pm.comp.h>
 #include <models/particles3_pp.comp.h>
+#include <models/particles3_pp_sort.comp.h>
 #include <models/particles3.vert.spv.h>
 #include <models/particles2.frag.spv.h>
 #include <models/particles3_pm.comp.spv.h>
 #include <models/particles3_pp.comp.spv.h>
+#include <models/particles3_pp_sort.comp.spv.h>
 
 #include <lib/verify.h>
 #include <lib/config.h>
@@ -58,6 +60,7 @@ struct Particles {
     struct Object base;
     struct Pipeline* comp;
     struct Pipeline* comp_pp;
+    struct Pipeline* comp_pp_sort;
     struct Pipeline* pl;
     struct BufferManager* b;
     struct Render* r;
@@ -341,24 +344,17 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     }
 
     if (t->pp_enabled) {
-        if (t->single_pass) {
-            t->comp_pp_set.stage = 0;
-            t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
-            t->comp_pp->start_compute(t->comp_pp, 1, 1, 1);
-            t->r->counter_submit(t->r, t->counter_pp);
-        } else {
-            t->comp_pp_set.stage = 1;
-            t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
-            t->comp_pp->start_compute(t->comp_pp, 1, 1, 1);
-            t->r->counter_submit(t->r, t->counter_pp_sort);
-            t->comp_pp_set.stage = 2;
-            t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
-            int groups = t->comp_pp_set.nn;
-            //t->comp_pp->start_compute(t->comp_pp, groups, groups, groups);
-            //t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
-            t->comp_pp->start_compute(t->comp_pp, 32, 4, 1);
-            t->r->counter_submit(t->r, t->counter_pp);
-        }
+        t->comp_pp_set.stage = 1;
+        t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
+        t->comp_pp_sort->start_compute(t->comp_pp_sort, 1, 1, 1);
+        t->r->counter_submit(t->r, t->counter_pp_sort);
+
+        t->comp_pp_set.stage = 2;
+        t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
+        //t->comp_pp->start_compute(t->comp_pp, groups, groups, groups);
+        //t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
+        t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
+        t->r->counter_submit(t->r, t->counter_pp);
     }
 
 //    int nn = t->comp_set.nn;
@@ -441,6 +437,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         .spir_v = models_particles3_pp_comp_spv,
         .size = models_particles3_pp_comp_spv_size,
     };
+    struct ShaderCode compute_pp_sort_shader = {
+        .glsl = models_particles3_pp_sort_comp,
+        .spir_v = models_particles3_pp_sort_comp_spv,
+        .size = models_particles3_pp_sort_comp_spv_size,
+    };
 
     t->r = r;
     t->b = r->buffer_manager(r);
@@ -483,6 +484,23 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 4, "ListBuffer")
 
         ->build(pl);
+
+    pl = r->pipeline(r);
+
+    t->comp_pp_sort = pl
+        ->set_bmgr(pl, t->b)
+        ->begin_program(pl)
+        ->add_cs(pl, compute_pp_sort_shader)
+        ->end_program(pl)
+
+        ->uniform_add(pl, 0, "Settings")
+
+        ->storage_add(pl, 1, "CellsBuffer")
+        ->storage_add(pl, 2, "PosBuffer")
+        ->storage_add(pl, 3, "ListBuffer")
+
+        ->build(pl);
+
     printf("Done\n");
 
     pl = r->pipeline(r);
@@ -644,6 +662,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_pp->storage_assign(t->comp_pp, 2, t->pos);
     t->comp_pp->storage_assign(t->comp_pp, 3, t->pp_force);
     t->comp_pp->storage_assign(t->comp_pp, 4, t->list);
+
+    t->comp_pp_sort->uniform_assign(t->comp_pp_sort, 0, t->comp_pp_settings);
+    t->comp_pp_sort->storage_assign(t->comp_pp_sort, 1, t->cells);
+    t->comp_pp_sort->storage_assign(t->comp_pp_sort, 2, t->pos);
+    t->comp_pp_sort->storage_assign(t->comp_pp_sort, 3, t->list);
 
     t->counter_density_sort = r->counter_new(r, "density_sort", COUNTER_COMPUTE);
     t->counter_density = r->counter_new(r, "density", COUNTER_COMPUTE);

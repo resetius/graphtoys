@@ -1,0 +1,62 @@
+#version 460
+
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+layout(std140, binding=0) uniform Settings {
+    vec4 origin;
+    int particles;
+    int cell_size;
+    int stage;
+    int nn; // nn for chain-grid
+    float h; // h for chain-grid
+    float l;
+    float rcrit;
+};
+
+layout(std430, binding=1) buffer CellsBuffer {
+    uint cell_data[];
+};
+
+layout(std430, binding=2) readonly buffer PosBuffer {
+    vec4 Position[];
+};
+
+layout(std430, binding=3) buffer ListBuffer {
+    int list[];
+};
+
+uint max_per_cell = cell_size-1;
+#define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
+
+void main() {
+    uint i,k,j;
+
+    int kk = nn/32;
+
+    for (int y = 0; y < kk; y++) {
+        for (int x = 0; x < kk; x++) {
+            i = gl_LocalInvocationID.y;
+            k = gl_LocalInvocationID.x;
+            for (j = 0; j < nn; j++) {
+                cell_data[(off(y*32+i,x*32+k,j))*cell_size] = 0;
+            }
+        }
+    }
+
+    barrier();
+
+    int cur = list[particles+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x];
+
+    while (cur != -1) {
+        vec3 x = vec3(Position[cur]) - vec3(origin);
+        ivec3 index = ivec3(floor(x/h));
+        int cell_id = off(index.z,index.y,index.x);
+        uint n = cell_data[cell_id*cell_size];
+        if (n < max_per_cell) {
+            cell_data[cell_id*cell_size+n+1] = cur;
+            cell_data[cell_id*cell_size] = n+1;
+        }
+
+        cur = list[cur];
+    }
+}

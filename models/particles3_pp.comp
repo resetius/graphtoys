@@ -1,7 +1,7 @@
 #version 460
 
 // TODO
-layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
 layout(std140, binding=0) uniform Settings {
     vec4 origin;
@@ -68,32 +68,32 @@ float erfc(float x) {
    }
 }
 
-uint mx = 128;
-shared vec4 coords[128];
+const uint mx = 32;
+shared vec4 coords[mx];
 
 void process(uint id, uint other, vec3 dh, int from, int to) {
     uint i0,j0;
     const float eps = 0.001; // TODO
     const uint n1 = cell_data[id*cell_size];
     const uint n2 = cell_data[other*cell_size];
-/*
-    for (j0 = 0; j0 < n2 && j0 < max_per_cell; j0++) {
+
+    j0 = gl_LocalInvocationID.x;
+    if (j0 < n2) {
         coords[j0] = Position[cell_data[other*cell_size+j0+1]];
     }
-
     barrier();
-*/
+
     for (i0 = from; i0 < to && i0 < n1 && i0 < max_per_cell; i0++) {
         uint i = cell_data[id*cell_size+i0+1];
         vec3 ri = vec3(Position[i]) + dh;
 
-        for (j0 = 0; j0 < n2 && j0 < max_per_cell; j0++) {
+        for (j0 = 0; j0 < n2 && j0 < mx && j0 < max_per_cell; j0++) {
             uint j = cell_data[other*cell_size+j0+1];
             if (i != j) {
-                vec3 rj = vec3(Position[j]);
-                float mass = Position[j].w;
-                //vec3 rj = vec3(coords[j0]);
-                //float mass = coords[j0].w;
+                //vec3 rj = vec3(Position[j]);
+                //float mass = Position[j].w;
+                vec3 rj = vec3(coords[j0]);
+                float mass = coords[j0].w;
                 float R = length(rj-ri);
                 R += eps;
                 if (R < rcrit) {
@@ -150,15 +150,15 @@ void calc_force_(int i, int k, int j)
     vec3 dh = vec3(0);
 
     //uint threads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-    //uint threads = gl_WorkGroupSize.y;
-    uint threads = gl_NumWorkGroups.y;
+    uint threads = gl_WorkGroupSize.x;
+    //uint threads = gl_NumWorkGroups.y;
 
     const int id = off(i,k,j);
     const uint n1 = cell_data[id*cell_size];
     int work_size = int((n1+threads-1)/threads);
     //int from = int(gl_LocalInvocationIndex*work_size);
-    //int from = int(gl_LocalInvocationID.y*work_size);
-    int from = int(gl_WorkGroupID.y*work_size);
+    int from = int(gl_LocalInvocationID.x*work_size);
+    //int from = int(gl_WorkGroupID.y*work_size);
     int to = min(from+work_size,particles);
     //int from = 0; int to = int(n1);
     for (i0 = from; i0 < to; i0++) {
@@ -176,10 +176,9 @@ void calc_force_(int i, int k, int j)
 
 void calc_force()
 {
-    int i = int(gl_WorkGroupID.x);
-    int k = int(gl_LocalInvocationID.y);
-    //int k = int(gl_WorkGroupID.y);
-    int j = int(gl_LocalInvocationID.x);
+    int i = int(gl_WorkGroupID.z);
+    int k = int(gl_WorkGroupID.y);
+    int j = int(gl_WorkGroupID.x);
 
     int kk = nn/32;
 
@@ -195,72 +194,10 @@ void calc_force()
 void main() {
     uint i,k,j;
 
-    if (stage == 1 || stage == 0) {
-        // 0. initial state
-//        lists[i][j] = -1;
-//        lists[i][k] = -1;
-
-        int kk = nn/32;
-
-        for (int y = 0; y < kk; y++) {
-            for (int x = 0; x < kk; x++) {
-                i = gl_LocalInvocationID.y;
-                k = gl_LocalInvocationID.x;
-                for (j = 0; j < nn; j++) {
-                    cell_data[(off(y*32+i,x*32+k,j))*cell_size] = 0;
-                }
-            }
-        }
-
-        barrier();
-/*
-        // 1. "sort" points
-        uint threads = xsize*ysize*zsize;
-        uint work_size = (particles + threads - 1) / threads;
-        uint from = globalIndex * work_size;
-        uint to = from+work_size;
-        for (i = from; i < to && i < particles; i++) {
-            list[i] = -1;
-        }
-
-        // lists by x,y
-        for (i = from; i < to; i++) {
-            if (i < particles) {
-                vec2 x = vec2(Position[i])-vec2(origin);
-                ivec2 index = ivec2(floor(x/h));
-                int j = int(i);
-
-                list[j] = atomicExchange(lists[index.y][index.x], j);
-            }
-        }
-
-        barrier();
-*/
-        // each thread works with own list[y][x]
-        int cur = list[particles+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x];
-
-        //int cur = lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x];
-        while (cur != -1) {
-            vec3 x = vec3(Position[cur]) - vec3(origin);
-            ivec3 index = ivec3(floor(x/h));
-            int cell_id = off(index.z,index.y,index.x);
-            uint n = cell_data[cell_id*cell_size];
-            if (n < max_per_cell) {
-                cell_data[cell_id*cell_size+n+1] = cur;
-                cell_data[cell_id*cell_size] = n+1;
-            }
-
-            cur = list[cur];
-        }
-
-        // 2. use sorted
-        barrier();
-    }
-
-    if (stage == 0) {
-        calc_force_single();
-    } else if (stage == 2) {
+    //if (stage == 0) {
+    //    calc_force_single();
+    //} else if (stage == 2) {
         calc_force();
         //calc_force_single();
-    }
+    //}
 }

@@ -92,6 +92,7 @@ set(SHADERS
     models/particles.comp
     models/particles3_pm.comp
     models/particles3_pp.comp
+    models/particles3_pp_sort.comp
     font/font.frag
     font/font.vert
     )
