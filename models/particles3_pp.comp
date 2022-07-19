@@ -68,12 +68,21 @@ float erfc(float x) {
    }
 }
 
+uint mx = 128;
+shared vec4 coords[128];
+
 void process(uint id, uint other, vec3 dh, int from, int to) {
     uint i0,j0;
     const float eps = 0.001; // TODO
     const uint n1 = cell_data[id*cell_size];
     const uint n2 = cell_data[other*cell_size];
+/*
+    for (j0 = 0; j0 < n2 && j0 < max_per_cell; j0++) {
+        coords[j0] = Position[cell_data[other*cell_size+j0+1]];
+    }
 
+    barrier();
+*/
     for (i0 = from; i0 < to && i0 < n1 && i0 < max_per_cell; i0++) {
         uint i = cell_data[id*cell_size+i0+1];
         vec3 ri = vec3(Position[i]) + dh;
@@ -82,13 +91,16 @@ void process(uint id, uint other, vec3 dh, int from, int to) {
             uint j = cell_data[other*cell_size+j0+1];
             if (i != j) {
                 vec3 rj = vec3(Position[j]);
+                float mass = Position[j].w;
+                //vec3 rj = vec3(coords[j0]);
+                //float mass = coords[j0].w;
                 float R = length(rj-ri);
                 R += eps;
                 if (R < rcrit) {
                     float kk = erfc(R/2/rcrit)
                         +R/rcrit/sqrt(M_PI)*exp(-R*R/4/rcrit/rcrit);
                     //float kk = 1;
-                    F[i] += - Position[j].w * G * kk * vec4((ri-rj),0)/R/R/R;
+                    F[i] += - mass * G * kk * vec4((ri-rj),0)/R/R/R;
                 }
             }
         }
@@ -132,23 +144,23 @@ void calc_force_single()
     }
 }
 
-void calc_force()
+void calc_force_(int i, int k, int j)
 {
-    int i,k,j;
     int i0,k0,j0;
     vec3 dh = vec3(0);
 
-    i = int(gl_WorkGroupID.z);
-    k = int(gl_WorkGroupID.y);
-    j = int(gl_WorkGroupID.x);
-
-    uint threads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+    //uint threads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+    //uint threads = gl_WorkGroupSize.y;
+    uint threads = gl_NumWorkGroups.y;
 
     const int id = off(i,k,j);
     const uint n1 = cell_data[id*cell_size];
     int work_size = int((n1+threads-1)/threads);
-    int from = int(gl_LocalInvocationIndex*work_size);
-    int to = from+work_size;
+    //int from = int(gl_LocalInvocationIndex*work_size);
+    //int from = int(gl_LocalInvocationID.y*work_size);
+    int from = int(gl_WorkGroupID.y*work_size);
+    int to = min(from+work_size,particles);
+    //int from = 0; int to = int(n1);
     for (i0 = from; i0 < to; i0++) {
         F[cell_data[id*cell_size+i0+1]] = vec4(0);
     }
@@ -157,6 +169,24 @@ void calc_force()
             for (j0 = -1; j0 <= 1; j0++) {
                 calc_off(dh, i+i0, k+k0, j+j0);
                 process(id, poff(i+i0,k+k0,j+j0), dh, from, to);
+            }
+        }
+    }
+}
+
+void calc_force()
+{
+    int i = int(gl_WorkGroupID.x);
+    int k = int(gl_LocalInvocationID.y);
+    //int k = int(gl_WorkGroupID.y);
+    int j = int(gl_LocalInvocationID.x);
+
+    int kk = nn/32;
+
+    for (int z = 0; z < kk; z++) {
+        for (int y = 0; y < kk; y++) {
+            for (int x = 0; x < kk; x++) {
+                calc_force_(z*32+i, y*32+k, x*32+j);
             }
         }
     }
@@ -231,5 +261,6 @@ void main() {
         calc_force_single();
     } else if (stage == 2) {
         calc_force();
+        //calc_force_single();
     }
 }

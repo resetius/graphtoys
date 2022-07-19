@@ -352,7 +352,10 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             t->r->counter_submit(t->r, t->counter_pp_sort);
             t->comp_pp_set.stage = 2;
             t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
-            t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
+            int groups = t->comp_pp_set.nn;
+            //t->comp_pp->start_compute(t->comp_pp, groups, groups, groups);
+            //t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
+            t->comp_pp->start_compute(t->comp_pp, 32, 4, 1);
             t->r->counter_submit(t->r, t->counter_pp);
         }
     }
