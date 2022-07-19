@@ -124,7 +124,7 @@ void calc_force_single()
         for (i0 = -1; i0 <= 1; i0++) {
             for (k0 = -1; k0 <= 1; k0++) {
                 for (j0 = -1; j0 <= 1; j0++) {
-                    calc_off(dh, i, k, j);
+                    calc_off(dh, i+i0, k+k0, j+j0);
                     process(off(i,k,j), poff(i+i0,k+k0,j+j0), dh, 0, int(n1));
                 }
             }
@@ -155,7 +155,7 @@ void calc_force()
     for (i0 = -1; i0 <= 1; i0++) {
         for (k0 = -1; k0 <= 1; k0++) {
             for (j0 = -1; j0 <= 1; j0++) {
-                calc_off(dh, i, k, j);
+                calc_off(dh, i+i0, k+k0, j+j0);
                 process(id, poff(i+i0,k+k0,j+j0), dh, from, to);
             }
         }
