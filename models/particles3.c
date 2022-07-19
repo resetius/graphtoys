@@ -94,6 +94,7 @@ struct Particles {
     int counter_pp_sort;
     int counter_pp;
     int counter_pos;
+    int counter_frag;
     //
 
     struct VertBlock vert;
@@ -369,6 +370,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     t->pl->draw(t->pl, t->indices_vao);
     t->r->counter_submit(t->r, t->counter_pos);
+    t->r->counter_submit(t->r, t->counter_frag);
 
     t->T += t->vert.dt;
     if (t->expansion > 0.01) {
@@ -650,6 +652,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->counter_pp_sort = r->counter_new(r, "pp_sort", COUNTER_COMPUTE);
     t->counter_pp = r->counter_new(r, "pp", COUNTER_COMPUTE);
     t->counter_pos = r->counter_new(r, "pos", COUNTER_VERTEX);
+    t->counter_frag = r->counter_new(r, "frag", COUNTER_FRAG);
 
     particles_data_destroy(&data);
     return (struct Object*)t;

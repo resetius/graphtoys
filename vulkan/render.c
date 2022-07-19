@@ -96,18 +96,23 @@ static void compute_counters_end_(struct RenderImpl* r)
 static void print_compute_stats_(struct Render* r1)
 {
     struct RenderImpl* r = (struct RenderImpl*)r1;
-
+    double total = 0;
     for (int i = 0; i < 32; i++) {
         if (r->counters[i].count) {
             double value = r->counters[i].value
                 *r->properties.limits.timestampPeriod*1e-6
                 /r->counters[i].count;
 
+            total += value;
+
             printf("%02d %s %.2fms\n", i, r->counters[i].name, value);
 
             r->counters[i].count = 0;
             r->counters[i].value = 0;
         }
+    }
+    if (total > 0) {
+        printf("Total: %.2fms\n", total);
     }
 }
 
@@ -135,7 +140,9 @@ static void counter_submit_(struct Render* r1, int id)
     } else {
         vkCmdWriteTimestamp(
             r->buffer,
-            VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+            r->counters[id].type == COUNTER_VERTEX
+            ?VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
+            :VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
             r->timestamps,
             r->timestamp++
             );
