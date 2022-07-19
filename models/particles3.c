@@ -629,11 +629,15 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_pp_set.rcrit = t->comp_pp_set.h; // TODO
     t->comp_set.rcrit = t->comp_pp_set.rcrit;
 
-    t->pp_force = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);
-    int cells_size =
-        t->comp_pp_set.nn*t->comp_pp_set.nn*t->comp_pp_set.nn*
-        t->comp_pp_set.cell_size*sizeof(int);
-    t->cells = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,NULL,cells_size);
+    if (t->pp_enabled) {
+        t->pp_force = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);
+
+        int cells_size =
+            t->comp_pp_set.nn*t->comp_pp_set.nn*t->comp_pp_set.nn*
+            t->comp_pp_set.cell_size*sizeof(int);
+
+        t->cells = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,NULL,cells_size);
+    }
 
     t->list = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, (t->particles+64*32*32)*sizeof(int));
 
@@ -657,17 +661,18 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp->storage_assign(t->comp, 7, t->list);
     t->comp->storage_assign(t->comp, 8, t->vrho_index);
 
-    t->comp_pp->uniform_assign(t->comp_pp, 0, t->comp_pp_settings);
-    t->comp_pp->storage_assign(t->comp_pp, 1, t->cells);
-    t->comp_pp->storage_assign(t->comp_pp, 2, t->pos);
-    t->comp_pp->storage_assign(t->comp_pp, 3, t->pp_force);
-    t->comp_pp->storage_assign(t->comp_pp, 4, t->list);
+    if (t->pp_enabled) {
+        t->comp_pp->uniform_assign(t->comp_pp, 0, t->comp_pp_settings);
+        t->comp_pp->storage_assign(t->comp_pp, 1, t->cells);
+        t->comp_pp->storage_assign(t->comp_pp, 2, t->pos);
+        t->comp_pp->storage_assign(t->comp_pp, 3, t->pp_force);
+        t->comp_pp->storage_assign(t->comp_pp, 4, t->list);
 
-    t->comp_pp_sort->uniform_assign(t->comp_pp_sort, 0, t->comp_pp_settings);
-    t->comp_pp_sort->storage_assign(t->comp_pp_sort, 1, t->cells);
-    t->comp_pp_sort->storage_assign(t->comp_pp_sort, 2, t->pos);
-    t->comp_pp_sort->storage_assign(t->comp_pp_sort, 3, t->list);
-
+        t->comp_pp_sort->uniform_assign(t->comp_pp_sort, 0, t->comp_pp_settings);
+        t->comp_pp_sort->storage_assign(t->comp_pp_sort, 1, t->cells);
+        t->comp_pp_sort->storage_assign(t->comp_pp_sort, 2, t->pos);
+        t->comp_pp_sort->storage_assign(t->comp_pp_sort, 3, t->list);
+    }
     t->counter_density_sort = r->counter_new(r, "density_sort", COUNTER_COMPUTE);
     t->counter_density = r->counter_new(r, "density", COUNTER_COMPUTE);
     t->counter_psi = r->counter_new(r, "psi", COUNTER_COMPUTE);
