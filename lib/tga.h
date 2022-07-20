@@ -13,7 +13,7 @@
 /// <param name='dataBGRA'>A chunk of color data, one channel per byte, ordered as BGRA. Size should be width*height*dataChanels.</param>
 /// <param name='dataChannels'>The number of channels in the color data. Use 1 for grayscale, 3 for BGR, and 4 for BGRA.</param>
 /// <param name='fileChannels'>The number of color channels to write to file. Must be 3 for BGR, or 4 for BGRA. Does NOT need to match dataChannels.</param>
-void tga_write(const char *filename, uint32_t width, uint32_t height, uint8_t *dataBGRA, uint8_t dataChannels, uint8_t fileChannels)
+void tga_write(const char *filename, int width, int height, uint8_t *dataBGRA, int dataChannels, int fileChannels)
 {
     FILE *fp = NULL;
     // MSVC prefers fopen_s, but it's not portable
@@ -25,9 +25,9 @@ void tga_write(const char *filename, uint32_t width, uint32_t height, uint8_t *d
     uint8_t header[18] = { 0,0,2,0,0,0,0,0,0,0,0,0, (uint8_t)(width%256), (uint8_t)(width/256), (uint8_t)(height%256), (uint8_t)(height/256), (uint8_t)(fileChannels*8), 0x20 };
     fwrite(&header, 18, 1, fp);
 
-    for (uint32_t i = 0; i < width*height; i++)
+    for (int i = 0; i < width*height; i++)
     {
-        for (uint32_t b = 0; b < fileChannels; b++)
+        for (int b = 0; b < fileChannels; b++)
         {
             fputc(dataBGRA[(i*dataChannels) + (b%dataChannels)], fp);
         }
