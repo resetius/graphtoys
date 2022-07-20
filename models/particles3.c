@@ -6,6 +6,7 @@
 #include <render/pipeline.h>
 
 #include <lib/linmath.h>
+#include <font/font.h>
 
 #include <models/particles3.vert.h>
 #include <models/particles2.frag.h>
@@ -118,6 +119,12 @@ struct Particles {
     double ax, ay, az;
     double T;
     double expansion;
+
+    // labels
+    struct Font* font;
+    struct Label label;
+    float label_color[4];
+    int label_enabled;
 };
 
 static int max(int a, int b) {
@@ -389,6 +396,13 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     //printf("%e %e %e\n", rho0, t->vert.a, t->vert.dota);
 
 //    t->pl->storage_swap(t->pl, 1, 2);
+
+    if (t->label_enabled) {
+        label_set_screen(&t->label, ctx->w, ctx->h);
+        label_set_vtext(&t->label, "T: %.2f", t->T);
+        label_set_pos(&t->label, 10, ctx->h-50);
+        label_render(&t->label);
+    }
 }
 
 static void free_(struct Object* obj) {
@@ -399,6 +413,8 @@ static void free_(struct Object* obj) {
     free(t->psi);
     free(t->pos_data);
     free(t->density);
+    label_dtor(&t->label);
+    font_free(t->font);
     free(obj);
 }
 
@@ -690,5 +706,19 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->counter_frag = r->counter_new(r, "frag", COUNTER_FRAG);
 
     particles_data_destroy(&data);
+
+    t->font = font_new(r, 0, 16*64, 150, 150);
+    label_ctor(&t->label, t->font);
+    label_set_text(&t->label, "T: ");
+    label_set_pos(&t->label, 50, 50);
+
+    t->label_color[0] = 0;
+    t->label_color[1] = 1;
+    t->label_color[2] = 2;
+    t->label_color[3] = 3;
+    cfg_getv4_def(cfg, t->label_color, "label_color", t->label_color);
+    label_set_color(&t->label, t->label_color);
+    t->label_enabled = cfg_geti_def(cfg, "label_show", 0);
+
     return (struct Object*)t;
 }

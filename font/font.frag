@@ -7,6 +7,7 @@ layout (set = 0, binding = 0)
 #endif
 uniform MatrixBlock {
     mat4 MVP;
+    vec4 color;
 };
 
 layout (location = 0) in vec2 TexCoord;
@@ -19,5 +20,5 @@ uniform sampler2D Texture;
 
 void main() {
     float x = texture(Texture, TexCoord).x;
-    fragColor = vec4(0.0, x, x, x);
+    fragColor = color * x;
 }

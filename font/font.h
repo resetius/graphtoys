@@ -12,6 +12,7 @@ struct Label {
     struct Font* f;
     uint32_t* text;
     struct BufferPair* buf;
+    float color[4];
     int len;
     int cap;
 
@@ -39,5 +40,6 @@ void label_set_text(struct Label* l, const char* s);
 void label_set_vtext(struct Label* l, const char* s, ...);
 void label_set_pos(struct Label* l, int x, int y);
 void label_set_screen(struct Label* l, int w, int h);
+void label_set_color(struct Label* l, float color[4]);
 void label_render(struct Label* l);
 void label_free(struct Label* l);

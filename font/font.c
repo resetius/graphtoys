@@ -21,6 +21,7 @@
 
 struct UniformBlock {
     mat4x4 mvp;
+    float color[4];
 };
 
 struct BufferPair {
@@ -30,7 +31,6 @@ struct BufferPair {
 
 struct FontImpl {
     struct Char* chars[65536];
-    struct UniformBlock uniform;
     struct Pipeline* pl;
     struct BufferManager* b;
     int current_id;
@@ -144,7 +144,7 @@ struct Font* font_new(struct Render* r, int char_w, int char_h, int dev_w, int d
 
     t->pl = pl;
 
-    t->uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(t->uniform));
+    t->uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
     pl_uniform_assign(t->pl, 0, t->uniform_id);
 
     FT_Done_Face(face);
@@ -249,21 +249,29 @@ void label_set_screen(struct Label* l, int w, int h) {
     l->dirty = 5;
 }
 
+void label_set_color(struct Label* l, float color[4]) {
+    memcpy(l->color, color, sizeof(l->color));
+}
+
 void label_render(struct Label* l)
 {
     struct FontImpl* f = (struct FontImpl*)l->f;
     int x = l->x;
     int y = l->y;
-    mat4x4 m, p, mvp;
+    mat4x4 m, p;
     struct Char* ch;
+    struct UniformBlock uniform;
     int i;
     mat4x4_identity(m);
     mat4x4_ortho(p, 0, l->w, 0, l->h, 1.f, -1.f);
     p[3][2] = 0;
-    mat4x4_mul(mvp, p, m);
+    mat4x4_mul(uniform.mvp, p, m);
+    memcpy(uniform.color, l->color, sizeof(l->color));
 
     if (l->dirty--) {
-        buffer_update(f->b, f->uniform_id, mvp, 0, sizeof(mvp));
+        //TODO: update_sync not works for graphics queue?
+        //f->b->update_sync(f->b, f->uniform_id, &uniform, 0, sizeof(uniform), 0);
+        buffer_update(f->b, f->uniform_id, &uniform, 0, sizeof(uniform));
     }
     f->pl->start(f->pl);
 
@@ -319,6 +327,10 @@ void label_ctor(struct Label* l, struct Font* f) {
     l->f = f;
     l->id = f1->current_id ++;
     l->dirty = 5;
+    l->color[0] = 0;
+    l->color[1] = 1;
+    l->color[2] = 1;
+    l->color[3] = 1;
 }
 
 void label_dtor(struct Label* l) {
