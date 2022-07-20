@@ -124,8 +124,8 @@ static void screenshot(struct Render* r, void** data, int* w, int* h) {
     glGetIntegerv(GL_VIEWPORT, viewport);
     *w = viewport[2];
     *h = viewport[3];
-    data = malloc(*w**h*4);
-    glReadPixels(0, 0, viewport[2], viewport[3], GL_RGBA, GL_UNSIGNED_BYTE, data);
+    *data = malloc(*w**h*4);
+    glReadPixels(0, 0, viewport[2], viewport[3], GL_RGBA, GL_UNSIGNED_BYTE, *data);
 }
 
 static void gl_info() {
