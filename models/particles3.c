@@ -629,9 +629,10 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_pp_set.rcrit = t->comp_pp_set.h; // TODO
     t->comp_set.rcrit = t->comp_pp_set.rcrit;
 
-    if (t->pp_enabled) {
-        t->pp_force = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);
+    // TODO: don't allocate it for pp-only
+    t->pp_force = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);
 
+    if (t->pp_enabled) {
         int cells_size =
             t->comp_pp_set.nn*t->comp_pp_set.nn*t->comp_pp_set.nn*
             t->comp_pp_set.cell_size*sizeof(int);
