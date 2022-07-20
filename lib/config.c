@@ -277,3 +277,17 @@ double cfg_getf_def(struct Config* root, const char* name, double def) {
     sscanf(str, "%lf", &ret);
     return ret;
 }
+
+void cfg_getv4_def(struct Config* c, float out[4], const char* name, const float def[4])
+{
+    char buf[1024];
+    snprintf(buf, sizeof(buf)-1, "%.8f,%.8f,%.8f,%.8f", def[0], def[1], def[2], def[3]);
+    char* str = strdup(cfg_gets_def(c, name, buf));
+    const char* sep = ",";
+    int i = 0;
+    for (char* tok = strtok(str, sep); tok; tok = strtok(NULL, sep)) {
+        float num = atof(tok);
+        out[i++] = num;
+    }
+    free(str);
+}
