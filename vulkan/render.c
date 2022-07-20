@@ -501,6 +501,10 @@ static void set_viewport_(struct Render* r1, int w, int h) {
     r->update_viewport = 1;
 }
 
+static void screenshot_(struct Render* r, int* w, int* h) {
+    /* unimplemented */
+}
+
 struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r);
 struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm);
 
@@ -520,6 +524,7 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg) {
         .print_compute_stats = print_compute_stats_,
         .counter_new = counter_new_,
         .counter_submit = counter_submit_,
+        .screenshot = screenshot_,
     };
     uint32_t extensionCount = 0;
     const char** glfwExtensionNames = glfwGetRequiredInstanceExtensions(&extensionCount);

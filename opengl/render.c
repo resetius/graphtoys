@@ -119,6 +119,10 @@ static void draw_end_(struct Render* r) {
     glfwSwapBuffers(((struct RenderImpl*)r)->window);
 }
 
+static void screenshot(struct Render* r, int* w, int* h) {
+    /* unimplemented */
+}
+
 static void gl_info() {
     const GLubyte* renderer = glGetString(GL_RENDERER);
     const GLubyte* version = glGetString(GL_VERSION);
@@ -231,6 +235,7 @@ struct Render* rend_opengl_new(struct RenderConfig cfg)
         .print_compute_stats = print_compute_stats_,
         .counter_new = counter_new,
         .counter_submit = counter_submit,
+        .screenshot = screenshot,
     };
     r->base = base;
     r->cfg = cfg;
