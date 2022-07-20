@@ -501,8 +501,11 @@ static void set_viewport_(struct Render* r1, int w, int h) {
     r->update_viewport = 1;
 }
 
-static void screenshot_(struct Render* r, int* w, int* h) {
+static void screenshot_(struct Render* r, void** data, int* w, int* h) {
     /* unimplemented */
+    *data = NULL;
+    *w = 0;
+    *h = 0;
 }
 
 struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r);

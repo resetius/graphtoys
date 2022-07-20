@@ -119,8 +119,13 @@ static void draw_end_(struct Render* r) {
     glfwSwapBuffers(((struct RenderImpl*)r)->window);
 }
 
-static void screenshot(struct Render* r, int* w, int* h) {
-    /* unimplemented */
+static void screenshot(struct Render* r, void** data, int* w, int* h) {
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    *w = viewport[2];
+    *h = viewport[3];
+    data = malloc(*w**h*4);
+    glReadPixels(0, 0, viewport[2], viewport[3], GL_RGBA, GL_UNSIGNED_BYTE, data);
 }
 
 static void gl_info() {

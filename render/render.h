@@ -50,7 +50,7 @@ struct Render {
     int (*counter_new)(struct Render*, const char* name, enum CounterType counter_type);
     void (*counter_submit)(struct Render*, int id);
 
-    void (*screenshot)(struct Render*, int* w, int* h);
+    void (*screenshot)(struct Render*, void** data, int* w, int* h);
 };
 
 struct Render* rend_opengl_new(struct RenderConfig cfg);
