@@ -52,6 +52,20 @@ static void test_newkey(void** state)
     cfg_free(cfg);
 }
 
+static void test_getv(void** state)
+{
+    char buf[1024];
+    get_config_fname(buf, sizeof(buf), (char*)*state, "config1.ini");
+    struct Config* cfg = cfg_new(buf, 0, NULL);
+    float def[4] = {0.1,0.2,0.3,0.4};
+    float out[4] = {0};
+    cfg_getv4_def(cfg, out, "section1:vec4", def);
+    for (int i = 0; i < 4; i++) {
+        assert_float_equal(def[i], out[i], 1e-8);
+    }
+    cfg_free(cfg);
+}
+
 int main(int argc, char** argv) {
     char dir[10240] = {0};
     if (argc > 1) {
@@ -62,6 +76,7 @@ int main(int argc, char** argv) {
         cmocka_unit_test_prestate(test_parse, dir),
         cmocka_unit_test_prestate(test_rewrite, dir),
         cmocka_unit_test_prestate(test_newkey, dir),
+        cmocka_unit_test_prestate(test_getv, dir),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
