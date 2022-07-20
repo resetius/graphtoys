@@ -21,6 +21,8 @@
 
 #include <lib/verify.h>
 #include <lib/config.h>
+#include <lib/tga.h>
+
 #include "particles3.h"
 #include "particles_data.h"
 
