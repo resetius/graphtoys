@@ -4,6 +4,7 @@
 layout(std140, binding=0) uniform MatrixBlock {
     mat4 MVP;
     vec4 origin;
+    vec4 out_color;
     float h;
     float DeltaT;
     float a;
@@ -71,7 +72,7 @@ void main()
     gl_Position = MVP * vec4(vec3(vPos), 1);
     gl_PointSize = max(1, min(30, pow(vPos.w, 1./3.))); // mass
     if (mass > 0) {
-        color = vec4(1.0, 0.0, 1.0, 1.0);
+        color = out_color;
     } else {
         color = vec4(0);
     }

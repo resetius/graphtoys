@@ -49,6 +49,7 @@ struct CompPPSettings {
 struct VertBlock {
     mat4x4 mvp;
     vec4 origin;
+    vec4 color;
     float h;
     float dt;
     float a;
@@ -545,7 +546,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     float l = cfg_getf_def(cfg, "l", 2000);
     t->single_pass = cfg_geti_def(cfg, "single_pass", 0);
     t->pp_enabled = cfg_geti_def(cfg, "pp", 0);
-    t->z = z0 + l + 0.1;
+    t->z = z0 + l + cfg_geti_def(cfg, "zoff", 1);
     t->expansion = cfg_getf_def(cfg, "expansion", 0);
 
     float origin[] = {x0, y0, z0};
@@ -566,6 +567,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->vert.dt = cfg_getf_def(cfg, "dt", 0.001);
     t->vert.a = 1;
     t->vert.dota = 0;
+    t->vert.color[0] = 1;
+    t->vert.color[1] = 0;
+    t->vert.color[2] = 1;
+    t->vert.color[3] = 1;
+    cfg_getv4_def(cfg, t->vert.color, "color", t->vert.color);
 
     t->density = NULL;
     t->density = malloc(nn*nn*nn*sizeof(float));
