@@ -119,12 +119,16 @@ struct Particles {
     double ax, ay, az;
     double T;
     double expansion;
+    int step;
 
     // labels
     struct Font* font;
     struct Label label;
     float label_color[4];
     int label_enabled;
+
+    // screenshots
+    int plot_interval;
 };
 
 static int max(int a, int b) {
@@ -402,6 +406,13 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         label_set_vtext(&t->label, "T: %.2f", t->T);
         label_set_pos(&t->label, 10, ctx->h-50);
         label_render(&t->label);
+    }
+
+    if (t->plot_interval >= 0) {
+        void* data;
+        int w, h;
+        t->r->screenshot(t->r, &data, &w, &h);
+        free(data);
     }
 }
 
@@ -719,6 +730,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     cfg_getv4_def(cfg, t->label_color, "label_color", t->label_color);
     label_set_color(&t->label, t->label_color);
     t->label_enabled = cfg_geti_def(cfg, "label_show", 0);
+
+    t->plot_interval = cfg_geti_def(cfg, "plot_interval", -1);
 
     return (struct Object*)t;
 }
