@@ -726,7 +726,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     particles_data_destroy(&data);
 
-    t->font = font_new(r, 0, 16*64, 150, 150);
+    int font_size = cfg_geti_def(cfg, "label_font_size", 150);
+    t->font = font_new(r, 0, 16*64, font_size, font_size);
     label_ctor(&t->label, t->font);
     label_set_text(&t->label, "T: ");
     label_set_pos(&t->label, 50, 50);
