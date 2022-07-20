@@ -383,6 +383,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     t->r->counter_submit(t->r, t->counter_frag);
 
     t->T += t->vert.dt;
+    t->step += 1;
     if (t->expansion > 0.01) {
         t->vert.a = t->expansion*pow(t->T, 2./3.);
         t->vert.dota = t->expansion*2./3.*pow(t->T, -1./3.);
@@ -410,11 +411,16 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         label_render(&t->label);
     }
 
-    if (t->plot_interval >= 0) {
+    if (t->plot_interval >= 0 && t->step%t->plot_interval == 0) {
+        char buf[1024];
         void* data;
         int w, h;
+        snprintf(buf, sizeof(buf)-1, "particles3.%06d.tga", t->step);
         t->r->screenshot(t->r, &data, &w, &h);
-        free(data);
+        if (data) {
+            tga_write(buf, w, h, data, 4, 4);
+            free(data);
+        }
     }
 }
 
