@@ -7,6 +7,7 @@ layout (set = 0, binding = 0)
 #endif
 uniform MatrixBlock {
     mat4 MVP;
+    vec4 color;
 };
 
 layout (location = 1) in vec4 vPos;

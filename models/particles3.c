@@ -733,8 +733,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     t->label_color[0] = 0;
     t->label_color[1] = 1;
-    t->label_color[2] = 2;
-    t->label_color[3] = 3;
+    t->label_color[2] = 1;
+    t->label_color[3] = 1;
     cfg_getv4_def(cfg, t->label_color, "label_color", t->label_color);
     label_set_color(&t->label, t->label_color);
     t->label_enabled = cfg_geti_def(cfg, "label_show", 0);
