@@ -190,21 +190,12 @@ static void fill_render_config(struct RenderConfig* r, struct Config* cfg) {
     r->vidmode = cfg_geti_def(cfg, "render:vidmode", -1);
     r->cfg = cfg_section(cfg, "render");
 
-    const char* clear_color_str = "0,0,0,1";
-    clear_color_str = cfg_gets_def(cfg, "render:clear_color", clear_color_str);
-    char* str = strdup(clear_color_str);
-    const char* sep = ",";
-    int i = 0;
     r->clear_color[0] = 0;
     r->clear_color[1] = 0;
     r->clear_color[2] = 0;
     r->clear_color[3] = 1;
 
-    for (char* tok = strtok(str, sep); tok; tok = strtok(NULL, sep)) {
-        float num = atof(tok);
-        r->clear_color[i++] = num;
-    }
-    free(str);
+    cfg_getv4_def(cfg, r->clear_color, "render:clear_color", r->clear_color);
 }
 
 int main(int argc, char** argv)
