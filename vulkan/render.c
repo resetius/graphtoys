@@ -198,16 +198,10 @@ static void draw_begin_(struct Render* r1) {
     vkCmdSetViewport(r->buffer, 0, 1, &r->viewport);
     vkCmdSetScissor(r->buffer, 0, 1, &r->scissor);
 
-    VkClearColorValue color =  {
-        .float32 = {0.0f, 0.0f, 0.0f, 1.0f}
-    };
-    VkClearValue clear_color = {
-        .color = color
-    };
     VkClearValue clear_depth = {
         .depthStencil = {1.0f, 0}
     };
-    VkClearValue values[] = { clear_color, clear_depth };
+    VkClearValue values[] = { r->clear_color, clear_depth };
 
     rp_begin(
         &r->rp,
@@ -476,6 +470,20 @@ static void init_(struct Render* r1) {
     r->queries_per_frame = 32;
     r->queries_delay = 3;
     r->query = 0;
+
+    VkClearColorValue color =  {
+        .float32 = {
+            r->cfg.clear_color[0],
+            r->cfg.clear_color[1],
+            r->cfg.clear_color[2],
+            r->cfg.clear_color[3]
+        }
+    };
+    VkClearValue clear_color = {
+        .color = color
+    };
+
+    memcpy(&r->clear_color, &clear_color, sizeof(clear_color));
 }
 
 static void set_viewport_(struct Render* r1, int w, int h) {

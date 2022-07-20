@@ -85,6 +85,10 @@ struct RenderImpl {
     VkRect2D scissor;
     int update_viewport;
 
+    //{ clear
+    VkClearValue clear_color;
+    //} clear
+
     // stats
     struct VkStats* stats; // unfinished
 

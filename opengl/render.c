@@ -144,6 +144,11 @@ static void init_(struct Render* r1) {
 
     glGetIntegerv(GL_MAJOR_VERSION, &r->major);
     glGetIntegerv(GL_MINOR_VERSION, &r->minor);
+    glClearColor(
+        r->cfg.clear_color[0],
+        r->cfg.clear_color[1],
+        r->cfg.clear_color[2],
+        r->cfg.clear_color[3]);
 
     if (r->major > 4 || (r->major == 4 && r->minor >= 3)) {
         glEnable(GL_DEBUG_OUTPUT);
