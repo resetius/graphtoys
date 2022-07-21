@@ -18,6 +18,8 @@ struct RenderConfig {
     int triple_buffer;
     int fullscreen;
     int vidmode;
+    int width;
+    int height;
     float clear_color[4];
 
     struct Config* cfg;
