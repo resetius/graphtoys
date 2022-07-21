@@ -382,8 +382,6 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     t->r->counter_submit(t->r, t->counter_pos);
     t->r->counter_submit(t->r, t->counter_frag);
 
-    t->T += t->vert.dt;
-    t->step += 1;
     if (t->expansion > 0.01) {
         t->vert.a = t->expansion*pow(t->T, 2./3.);
         t->vert.dota = t->expansion*2./3.*pow(t->T, -1./3.);
@@ -422,6 +420,9 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             free(data);
         }
     }
+
+    t->T += t->vert.dt;
+    t->step += 1;
 }
 
 static void free_(struct Object* obj) {
