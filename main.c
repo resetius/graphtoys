@@ -189,6 +189,8 @@ static void fill_render_config(struct RenderConfig* r, struct Config* cfg) {
     r->fullscreen = strcmp(cfg_gets_def(cfg, "render:fullscreen", "off"), "on") == 0;
     r->vidmode = cfg_geti_def(cfg, "render:vidmode", -1);
     r->cfg = cfg_section(cfg, "render");
+    r->width = cfg_geti_def(cfg, "render:width", 640);
+    r->height = cfg_geti_def(cfg, "render:height", 480);
 
     r->clear_color[0] = 0;
     r->clear_color[1] = 0;
@@ -277,7 +279,7 @@ int main(int argc, char** argv)
     /* Create a windowed mode window and its OpenGL context */
     char caption[256];
     snprintf(caption, sizeof(caption), "GraphToys (%s)", rcfg.api);
-    window = glfwCreateWindow(640, 480, caption, NULL, NULL);
+    window = glfwCreateWindow(rcfg.width, rcfg.height, caption, NULL, NULL);
     if (!window)
     {
         glfwTerminate();
