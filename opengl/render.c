@@ -126,6 +126,15 @@ static void screenshot(struct Render* r, void** data, int* w, int* h) {
     *h = viewport[3];
     *data = malloc(*w**h*4);
     glReadPixels(0, 0, viewport[2], viewport[3], GL_RGBA, GL_UNSIGNED_BYTE, *data);
+
+    int* M = *data;
+    for (int i = 0; i < *h/2; i++) {
+        for (int j = 0; j < *w; j++) {
+            int t = M[i**w+j];
+            M[i**w+j] = M[(*h-i-1)**w+j];
+            M[(*h-i-1)**w+j] = t;
+        }
+    }
 }
 
 static void gl_info() {
