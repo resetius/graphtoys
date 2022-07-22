@@ -32,7 +32,7 @@ static struct BufferBase* buffer_acquire_(struct BufferManagerBase* b, int size)
         buf->id = id;
     }
     b->total_memory += size;
-    printf("(%p) buffer memory: %lld\n", b, (long long)b->total_memory);
+    printf("(%p) buffer memory: %lld +%d\n", b, (long long)b->total_memory, (long long)size);
     buf->valid = 1;
     buf->size = size;
     return buf;
