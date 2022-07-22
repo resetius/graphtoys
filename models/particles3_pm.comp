@@ -222,9 +222,6 @@ void pFFT(uint ooff, uint ioff, float dx, int N, int n) {
 #define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
 #define poff(i,k,j) (((i+nn)%nn)*nn*nn+((k+nn)%nn)*nn+((j+nn)%nn))
 
-//const int nl = 32; // 64 for nvidia, 32 for apple-m1
-//shared int lists[nl][nl];
-
 void mass_distribution() {
     uint threads = xsize*ysize*zsize;
     uint work_size = (particles + threads - 1) / threads;
