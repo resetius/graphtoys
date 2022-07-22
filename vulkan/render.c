@@ -43,6 +43,8 @@ static void free_(struct Render* r1) {
         vkDestroySemaphore(r->log_dev, r->recycled_semaphores[i], NULL);
     }
 
+    vkDestroyQueryPool(r->log_dev, r->timestamps, NULL);
+
     vkDestroyDevice(r->log_dev, NULL);
     vkDestroySurfaceKHR(r->instance, r->surface, NULL);
     vkDestroyInstance(r->instance, NULL);

@@ -102,6 +102,7 @@ L2_FUNC(vkDestroyRenderPass);
 L2_FUNC(vkDestroySampler);
 L2_FUNC(vkDestroyShaderModule);
 L2_FUNC(vkDestroySwapchainKHR);
+L2_FUNC(vkDestroyQueryPool);
 L2_FUNC(vkFreeMemory);
 L2_FUNC(vkGetBufferMemoryRequirements);
 L2_FUNC(vkGetImageMemoryRequirements);
