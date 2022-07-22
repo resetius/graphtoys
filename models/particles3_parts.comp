@@ -61,6 +61,4 @@ void main() {
 
     list[particles+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x] =
         lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x];
-
-    barrier();
 }
