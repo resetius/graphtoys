@@ -543,8 +543,12 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg) {
     exts = malloc(allExtCount*sizeof(VkExtensionProperties));
     vkEnumerateInstanceExtensionProperties(NULL, &allExtCount, exts);
     printf("Supported instance extensions:\n");
+    int hasPortabilityEnumeration = 0;
     for (int i = 0; i < allExtCount; i++) {
         printf("'%s'\n", exts[i].extensionName);
+        if (!strcmp(exts[i].extensionName, "VK_KHR_portability_enumeration")) {
+            hasPortabilityEnumeration = 1;
+        }
     }
     printf("\n");
     free(exts);
@@ -554,6 +558,9 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg) {
         extensionNames[i] = glfwExtensionNames[i];
     }
     extensionNames[i++] = "VK_KHR_get_physical_device_properties2";
+    if (hasPortabilityEnumeration) {
+        extensionNames[i++] = "VK_KHR_portability_enumeration";
+    }
     extensionCount = i;
     VkApplicationInfo appInfo = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -567,7 +574,9 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg) {
     VkInstanceCreateInfo vkInstanceInfo = {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
         .pNext = NULL,
-        .flags = 0,
+        .flags = hasPortabilityEnumeration
+            ? VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
+            : 0,
         .pApplicationInfo = &appInfo,
         .enabledLayerCount = 0,
         .enabledExtensionCount = extensionCount,
