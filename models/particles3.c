@@ -10,11 +10,13 @@
 
 #include <models/particles3.vert.h>
 #include <models/particles2.frag.h>
+#include <models/particles3_parts.comp.h>
 #include <models/particles3_pm.comp.h>
 #include <models/particles3_pp.comp.h>
 #include <models/particles3_pp_sort.comp.h>
 #include <models/particles3.vert.spv.h>
 #include <models/particles2.frag.spv.h>
+#include <models/particles3_parts.comp.spv.h>
 #include <models/particles3_pm.comp.spv.h>
 #include <models/particles3_pp.comp.spv.h>
 #include <models/particles3_pp_sort.comp.spv.h>
@@ -62,6 +64,7 @@ struct VertBlock {
 
 struct Particles {
     struct Object base;
+    struct Pipeline* comp_parts;
     struct Pipeline* comp;
     struct Pipeline* comp_pp;
     struct Pipeline* comp_pp_sort;
@@ -327,6 +330,11 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 //    buffer_update(t->b, t->density_index, t->density, 0, nn*nn*nn*sizeof(float));
 
     //printf("particles %d\n", t->particles);
+
+    t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
+    t->comp_parts->start_compute(t->comp_parts, 1, 1, 1);
+    t->r->counter_submit(t->r, t->counter_density_sort);
+
     if (t->single_pass) {
         verify(nn == 32);
         int stage = 0;
@@ -335,7 +343,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         t->comp->start_compute(t->comp, 1, 1, 1);
         t->r->counter_submit(t->r, t->counter_e);
     } else {
-        for (int stage = 1; stage <= 10; stage ++) {
+        for (int stage = 2; stage <= 10; stage ++) {
             t->comp_set.stage = stage;
             t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
 
@@ -345,9 +353,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             }
             t->comp->start_compute(t->comp, groups, groups, 1);
 
-            if (stage == 1) {
-                t->r->counter_submit(t->r, t->counter_density_sort);
-            } else if (stage == 2) {
+            if (stage == 2) {
                 t->r->counter_submit(t->r, t->counter_density);
             } else if (stage < 10) {
                 t->r->counter_submit(t->r, t->counter_psi);
@@ -470,6 +476,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         .spir_v = models_particles3_pm_comp_spv,
         .size = models_particles3_pm_comp_spv_size,
     };
+    struct ShaderCode compute_parts_shader = {
+        .glsl = models_particles3_parts_comp,
+        .spir_v = models_particles3_parts_comp_spv,
+        .size = models_particles3_parts_comp_spv_size,
+    };
     struct ShaderCode compute_pp_shader = {
         .glsl = models_particles3_pp_comp,
         .spir_v = models_particles3_pp_comp_spv,
@@ -483,8 +494,20 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     t->r = r;
     t->b = r->buffer_manager(r);
+    t->comp_parts = pl
+        ->set_bmgr(pl, t->b)
+        ->begin_program(pl)
+        ->add_cs(pl, compute_parts_shader)
+        ->end_program(pl)
+
+        ->uniform_add(pl, 0, "Settings")
+        ->storage_add(pl, 1, "PosBuffer")
+        ->storage_add(pl, 2, "ListBuffer")
+
+        ->build(pl);
 
     printf("Build comp shader\n");
+    pl = r->pipeline(r);
     t->comp = pl
         ->set_bmgr(pl, t->b)
         ->begin_program(pl)
@@ -694,6 +717,10 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->pl->storage_assign(t->pl, 4, t->accel);
     t->pl->storage_assign(t->pl, 5, t->e_index);
     t->pl->storage_assign(t->pl, 6, t->pp_force);
+
+    t->comp_parts->uniform_assign(t->comp_parts, 0, t->comp_settings);
+    t->comp_parts->storage_assign(t->comp_parts, 1, t->pos);
+    t->comp_parts->storage_assign(t->comp_parts, 2, t->list);
 
     t->comp->uniform_assign(t->comp, 0, t->comp_settings);
     t->comp->storage_assign(t->comp, 1, t->fft_table_index);

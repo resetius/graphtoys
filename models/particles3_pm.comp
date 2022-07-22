@@ -60,7 +60,7 @@ layout(std140, binding=6) readonly buffer PosBuffer {
     vec4 Position[];
 };
 
-layout(std430, binding=7) buffer ListBuffer {
+layout(std430, binding=7) readonly buffer ListBuffer {
     int list[];
 };
 
@@ -222,17 +222,18 @@ void pFFT(uint ooff, uint ioff, float dx, int N, int n) {
 #define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
 #define poff(i,k,j) (((i+nn)%nn)*nn*nn+((k+nn)%nn)*nn+((j+nn)%nn))
 
-const int nl = 32; // 64 for nvidia, 32 for apple-m1
-shared int lists[nl][nl];
+//const int nl = 32; // 64 for nvidia, 32 for apple-m1
+//shared int lists[nl][nl];
 
 void mass_distribution() {
     uint threads = xsize*ysize*zsize;
     uint work_size = (particles + threads - 1) / threads;
     uint from = globalIndex * work_size;
-    uint to = from+work_size;
+    uint to = min(particles, from+work_size);
 
     uint kk = nn/32;
-    if (stage == 1 || stage == 0) {
+
+    if (stage == 2 || stage == 0) {
         for (uint y = 0; y < kk; y++) {
             for (uint x = 0; x < kk; x ++) {
                 for (int j = 0; j < nn; j++) {
@@ -247,33 +248,8 @@ void mass_distribution() {
             }
         }
 
-        for (uint i = from; i < to; i++) {
-            if (i < particles) {
-                list[i] = -1;
-            }
-        }
-
-        lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x] = -1;
         barrier();
 
-        float h32 = l/32;
-        // lists by x,y
-        for (uint i = from; i < to; i++) {
-            if (i < particles) {
-                vec2 x = vec2(Position[i])-vec2(origin);
-                ivec2 index = ivec2(floor(x/h32));
-
-                list[i] = atomicExchange(lists[index.y][index.x], int(i));
-            }
-        }
-
-        list[particles+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x] =
-            lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x];
-
-        barrier();
-    }
-
-    if (stage == 2 || stage == 0) {
         /*
         for (int i = 0; i <= 1; i++) {
             for (int j = 0; j <= 1; j++) {
