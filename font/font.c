@@ -163,6 +163,7 @@ void font_free(struct Font* o) {
             }
         }
         f->pl->free(f->pl);
+        f->b->free(f->b);
         free(f);
     }
 }
