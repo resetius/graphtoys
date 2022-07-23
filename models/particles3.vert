@@ -78,7 +78,7 @@ void main()
     }
 
     float M[2][2][2];
-    vec4 r = Position[idx] + DeltaT*Velocity[idx]/a + 0.5 * DeltaT*DeltaT*Accel[idx];
+    vec4 r = Position[idx] + DeltaT*Velocity[idx] /*/a*/ + 0.5 * DeltaT*DeltaT*Accel[idx];
     vec4 A = vec4(0);
     ivec4 ii;
     distribute(M, vPos-origin, ii, h);
@@ -87,15 +87,17 @@ void main()
         for (int k = 0; k < 2; k++) {
             for (int j = 0; j < 2; j ++) {
                 for (int m = 0; m < 3; m++) {
-                    A[m] += E[poff(ii.z+i,ii.y+k,ii.x+j)][m] * M[i][k][j];
+                    A[m] += E[poff(ii.z+i,ii.y+k,ii.x+j)][m] * M[i][k][j]/a/a/a;
                 }
             }
         }
     }
 
-    A += F[idx];
-    A -= DeltaT*dota/a * Velocity[idx];
-    Velocity[idx] = Velocity[idx] + 0.5 * DeltaT * (vec4(vec3(A),0) + Accel[idx]);
+    A += F[idx]/a/a;
+    //A -= 2*DeltaT*dota/a * Velocity[idx];
+    Velocity[idx] = Velocity[idx]
+        - 2*DeltaT*dota/a * Velocity[idx]
+        + 0.5 * DeltaT * (vec4(vec3(A),0) + Accel[idx]);
     Accel[idx] = vec4(vec3(A), 0);
     //NewPosition[idx] = vec4(vec3(r), mass);
     for (int i = 0; i < 3; i++) {
