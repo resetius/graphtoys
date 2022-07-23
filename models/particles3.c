@@ -630,6 +630,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->vert.dt = cfg_getf_def(cfg, "dt", 0.001);
     t->vert.a = 1;
     t->vert.dota = 0;
+    t->T = 1;
     t->vert.color[0] = 1;
     t->vert.color[1] = 0;
     t->vert.color[2] = 1;
