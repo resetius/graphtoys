@@ -11,12 +11,14 @@
 #include <models/particles3.vert.h>
 #include <models/particles2.frag.h>
 #include <models/particles3_parts.comp.h>
+#include <models/particles3_mass.comp.h>
 #include <models/particles3_pm.comp.h>
 #include <models/particles3_pp.comp.h>
 #include <models/particles3_pp_sort.comp.h>
 #include <models/particles3.vert.spv.h>
 #include <models/particles2.frag.spv.h>
 #include <models/particles3_parts.comp.spv.h>
+#include <models/particles3_mass.comp.spv.h>
 #include <models/particles3_pm.comp.spv.h>
 #include <models/particles3_pp.comp.spv.h>
 #include <models/particles3_pp_sort.comp.spv.h>
@@ -64,6 +66,7 @@ struct VertBlock {
 
 struct Particles {
     struct Object base;
+    struct Pipeline* comp_mass;
     struct Pipeline* comp_parts;
     struct Pipeline* comp;
     struct Pipeline* comp_pp;
@@ -335,6 +338,10 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     t->comp_parts->start_compute(t->comp_parts, 1, 1, 1);
     t->r->counter_submit(t->r, t->counter_density_sort);
 
+    t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
+    t->comp_mass->start_compute(t->comp_mass, 1, 1, 1);
+    t->r->counter_submit(t->r, t->counter_density);
+
     if (t->single_pass) {
         verify(nn == 32);
         int stage = 0;
@@ -343,7 +350,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         t->comp->start_compute(t->comp, 1, 1, 1);
         t->r->counter_submit(t->r, t->counter_e);
     } else {
-        for (int stage = 2; stage <= 10; stage ++) {
+        for (int stage = 3; stage <= 10; stage ++) {
             t->comp_set.stage = stage;
             t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
 
@@ -436,6 +443,7 @@ static void free_(struct Object* obj) {
     struct Particles* t = (struct Particles*)obj;
     t->pl->free(t->pl);
     t->comp_parts->free(t->comp_parts);
+    t->comp_mass->free(t->comp_mass);
     t->comp->free(t->comp);
     t->comp_pp->free(t->comp_pp);
     t->comp_pp_sort->free(t->comp_pp_sort);
@@ -484,6 +492,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         .spir_v = models_particles3_parts_comp_spv,
         .size = models_particles3_parts_comp_spv_size,
     };
+    struct ShaderCode compute_mass_shader = {
+        .glsl = models_particles3_mass_comp,
+        .spir_v = models_particles3_mass_comp_spv,
+        .size = models_particles3_mass_comp_spv_size,
+    };
     struct ShaderCode compute_pp_shader = {
         .glsl = models_particles3_pp_comp,
         .spir_v = models_particles3_pp_comp_spv,
@@ -509,6 +522,21 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
         ->build(pl);
 
+    pl = r->pipeline(r);
+    t->comp_mass = pl
+        ->set_bmgr(pl, t->b)
+        ->begin_program(pl)
+        ->add_cs(pl, compute_mass_shader)
+        ->end_program(pl)
+
+        ->uniform_add(pl, 0, "Settings")
+        ->storage_add(pl, 1, "DensityBuffer")
+        ->storage_add(pl, 2, "VDensityBuffer")
+        ->storage_add(pl, 3, "PosBuffer")
+        ->storage_add(pl, 4, "ListBuffer")
+
+        ->build(pl);
+
     printf("Build comp shader\n");
     pl = r->pipeline(r);
     t->comp = pl
@@ -524,9 +552,6 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 3, "DensityBuffer")
         ->storage_add(pl, 4, "PotentialBuffer")
         ->storage_add(pl, 5, "EBuffer")
-        ->storage_add(pl, 6, "PosBuffer")
-        ->storage_add(pl, 7, "ListBuffer")
-        ->storage_add(pl, 8, "VDensityBuffer")
 
         ->build(pl);
     printf("Done\n");
@@ -726,15 +751,18 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_parts->storage_assign(t->comp_parts, 1, t->pos);
     t->comp_parts->storage_assign(t->comp_parts, 2, t->list);
 
+    t->comp_mass->uniform_assign(t->comp_mass, 0, t->comp_settings);
+    t->comp_mass->storage_assign(t->comp_mass, 1, t->density_index);
+    t->comp_mass->storage_assign(t->comp_mass, 2, t->vrho_index);
+    t->comp_mass->storage_assign(t->comp_mass, 3, t->pos);
+    t->comp_mass->storage_assign(t->comp_mass, 4, t->list);
+
     t->comp->uniform_assign(t->comp, 0, t->comp_settings);
     t->comp->storage_assign(t->comp, 1, t->fft_table_index);
     t->comp->storage_assign(t->comp, 2, t->work_index);
     t->comp->storage_assign(t->comp, 3, t->density_index);
     t->comp->storage_assign(t->comp, 4, t->psi_index);
     t->comp->storage_assign(t->comp, 5, t->e_index);
-    t->comp->storage_assign(t->comp, 6, t->pos);
-    t->comp->storage_assign(t->comp, 7, t->list);
-    t->comp->storage_assign(t->comp, 8, t->vrho_index);
 
     if (t->pp_enabled) {
         t->comp_pp->uniform_assign(t->comp_pp, 0, t->comp_pp_settings);

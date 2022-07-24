@@ -1,0 +1,96 @@
+#version 460
+
+layout(local_size_x = 32, local_size_y = 32) in;
+
+layout(std140, binding=0) uniform Settings {
+    vec4 origin;
+    int particles;
+    int stage;
+    int nn;  // nx=ny=nz=nn
+    int n;   // log(nn)
+    float h;
+    float l;
+    float rho;
+    float rcrit;
+};
+
+layout(std430, binding=1) buffer DensityBuffer {
+    float Rho[];
+};
+
+layout(std430, binding=2) buffer VDensityBuffer {
+    vec4 VRho[];
+};
+
+layout(std140, binding=3) readonly buffer PosBuffer {
+    vec4 Position[];
+};
+
+layout(std430, binding=4) readonly buffer ListBuffer {
+    int list[];
+};
+
+const float M_PI = 3.14159265359;
+const float G = 1; // TODO
+
+#define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
+#define poff(i,k,j) (((i+nn)%nn)*nn*nn+((k+nn)%nn)*nn+((j+nn)%nn))
+
+void main()
+{
+    uint kk = nn/32;
+
+    for (uint y = 0; y < kk; y++) {
+        for (uint x = 0; x < kk; x ++) {
+            for (int j = 0; j < nn; j++) {
+                Rho[off(y*gl_WorkGroupSize.y+gl_LocalInvocationID.y,
+                        x*gl_WorkGroupSize.x+gl_LocalInvocationID.x,
+                        j)] = -4*M_PI*rho;
+
+                VRho[off(y*gl_WorkGroupSize.y+gl_LocalInvocationID.y,
+                         x*gl_WorkGroupSize.x+gl_LocalInvocationID.x,
+                         j)] = vec4(0);
+            }
+        }
+    }
+
+    barrier();
+
+    int cur = list[particles+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x];
+    while (cur != -1) {
+        float mass = Position[cur].w;
+        vec3 x = vec3(Position[cur]) - vec3(origin);
+        ivec3 index = ivec3(floor(x/h));
+        x = (x-index*h)/h;
+
+        vec4 value = 4*M_PI*G*mass*vec4(
+            (1-x.y)*(1-x.x),
+            (1-x.y)*(x.x),
+            (x.y)*(1-x.x),
+            (x.y)*(x.x));
+
+        VRho[poff(index.z+0,index.y,index.x)] += (1-x.z)*value;
+        VRho[poff(index.z+1,index.y,index.x)] += (x.z)*value;
+
+        cur = list[cur];
+    }
+
+    barrier();
+
+    for (int k0 = 0; k0 < 2; k0++) {
+        for (int j0 = 0; j0 < 2; j0++) {
+            uint k = gl_LocalInvocationID.y;
+            uint j = gl_LocalInvocationID.x;
+
+            for (uint y = 0; y < kk; y++) {
+                for (uint x = 0; x < kk; x ++) {
+                    for (int i = 0; i < nn; i++) {
+                        Rho[poff(i,y*gl_WorkGroupSize.y+k+k0,x*gl_WorkGroupSize.x+j+j0)] += VRho[poff(i,y*gl_WorkGroupSize.y+k,x*gl_WorkGroupSize.x+j)][k0*2+j0];
+                    }
+                }
+            }
+
+            barrier();
+        }
+    }
+}
