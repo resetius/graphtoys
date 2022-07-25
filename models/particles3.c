@@ -139,10 +139,6 @@ struct Particles {
     int plot_interval;
 };
 
-static int max(int a, int b) {
-    return a>b?a:b;
-}
-
 // TODO: copy-paste
 static void transform(struct Particles* t) {
     vec3 ox = {1,0,0};
@@ -226,57 +222,6 @@ static void zoom_out(struct Object* obj, int mods) {
         t->ay += 5*M_PI/360;
         transform(t);
     }
-}
-
-static void cic3(float M[2][2][2], float x, float y, float  z, int* x0, int* y0, int* z0, float h) {
-    int j = floor(x / h);
-    int k = floor(y / h);
-    int i = floor(z / h);
-    *x0 = j;
-    *y0 = k;
-    *z0 = i;
-
-    x = (x-j*h)/h;
-    y = (y-k*h)/h;
-    z = (z-i*h)/h;
-
-    verify(0 <= x && x <= 1);
-    verify(0 <= y && y <= 1);
-    verify(0 <= z && z <= 1);
-
-    M[0][0][0] = (1-z)*(1-y)*(1-x);
-    M[0][0][1] = (1-z)*(1-y)*(x);
-    M[0][1][0] = (1-z)*(y)*(1-x);
-    M[0][1][1] = (1-z)*(y)*(x);
-
-    M[1][0][0] = (z)*(1-y)*(1-x);
-    M[1][0][1] = (z)*(1-y)*(x);
-    M[1][1][0] = (z)*(y)*(1-x);
-    M[1][1][1] = (z)*(y)*(x);
-}
-
-static void distribute(int nn, float G, float* density, float* coord, int nparticles, float h, float origin[3]) {
-    float M[2][2][2] = {0};
-    memset(density, 0, nn*nn*nn*sizeof(float));
-#define off(i,k,j) ((i)%nn)*nn*nn+((k)%nn)*nn+((j)%nn)
-    for (int index = 0; index < nparticles; index++) {
-        float* c = &coord[index*4];
-        float x = c[0]; float y = c[1]; float z = c[2];
-        float mass = c[3];
-        int i0, k0, j0;
-
-        cic3(M, x-origin[0], y-origin[1], z-origin[2], &i0, &k0, &j0, h);
-
-        for (int i = 0; i < 2; i++) {
-            for (int k = 0; k < 2; k++) {
-                for (int j = 0; j < 2; j++) {
-                    density[off(i+i0,k+k0,j+j0)] += 4*M_PI*G*mass*M[i][k][j]/h/h/h;
-                }
-            }
-        }
-    }
-
-#undef off
 }
 
 static void draw_(struct Object* obj, struct DrawContext* ctx) {
