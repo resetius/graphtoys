@@ -192,7 +192,7 @@ void main() {
     const uint ioff = _off;
     const uint ooff = _off+nn;
 
-    if (stage == 3 || stage == 0) {
+    if (stage == 1 || stage == 0) {
         // along z
         split(k, j);
         for (i = 0; i < nn; i++) {
@@ -204,7 +204,7 @@ void main() {
         }
         barrier();
     }
-    if (stage == 4 || stage == 0) {
+    if (stage == 2 || stage == 0) {
         // along y
         split(i, j);
         for (k = 0; k < nn; k++) {
@@ -216,7 +216,7 @@ void main() {
         }
         barrier();
     }
-    if (stage == 5 || stage == 0) {
+    if (stage == 3 || stage == 0) {
         // along x
         split(i, k);
         for (j = 0; j < nn; j++) {
@@ -228,7 +228,7 @@ void main() {
         }
         barrier();
     }
-    if (stage == 6 || stage == 0) {
+    if (stage == 4 || stage == 0) {
         split(i, k);
         for (j = 0; j < nn; j++) {
             Psi[off(i,k,j)] /= -FFT[La+i]-FFT[La+k]-FFT[La+j];
@@ -239,7 +239,7 @@ void main() {
         Psi[off(0,0,0)] = 1;
         barrier();
     }
-    if (stage == 7 || stage == 0) {
+    if (stage == 5 || stage == 0) {
         // along x
         split(i, k);
         for (j = 0; j < nn; j++) {
@@ -251,7 +251,7 @@ void main() {
         }
         barrier();
     }
-    if (stage == 8 || stage == 0) {
+    if (stage == 6 || stage == 0) {
         // along y
         split(i, j);
         for (k = 0; k < nn; k++) {
@@ -263,7 +263,7 @@ void main() {
         }
         barrier();
     }
-    if (stage == 9 || stage == 0) {
+    if (stage == 7 || stage == 0) {
         // along z
         split(k, j);
         for (i = 0; i < nn; i++) {

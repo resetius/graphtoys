@@ -300,7 +300,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         t->comp_poisson->start_compute(t->comp_poisson, 1, 1, 1);
         t->r->counter_submit(t->r, t->counter_e);
     } else {
-        for (int stage = 3; stage <= 9; stage ++) {
+        for (int stage = 1; stage <= 7; stage ++) {
             t->comp_set.stage = stage;
             t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
 
