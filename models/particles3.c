@@ -48,6 +48,7 @@ struct CompPPSettings {
     int cell_size;
     int stage;
     int nn; // chain grid, 32x32x32
+    int nlists;
     float h; // l/nn
     float l;
     float rcrit;
@@ -82,7 +83,6 @@ struct Particles {
     struct CompSettings comp_set;
 
     int density_index;
-    int vrho_index;
     float* density;
     int psi_index;
     float* psi;
@@ -334,7 +334,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     //printf("particles %d\n", t->particles);
 
-    int groups = 1;
+    int groups = t->comp_pp_set.nlists; // 8
     t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
     t->comp_parts->start_compute(t->comp_parts, groups, 1, 1);
     t->r->counter_submit(t->r, t->counter_density_sort);
@@ -532,9 +532,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
         ->uniform_add(pl, 0, "Settings")
         ->storage_add(pl, 1, "DensityBuffer")
-        ->storage_add(pl, 2, "VDensityBuffer")
-        ->storage_add(pl, 3, "PosBuffer")
-        ->storage_add(pl, 4, "ListBuffer")
+        ->storage_add(pl, 2, "PosBuffer")
+        ->storage_add(pl, 3, "ListBuffer")
 
         ->build(pl);
 
@@ -664,12 +663,10 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     cfg_getv4_def(cfg, t->vert.color, "color", t->vert.color);
 
     t->density = NULL;
-    t->density = malloc(nn*nn*nn*sizeof(float));
+    //t->density = malloc(nn*nn*nn*sizeof(float));
     //distribute(nn, 1, t->density, data.coords, t->particles, h, origin);
     t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL /*t->density*/,
                                     8*nn*nn*nn*sizeof(float));
-    t->vrho_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL,
-                                 4*nn*nn*nn*sizeof(float));
     t->psi = malloc(nn*nn*nn*sizeof(float));
     t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL,
                                 nn*nn*nn*sizeof(float));
@@ -724,6 +721,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_pp_set.l = l;
     t->comp_pp_set.rcrit = t->comp_pp_set.h; // TODO
     t->comp_set.rcrit = t->comp_pp_set.rcrit;
+    t->comp_pp_set.nlists = 8;
 
     // TODO: don't allocate it for pp-only
     t->pp_force = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);
@@ -754,9 +752,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     t->comp_mass->uniform_assign(t->comp_mass, 0, t->comp_settings);
     t->comp_mass->storage_assign(t->comp_mass, 1, t->density_index);
-    t->comp_mass->storage_assign(t->comp_mass, 2, t->vrho_index);
-    t->comp_mass->storage_assign(t->comp_mass, 3, t->pos);
-    t->comp_mass->storage_assign(t->comp_mass, 4, t->list);
+    t->comp_mass->storage_assign(t->comp_mass, 2, t->pos);
+    t->comp_mass->storage_assign(t->comp_mass, 3, t->list);
 
     t->comp->uniform_assign(t->comp, 0, t->comp_settings);
     t->comp->storage_assign(t->comp, 1, t->fft_table_index);

@@ -18,15 +18,11 @@ layout(std430, binding=1) buffer DensityBuffer {
     float Rho[];
 };
 
-layout(std430, binding=2) buffer VDensityBuffer {
-    vec4 VRho[];
-};
-
-layout(std140, binding=3) readonly buffer PosBuffer {
+layout(std140, binding=2) readonly buffer PosBuffer {
     vec4 Position[];
 };
 
-layout(std430, binding=4) readonly buffer ListBuffer {
+layout(std430, binding=3) readonly buffer ListBuffer {
     int list[];
 };
 

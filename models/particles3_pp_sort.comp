@@ -8,6 +8,7 @@ layout(std140, binding=0) uniform Settings {
     int cell_size;
     int stage;
     int nn; // nn for chain-grid
+    int nlists;
     float h; // h for chain-grid
     float l;
     float rcrit;
@@ -45,18 +46,21 @@ void main() {
 
     barrier();
 
-    int cur = list[particles+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x];
+    for (int i = 0; i < nlists; i++) {
+        uint loff = particles+i*32*32;
+        int cur = list[loff+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x];
 
-    while (cur != -1) {
-        vec3 x = vec3(Position[cur]) - vec3(origin);
-        ivec3 index = ivec3(floor(x/h));
-        int cell_id = off(index.z,index.y,index.x);
-        uint n = cell_data[cell_id*cell_size];
-        if (n < max_per_cell) {
-            cell_data[cell_id*cell_size+n+1] = cur;
-            cell_data[cell_id*cell_size] = n+1;
+        while (cur != -1) {
+            vec3 x = vec3(Position[cur]) - vec3(origin);
+            ivec3 index = ivec3(floor(x/h));
+            int cell_id = off(index.z,index.y,index.x);
+            uint n = cell_data[cell_id*cell_size];
+            if (n < max_per_cell) {
+                cell_data[cell_id*cell_size+n+1] = cur;
+                cell_data[cell_id*cell_size] = n+1;
+            }
+
+            cur = list[cur];
         }
-
-        cur = list[cur];
     }
 }
