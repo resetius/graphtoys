@@ -2,6 +2,7 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>
 #include <lib/config.h>
 #include "particles_data.h"
 
@@ -13,6 +14,15 @@ struct body
     int fixed;
     char name[100];
 };
+
+static uint32_t rand_(uint32_t* seed) {
+    *seed ^= *seed << 13;
+    *seed ^= *seed >> 17;
+    *seed ^= *seed << 5;
+    return *seed;
+}
+
+static uint32_t rand_max = UINT_MAX;
 
 void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
     int n_particles = cfg_geti_def(cfg, "particles", 12000);
@@ -26,12 +36,10 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
     int i,j,n=0;
     //float side = 4.0f;
     float side = cfg_getf_def(cfg, "side", 7.5f);
-    time_t seed = cfg_geti_def(cfg, "seed", -1);
-    if (seed == (time_t)-1) {
-        seed = time(NULL);
+    uint32_t seed = cfg_geti_def(cfg, "seed", -1);
+    if (seed == (uint32_t)-1) {
+        seed = (uint32_t) time(NULL);
     }
-
-    srand(seed);
 
     const double G = 2.92e-6;
     const char* name = cfg_gets_def(cfg, "name", "solar");
@@ -90,7 +98,7 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
 
         for (i = 0; i < n_particles; i++) {
             for (j = 0; j < 3; j++) {
-                coords[n+j] = side * (double)rand() / (double)RAND_MAX - side/2;
+                coords[n+j] = side * (double)rand_(&seed) / (double)rand_max - side/2;
             }
 
             coords[n+3] = 0.2 + 1.5*(double)rand() / (double)RAND_MAX;
