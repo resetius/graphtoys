@@ -14,6 +14,7 @@
 #include <models/particles3_mass.comp.h>
 #include <models/particles3_mass_sum.comp.h>
 #include <models/particles3_pm.comp.h>
+#include <models/particles3_strength.comp.h>
 #include <models/particles3_pp.comp.h>
 #include <models/particles3_pp_sort.comp.h>
 #include <models/particles3.vert.spv.h>
@@ -22,6 +23,7 @@
 #include <models/particles3_mass.comp.spv.h>
 #include <models/particles3_mass_sum.comp.spv.h>
 #include <models/particles3_pm.comp.spv.h>
+#include <models/particles3_strength.comp.spv.h>
 #include <models/particles3_pp.comp.spv.h>
 #include <models/particles3_pp_sort.comp.spv.h>
 
@@ -74,6 +76,7 @@ struct Particles {
     struct Pipeline* comp_mass_sum;
     struct Pipeline* comp_parts;
     struct Pipeline* comp;
+    struct Pipeline* comp_strength;
     struct Pipeline* comp_pp;
     struct Pipeline* comp_pp_sort;
     struct Pipeline* pl;
@@ -359,20 +362,21 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         t->comp->start_compute(t->comp, 1, 1, 1);
         t->r->counter_submit(t->r, t->counter_e);
     } else {
-        for (int stage = 3; stage <= 10; stage ++) {
+        for (int stage = 3; stage <= 9; stage ++) {
             t->comp_set.stage = stage;
             t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
 
             int groups = nn / 32;
             t->comp->start_compute(t->comp, groups, groups, 1);
-
-            if (stage < 10) {
-                t->r->counter_submit(t->r, t->counter_psi);
-            } else {
-                t->r->counter_submit(t->r, t->counter_e);
-            }
+            t->r->counter_submit(t->r, t->counter_psi);
         }
     }
+
+    groups = nn / 32;
+    t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
+    t->comp_strength->start_compute(t->comp_strength, groups, groups, 1);
+    t->r->counter_submit(t->r, t->counter_e);
+
 
     if (t->pp_enabled) {
         t->comp_pp_set.stage = 1;
@@ -450,6 +454,7 @@ static void free_(struct Object* obj) {
     t->comp_mass->free(t->comp_mass);
     t->comp_mass_sum->free(t->comp_mass_sum);
     t->comp->free(t->comp);
+    t->comp_strength->free(t->comp_strength);
     t->comp_pp->free(t->comp_pp);
     t->comp_pp_sort->free(t->comp_pp_sort);
     t->b->free(t->b);
@@ -507,6 +512,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         .spir_v = models_particles3_mass_sum_comp_spv,
         .size = models_particles3_mass_sum_comp_spv_size,
     };
+    struct ShaderCode compute_strength_shader = {
+        .glsl = models_particles3_strength_comp,
+        .spir_v = models_particles3_strength_comp_spv,
+        .size = models_particles3_strength_comp_spv_size,
+    };
     struct ShaderCode compute_pp_shader = {
         .glsl = models_particles3_pp_comp,
         .spir_v = models_particles3_pp_comp_spv,
@@ -558,6 +568,19 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
         ->build(pl);
 
+    pl = r->pipeline(r);
+    t->comp_strength = pl
+        ->set_bmgr(pl, t->b)
+        ->begin_program(pl)
+        ->add_cs(pl, compute_strength_shader)
+        ->end_program(pl)
+
+        ->uniform_add(pl, 0, "Settings")
+        ->storage_add(pl, 1, "PotentialBuffer")
+        ->storage_add(pl, 2, "StrengthBuffer")
+
+        ->build(pl);
+
     printf("Build comp shader\n");
     pl = r->pipeline(r);
     t->comp = pl
@@ -572,7 +595,6 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 2, "WorkBuffer")
         ->storage_add(pl, 3, "DensityBuffer")
         ->storage_add(pl, 4, "PotentialBuffer")
-        ->storage_add(pl, 5, "EBuffer")
 
         ->build(pl);
     printf("Done\n");
@@ -779,12 +801,15 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_mass_sum->uniform_assign(t->comp_mass_sum, 0, t->comp_settings);
     t->comp_mass_sum->storage_assign(t->comp_mass_sum, 1, t->density_index);
 
+    t->comp_strength->uniform_assign(t->comp_strength, 0, t->comp_settings);
+    t->comp_strength->storage_assign(t->comp_strength, 1, t->psi_index);
+    t->comp_strength->storage_assign(t->comp_strength, 2, t->e_index);
+
     t->comp->uniform_assign(t->comp, 0, t->comp_settings);
     t->comp->storage_assign(t->comp, 1, t->fft_table_index);
     t->comp->storage_assign(t->comp, 2, t->work_index);
     t->comp->storage_assign(t->comp, 3, t->density_index);
     t->comp->storage_assign(t->comp, 4, t->psi_index);
-    t->comp->storage_assign(t->comp, 5, t->e_index);
 
     if (t->pp_enabled) {
         t->comp_pp->uniform_assign(t->comp_pp, 0, t->comp_pp_settings);

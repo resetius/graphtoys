@@ -1,0 +1,42 @@
+#version 460
+
+layout(local_size_x = 32, local_size_y = 32) in;
+
+layout(std140, binding=0) uniform Settings {
+    vec4 origin;
+    int particles;
+    int stage;
+    int nn;  // nx=ny=nz=nn
+    int n;   // log(nn)
+    int nlists;
+    float h;
+    float l;
+    float rho;
+    float rcrit;
+};
+
+layout(std430, binding=1) readonly buffer PotentialBuffer {
+    float Psi[];
+};
+
+layout(std430, binding=2) writeonly buffer StrengthBuffer {
+    vec4 E[];
+};
+
+#define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
+#define poff(i,k,j) (((i+nn)%nn)*nn*nn+((k+nn)%nn)*nn+((j+nn)%nn))
+
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    uint k = gl_GlobalInvocationID.y;
+
+    for (int j = 0; j < nn; j++) {
+        uint ii = off(i,k,j);
+        E[ii].x = -(Psi[poff(i,k,j+1)]-Psi[poff(i,k,j-1)])/2.0/h;
+        E[ii].y = -(Psi[poff(i,k+1,j)]-Psi[poff(i,k-1,j)])/2.0/h;
+        E[ii].z = -(Psi[poff(i+1,k,j)]-Psi[poff(i-1,k,j)])/2.0/h;
+        E[ii].w = 0; // unused
+    }
+
+    barrier();
+}

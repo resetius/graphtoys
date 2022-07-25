@@ -51,11 +51,6 @@ layout(std430, binding=4) buffer PotentialBuffer {
     float Psi[];
 };
 
-// field (w-component unused)
-layout(std430, binding=5) writeonly buffer EBuffer {
-    vec4 E[];
-};
-
 void padvance(uint ioff, int idx)
 {
     for (int j = 0; j <= idx - 1; j++) {
@@ -307,19 +302,6 @@ void main() {
         pFFT(ooff,ioff,slh,nn,n);
         for (i = 0; i < nn; i++) {
             Psi[off(i,k,j)] = W[ooff+i];
-        }
-        barrier();
-    }
-    if (stage == 10 || stage == 0) {
-        // diff
-        split(i, k);
-
-        for (j = 0; j < nn; j++) {
-            uint ii = off(i,k,j);
-            E[ii].x = -(Psi[poff(i,k,j+1)]-Psi[poff(i,k,j-1)])/2.0/h;
-            E[ii].y = -(Psi[poff(i,k+1,j)]-Psi[poff(i,k-1,j)])/2.0/h;
-            E[ii].z = -(Psi[poff(i+1,k,j)]-Psi[poff(i-1,k,j)])/2.0/h;
-            E[ii].w = 0; // unused
         }
         barrier();
     }

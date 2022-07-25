@@ -94,6 +94,7 @@ set(SHADERS
     models/particles3_mass.comp
     models/particles3_mass_sum.comp
     models/particles3_pm.comp
+    models/particles3_strength.comp
     models/particles3_pp.comp
     models/particles3_pp_sort.comp
     font/font.frag
