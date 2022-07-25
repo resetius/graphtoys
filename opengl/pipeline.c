@@ -188,21 +188,21 @@ static struct PipelineBuilder* begin_program(struct PipelineBuilder* p1) {
 static struct PipelineBuilder* add_vs(struct PipelineBuilder*p1, struct ShaderCode shader) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     assert(p->cur_program);
-    prog_add_vs(p->cur_program, shader.glsl);
+    prog_add_vs(p->cur_program, shader);
     return p1;
 }
 
 static struct PipelineBuilder* add_fs(struct PipelineBuilder*p1, struct ShaderCode shader) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     assert(p->cur_program);
-    prog_add_fs(p->cur_program, shader.glsl);
+    prog_add_fs(p->cur_program, shader);
     return p1;
 }
 
 static struct PipelineBuilder* add_cs(struct PipelineBuilder*p1, struct ShaderCode shader) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     assert(p->cur_program);
-    prog_add_cs(p->cur_program, shader.glsl);
+    prog_add_cs(p->cur_program, shader);
     return p1;
 }
 

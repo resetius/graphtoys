@@ -50,10 +50,17 @@ static void prog_free_(struct Program* p1) {
     free(p);
 }
 
-static int prog_add_(struct ProgramImpl* p, const char* shaderText, GLuint shader) {
+static int prog_add_(struct ProgramImpl* p, struct ShaderCode code, GLuint shader) {
     int result;
-    glShaderSource(shader, 1, &shaderText, NULL);
-    glCompileShader(shader);
+
+    if (code.glsl) {
+        glShaderSource(shader, 1, &code.glsl, NULL);
+        glCompileShader(shader);
+    } else {
+        glShaderBinary(1, &shader, GL_SHADER_BINARY_FORMAT_SPIR_V,
+                       code.spir_v, code.size);
+        glSpecializeShader(shader, "main", 0, NULL, NULL);
+    }
 
     glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
     if (GL_FALSE == result) {
@@ -74,19 +81,19 @@ static int prog_add_(struct ProgramImpl* p, const char* shaderText, GLuint shade
     return 1;
 }
 
-static int prog_add_vs_(struct Program* p1, const char* shader) {
+static int prog_add_vs_(struct Program* p1, struct ShaderCode shader) {
     struct ProgramImpl* p = (struct ProgramImpl*)p1;
     GLuint shaderId = glCreateShader(GL_VERTEX_SHADER);
     return prog_add_(p, shader, shaderId);
 }
 
-static int prog_add_fs_(struct Program* p1, const char* shader) {
+static int prog_add_fs_(struct Program* p1, struct ShaderCode shader) {
     struct ProgramImpl* p = (struct ProgramImpl*)p1;
     GLuint shaderId = glCreateShader(GL_FRAGMENT_SHADER);
     return prog_add_(p, shader, shaderId);
 }
 
-static int prog_add_cs_(struct Program* p1, const char* shader) {
+static int prog_add_cs_(struct Program* p1, struct ShaderCode shader) {
     struct ProgramImpl* p = (struct ProgramImpl*)p1;
     if (p->major > 4 || (p->major == 4 && p->minor >= 3)) {
         GLuint shaderId = glCreateShader(GL_COMPUTE_SHADER);
@@ -222,15 +229,15 @@ void prog_free(struct Program* p) {
     p->free(p);
 }
 
-int prog_add_vs(struct Program* p, const char* shader) {
+int prog_add_vs(struct Program* p, struct ShaderCode shader) {
     return p->add_vs(p, shader);
 }
 
-int prog_add_fs(struct Program* p, const char* shader) {
+int prog_add_fs(struct Program* p, struct ShaderCode shader) {
     return p->add_fs(p, shader);
 }
 
-int prog_add_cs(struct Program* p, const char* shader) {
+int prog_add_cs(struct Program* p, struct ShaderCode shader) {
     return p->add_cs(p, shader);
 }
 

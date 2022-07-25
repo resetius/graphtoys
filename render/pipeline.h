@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "render.h"
+#include "shader.h"
 #include "buffer.h" // TODO: remove
 
 enum GeometryType {
@@ -66,12 +67,6 @@ int pl_buffer_assign(struct Pipeline* p1, int descriptor_id, int buffer_id);
 void pl_use_texture(struct Pipeline* p1, void* texture);
 void pl_start(struct Pipeline*);
 void pl_draw(struct Pipeline* p1, int buffer_id);
-
-struct ShaderCode {
-    const char* glsl;
-    const char* spir_v;
-    int size;
-};
 
 struct PipelineBuilder {
     struct PipelineBuilder* (*set_bmgr)(struct PipelineBuilder*, struct BufferManager*);
