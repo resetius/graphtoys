@@ -2,6 +2,7 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <stdint.h>
 #include <limits.h>
 #include <lib/config.h>
 #include "particles_data.h"
