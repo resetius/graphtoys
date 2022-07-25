@@ -8,6 +8,7 @@ layout(std140, binding=0) uniform Settings {
     int stage;
     int nn;  // nx=ny=nz=nn
     int n;   // log(nn)
+    int nlists;
     float h;
     float l;
     float rho;
@@ -18,7 +19,7 @@ layout(std430, binding=1) buffer DensityBuffer {
     float Rho[];
 };
 
-layout(std140, binding=2) readonly buffer PosBuffer {
+layout(std430, binding=2) readonly buffer PosBuffer {
     vec4 Position[];
 };
 

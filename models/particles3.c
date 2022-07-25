@@ -12,6 +12,7 @@
 #include <models/particles2.frag.h>
 #include <models/particles3_parts.comp.h>
 #include <models/particles3_mass.comp.h>
+#include <models/particles3_mass_sum.comp.h>
 #include <models/particles3_pm.comp.h>
 #include <models/particles3_pp.comp.h>
 #include <models/particles3_pp_sort.comp.h>
@@ -19,6 +20,7 @@
 #include <models/particles2.frag.spv.h>
 #include <models/particles3_parts.comp.spv.h>
 #include <models/particles3_mass.comp.spv.h>
+#include <models/particles3_mass_sum.comp.spv.h>
 #include <models/particles3_pm.comp.spv.h>
 #include <models/particles3_pp.comp.spv.h>
 #include <models/particles3_pp_sort.comp.spv.h>
@@ -36,6 +38,7 @@ struct CompSettings {
     int stage;
     int nn;  // grid nn x nn xnn
     int n;   // log2(n)
+    int nlists;
     float h; // l/h
     float l; // length of cube edge
     float rho;
@@ -68,6 +71,7 @@ struct VertBlock {
 struct Particles {
     struct Object base;
     struct Pipeline* comp_mass;
+    struct Pipeline* comp_mass_sum;
     struct Pipeline* comp_parts;
     struct Pipeline* comp;
     struct Pipeline* comp_pp;
@@ -343,6 +347,10 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     t->comp_mass->start_compute(t->comp_mass, groups, 1, 1);
     t->r->counter_submit(t->r, t->counter_density);
 
+    t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
+    t->comp_mass_sum->start_compute(t->comp_mass_sum, t->comp_set.nn/32, t->comp_set.nn/32, 1);
+    t->r->counter_submit(t->r, t->counter_density);
+
     if (t->single_pass) {
         verify(nn == 32);
         int stage = 0;
@@ -445,6 +453,7 @@ static void free_(struct Object* obj) {
     t->pl->free(t->pl);
     t->comp_parts->free(t->comp_parts);
     t->comp_mass->free(t->comp_mass);
+    t->comp_mass_sum->free(t->comp_mass_sum);
     t->comp->free(t->comp);
     t->comp_pp->free(t->comp_pp);
     t->comp_pp_sort->free(t->comp_pp_sort);
@@ -498,6 +507,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         .spir_v = models_particles3_mass_comp_spv,
         .size = models_particles3_mass_comp_spv_size,
     };
+    struct ShaderCode compute_mass_sum_shader = {
+        .glsl = models_particles3_mass_sum_comp,
+        .spir_v = models_particles3_mass_sum_comp_spv,
+        .size = models_particles3_mass_sum_comp_spv_size,
+    };
     struct ShaderCode compute_pp_shader = {
         .glsl = models_particles3_pp_comp,
         .spir_v = models_particles3_pp_comp_spv,
@@ -534,6 +548,18 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 1, "DensityBuffer")
         ->storage_add(pl, 2, "PosBuffer")
         ->storage_add(pl, 3, "ListBuffer")
+
+        ->build(pl);
+
+    pl = r->pipeline(r);
+    t->comp_mass_sum = pl
+        ->set_bmgr(pl, t->b)
+        ->begin_program(pl)
+        ->add_cs(pl, compute_mass_sum_shader)
+        ->end_program(pl)
+
+        ->uniform_add(pl, 0, "Settings")
+        ->storage_add(pl, 1, "DensityBuffer")
 
         ->build(pl);
 
@@ -721,7 +747,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_pp_set.l = l;
     t->comp_pp_set.rcrit = t->comp_pp_set.h; // TODO
     t->comp_set.rcrit = t->comp_pp_set.rcrit;
-    t->comp_pp_set.nlists = 8;
+    t->comp_set.nlists = t->comp_pp_set.nlists = 8;
 
     // TODO: don't allocate it for pp-only
     t->pp_force = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);
@@ -754,6 +780,9 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_mass->storage_assign(t->comp_mass, 1, t->density_index);
     t->comp_mass->storage_assign(t->comp_mass, 2, t->pos);
     t->comp_mass->storage_assign(t->comp_mass, 3, t->list);
+
+    t->comp_mass_sum->uniform_assign(t->comp_mass_sum, 0, t->comp_settings);
+    t->comp_mass_sum->storage_assign(t->comp_mass_sum, 1, t->density_index);
 
     t->comp->uniform_assign(t->comp, 0, t->comp_settings);
     t->comp->storage_assign(t->comp, 1, t->fft_table_index);

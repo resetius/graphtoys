@@ -8,6 +8,7 @@ layout(std140, binding=0) uniform Settings {
     int stage;
     int nn;  // nx=ny=nz=nn
     int n;   // log(nn)
+    int nlists;
     float h;
     float l;
     float rho;
