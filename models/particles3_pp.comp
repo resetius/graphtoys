@@ -87,15 +87,13 @@ void process(uint id, uint other, vec3 dh, int from, int to) {
     uint i = -1, j = 0;
     vec3 ri = vec3(0);
 
-    //write_to_cache(other*cell_size, n2);
-
     for (i0 = from; i0 < to; i0++) {
         if (i0 < n1) {
             i = cell_data[id*cell_size+i0+1];
             ri = vec3(Position[i]) + dh;
         }
 
-        for (j0 = 0; j0 < n2 && j0 < mx; j0++) {
+        for (j0 = 0; j0 < n2; j0++) {
             if (j0 % mx == 0) {
                 write_to_cache(other*cell_size+j0, n2);
             }
