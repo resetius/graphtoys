@@ -188,11 +188,7 @@ void main() {
     uint i,k,j;
     const float slh = sqrt(2./l);
 
-    if (gl_GlobalInvocationID.y >= nn || gl_GlobalInvocationID.x >= nn) {
-        return;
-    }
-
-    const uint _off = 2 * nn * globalIndex; // gl_LocalInvocationIndex;
+    const uint _off = 2 * nn * globalIndex;
     const uint ioff = _off;
     const uint ooff = _off+nn;
 
