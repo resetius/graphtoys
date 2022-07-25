@@ -15,7 +15,7 @@
 #include <models/particles3_parts.comp.spv.h>
 #include <models/particles3_mass.comp.spv.h>
 #include <models/particles3_mass_sum.comp.spv.h>
-#include <models/particles3_pm.comp.spv.h>
+#include <models/particles3_poisson.comp.spv.h>
 #include <models/particles3_strength.comp.spv.h>
 #include <models/particles3_pp.comp.spv.h>
 #include <models/particles3_pp_sort.comp.spv.h>
@@ -68,7 +68,7 @@ struct Particles {
     struct Pipeline* comp_mass;
     struct Pipeline* comp_mass_sum;
     struct Pipeline* comp_parts;
-    struct Pipeline* comp;
+    struct Pipeline* comp_poisson;
     struct Pipeline* comp_strength;
     struct Pipeline* comp_pp;
     struct Pipeline* comp_pp_sort;
@@ -297,7 +297,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         int stage = 0;
         t->comp_set.stage = stage;
         t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
-        t->comp->start_compute(t->comp, 1, 1, 1);
+        t->comp_poisson->start_compute(t->comp_poisson, 1, 1, 1);
         t->r->counter_submit(t->r, t->counter_e);
     } else {
         for (int stage = 3; stage <= 9; stage ++) {
@@ -305,7 +305,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
 
             int groups = nn / 32;
-            t->comp->start_compute(t->comp, groups, groups, 1);
+            t->comp_poisson->start_compute(t->comp_poisson, groups, groups, 1);
             t->r->counter_submit(t->r, t->counter_psi);
         }
     }
@@ -391,7 +391,7 @@ static void free_(struct Object* obj) {
     t->comp_parts->free(t->comp_parts);
     t->comp_mass->free(t->comp_mass);
     t->comp_mass_sum->free(t->comp_mass_sum);
-    t->comp->free(t->comp);
+    t->comp_poisson->free(t->comp_poisson);
     t->comp_strength->free(t->comp_strength);
     t->comp_pp->free(t->comp_pp);
     t->comp_pp_sort->free(t->comp_pp_sort);
@@ -431,8 +431,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         .size = models_particles2_frag_spv_size,
     };
     struct ShaderCode compute_shader = {
-        .spir_v = models_particles3_pm_comp_spv,
-        .size = models_particles3_pm_comp_spv_size,
+        .spir_v = models_particles3_poisson_comp_spv,
+        .size = models_particles3_poisson_comp_spv_size,
     };
     struct ShaderCode compute_parts_shader = {
         .spir_v = models_particles3_parts_comp_spv,
@@ -514,7 +514,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     printf("Build comp shader\n");
     pl = r->pipeline(r);
-    t->comp = pl
+    t->comp_poisson = pl
         ->set_bmgr(pl, t->b)
         ->begin_program(pl)
         ->add_cs(pl, compute_shader)
@@ -736,11 +736,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_strength->storage_assign(t->comp_strength, 1, t->psi_index);
     t->comp_strength->storage_assign(t->comp_strength, 2, t->e_index);
 
-    t->comp->uniform_assign(t->comp, 0, t->comp_settings);
-    t->comp->storage_assign(t->comp, 1, t->fft_table_index);
-    t->comp->storage_assign(t->comp, 2, t->work_index);
-    t->comp->storage_assign(t->comp, 3, t->density_index);
-    t->comp->storage_assign(t->comp, 4, t->psi_index);
+    t->comp_poisson->uniform_assign(t->comp_poisson, 0, t->comp_settings);
+    t->comp_poisson->storage_assign(t->comp_poisson, 1, t->fft_table_index);
+    t->comp_poisson->storage_assign(t->comp_poisson, 2, t->work_index);
+    t->comp_poisson->storage_assign(t->comp_poisson, 3, t->density_index);
+    t->comp_poisson->storage_assign(t->comp_poisson, 4, t->psi_index);
 
     if (t->pp_enabled) {
         t->comp_pp->uniform_assign(t->comp_pp, 0, t->comp_pp_settings);
