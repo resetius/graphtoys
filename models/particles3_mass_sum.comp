@@ -2,24 +2,11 @@
 
 layout(local_size_x = 32, local_size_y = 32) in;
 
-layout(std140, binding=0) uniform Settings {
-    vec4 origin;
-    int particles;
-    int stage;
-    int nn;  // nx=ny=nz=nn
-    int n;   // log(nn)
-    int nlists;
-    float h;
-    float l;
-    float rho;
-    float rcrit;
-};
+#include "particles3_comp_base.h"
 
 layout(std430, binding=1) buffer DensityBuffer {
     float Rho[];
 };
-
-#define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
 
 void main()
 {
