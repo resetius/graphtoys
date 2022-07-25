@@ -62,8 +62,8 @@ void main()
         for (uint x = 0; x < kk; x ++) {
             for (int j = 0; j < nn; j++) {
                 Rho[roff
-                    +off(y*gl_WorkGroupSize.y+gl_LocalInvocationID.y,
-                         x*gl_WorkGroupSize.x+gl_LocalInvocationID.x,
+                    +off(gl_LocalInvocationID.y*kk+y,
+                         gl_LocalInvocationID.x*kk+x,
                          j)] = -4*M_PI*rho;
             }
         }
@@ -100,7 +100,7 @@ void main()
                            (2*gl_LocalInvocationID.x+j0)];
 
             add_density(cur, roff);
+            barrier();
         }
-        barrier();
     }
 }
