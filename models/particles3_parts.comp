@@ -59,6 +59,7 @@ void main() {
 
     barrier();
 
-    list[particles+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x] =
+    uint ioff = particles+gl_WorkGroupID.x*32*32;
+    list[ioff+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x] =
         lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x];
 }

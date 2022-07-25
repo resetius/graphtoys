@@ -334,12 +334,13 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     //printf("particles %d\n", t->particles);
 
+    int groups = 1;
     t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
-    t->comp_parts->start_compute(t->comp_parts, 1, 1, 1);
+    t->comp_parts->start_compute(t->comp_parts, groups, 1, 1);
     t->r->counter_submit(t->r, t->counter_density_sort);
 
     t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
-    t->comp_mass->start_compute(t->comp_mass, 1, 1, 1);
+    t->comp_mass->start_compute(t->comp_mass, groups, 1, 1);
     t->r->counter_submit(t->r, t->counter_density);
 
     if (t->single_pass) {
@@ -666,7 +667,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->density = malloc(nn*nn*nn*sizeof(float));
     //distribute(nn, 1, t->density, data.coords, t->particles, h, origin);
     t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL /*t->density*/,
-                                    nn*nn*nn*sizeof(float));
+                                    8*nn*nn*nn*sizeof(float));
     t->vrho_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL,
                                  4*nn*nn*nn*sizeof(float));
     t->psi = malloc(nn*nn*nn*sizeof(float));
