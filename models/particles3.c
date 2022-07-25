@@ -10,13 +10,6 @@
 
 #include <models/particles3.vert.h>
 #include <models/particles2.frag.h>
-#include <models/particles3_parts.comp.h>
-#include <models/particles3_mass.comp.h>
-#include <models/particles3_mass_sum.comp.h>
-#include <models/particles3_pm.comp.h>
-#include <models/particles3_strength.comp.h>
-#include <models/particles3_pp.comp.h>
-#include <models/particles3_pp_sort.comp.h>
 #include <models/particles3.vert.spv.h>
 #include <models/particles2.frag.spv.h>
 #include <models/particles3_parts.comp.spv.h>
@@ -493,37 +486,30 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         .size = models_particles2_frag_spv_size,
     };
     struct ShaderCode compute_shader = {
-        .glsl = models_particles3_pm_comp,
         .spir_v = models_particles3_pm_comp_spv,
         .size = models_particles3_pm_comp_spv_size,
     };
     struct ShaderCode compute_parts_shader = {
-        .glsl = models_particles3_parts_comp,
         .spir_v = models_particles3_parts_comp_spv,
         .size = models_particles3_parts_comp_spv_size,
     };
     struct ShaderCode compute_mass_shader = {
-        .glsl = models_particles3_mass_comp,
         .spir_v = models_particles3_mass_comp_spv,
         .size = models_particles3_mass_comp_spv_size,
     };
     struct ShaderCode compute_mass_sum_shader = {
-        .glsl = models_particles3_mass_sum_comp,
         .spir_v = models_particles3_mass_sum_comp_spv,
         .size = models_particles3_mass_sum_comp_spv_size,
     };
     struct ShaderCode compute_strength_shader = {
-        .glsl = models_particles3_strength_comp,
         .spir_v = models_particles3_strength_comp_spv,
         .size = models_particles3_strength_comp_spv_size,
     };
     struct ShaderCode compute_pp_shader = {
-        .glsl = models_particles3_pp_comp,
         .spir_v = models_particles3_pp_comp_spv,
         .size = models_particles3_pp_comp_spv_size,
     };
     struct ShaderCode compute_pp_sort_shader = {
-        .glsl = models_particles3_pp_sort_comp,
         .spir_v = models_particles3_pp_sort_comp_spv,
         .size = models_particles3_pp_sort_comp_spv_size,
     };
