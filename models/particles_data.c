@@ -102,7 +102,7 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
                 coords[n+j] = side * (double)rand_(&seed) / (double)rand_max - side/2;
             }
 
-            coords[n+3] = 0.2 + 1.5*(double)rand() / (double)RAND_MAX;
+            coords[n+3] = 0.2 + 1.5*(double)rand_(&seed) / (double)rand_max;
 
             double R =
                 coords[n]*coords[n]+
@@ -124,11 +124,11 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
     } else if (!strcmp(name, "square")) {
         for (i = 0; i < n_particles; i++) {
             for (j = 0; j < 2; j++) {
-                coords[n+j] = side * (double)rand() / (double)RAND_MAX - side/2;
+                coords[n+j] = side * (double)rand_(&seed) / (double)rand_max - side/2;
             }
             coords[n+2] = 0;
 
-            coords[n+3] = 0.2 + 1.5*(double)rand() / (double)RAND_MAX;
+            coords[n+3] = 0.2 + 1.5*(double)rand_(&seed) / (double)rand_max;
 
             double R =
                 coords[n]*coords[n]+
@@ -150,15 +150,15 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
     } else { // sphere
 
         while (n < 4*n_particles) {
-            double x = 2*side*(double)rand() / RAND_MAX - side;
-            double y = 2*side*(double)rand() / RAND_MAX - side;
-            double z = 2*side*(double)rand() / RAND_MAX - side;
+            double x = 2*side*(double)rand_(&seed) / rand_max - side;
+            double y = 2*side*(double)rand_(&seed) / rand_max - side;
+            double z = 2*side*(double)rand_(&seed) / rand_max - side;
 
             if (x*x+y*y+z*z<side*side) {
                 coords[n] = x;
                 coords[n+1] = y;
                 coords[n+2] = z;
-                coords[n+3] = 0.2 + 1.5*(double)rand() / (double)RAND_MAX;
+                coords[n+3] = 0.2 + 1.5*(double)rand_(&seed) / (double)rand_max;
 
                 double R =
                     coords[n]*coords[n]+
