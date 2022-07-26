@@ -633,12 +633,13 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->vert.color[2] = 1;
     t->vert.color[3] = 1;
     cfg_getv4_def(cfg, t->vert.color, "color", t->vert.color);
+    int nlists = cfg_geti_def(cfg, "nlists", 8);
 
     t->density = NULL;
     //t->density = malloc(nn*nn*nn*sizeof(float));
     //distribute(nn, 1, t->density, data.coords, t->particles, h, origin);
     t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL /*t->density*/,
-                                    8*nn*nn*nn*sizeof(float));
+                                    nlists*nn*nn*nn*sizeof(float));
     t->psi = malloc(nn*nn*nn*sizeof(float));
     t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL,
                                 nn*nn*nn*sizeof(float));
@@ -692,7 +693,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_pp_set.l = l;
     t->comp_pp_set.rcrit = t->comp_pp_set.h; // TODO
     t->comp_set.rcrit = t->comp_pp_set.rcrit;
-    t->comp_set.nlists = t->comp_pp_set.nlists = 8;
+    t->comp_set.nlists = t->comp_pp_set.nlists = nlists;
 
     // TODO: don't allocate it for pp-only
     t->pp_force = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);
