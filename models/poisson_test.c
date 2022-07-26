@@ -101,6 +101,8 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     // OpenGL only yet!
     // check accuracy and exit
+    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
+
     double nrm = 0;
     double nrm1= 0;
     double avg = 0.0;
@@ -120,18 +122,17 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         }
     }
 
-    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
     for (int i = 0; i < nn; i++) {
         for (int k = 0; k < nn; k++) {
             for (int j = 0; j < nn; j++) {
                 double f = ans1(i, k, j, h, h, h, 0, 0, 0, l, l, l);
-                nrm = fmax(nrm, fabs(t->psi[off(i,k,j)]));
+                nrm = fmax(nrm, fabs(t->psi[off(i,k,j)]-f));
                 nrm1 = fmax(nrm1, fabs(f));
             }
         }
     }
     nrm /= nrm1;
-    printf("err = '%e'\n", nrm);
+    fprintf(stderr, "err = '%e'\n", nrm);
 
     exit(0);
 }
@@ -202,7 +203,7 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
     }
     t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,
                                     t->density,
-                                    8*nn*nn*nn*sizeof(float));
+                                    nn*nn*nn*sizeof(float));
     t->psi = malloc(nn*nn*nn*sizeof(float));
     t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, NULL,
                                 nn*nn*nn*sizeof(float));
