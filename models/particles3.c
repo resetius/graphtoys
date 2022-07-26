@@ -115,7 +115,6 @@ struct Particles {
     int indices_vao;
     int uniform;
     int pos;
-    int new_pos;
     int accel;
     int vel;
     float* pos_data;
@@ -579,11 +578,10 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->uniform_add(pl, 0, "MatrixBlock")
 
         ->storage_add(pl, 1, "PosBuffer")
-        ->storage_add(pl, 2, "NewPosBuffer")
-        ->storage_add(pl, 3, "VelBuffer")
-        ->storage_add(pl, 4, "AccelBuffer")
-        ->storage_add(pl, 5, "EBuffer")
-        ->storage_add(pl, 6, "ForceBuffer")
+        ->storage_add(pl, 2, "VelBuffer")
+        ->storage_add(pl, 3, "AccelBuffer")
+        ->storage_add(pl, 4, "EBuffer")
+        ->storage_add(pl, 5, "ForceBuffer")
 
         ->begin_buffer(pl, 4)
         ->buffer_attribute(pl, 1, 1, DATA_INT, 0)
@@ -683,7 +681,6 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     //abort();
 
     t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
-    t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
     t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.vels, size);
     t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.accel, size);
 
@@ -714,11 +711,10 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     t->pl->uniform_assign(t->pl, 0, t->uniform);
     t->pl->storage_assign(t->pl, 1, t->pos);
-    t->pl->storage_assign(t->pl, 2, t->new_pos);
-    t->pl->storage_assign(t->pl, 3, t->vel);
-    t->pl->storage_assign(t->pl, 4, t->accel);
-    t->pl->storage_assign(t->pl, 5, t->e_index);
-    t->pl->storage_assign(t->pl, 6, t->pp_force);
+    t->pl->storage_assign(t->pl, 2, t->vel);
+    t->pl->storage_assign(t->pl, 3, t->accel);
+    t->pl->storage_assign(t->pl, 4, t->e_index);
+    t->pl->storage_assign(t->pl, 5, t->pp_force);
 
     t->comp_parts->uniform_assign(t->comp_parts, 0, t->comp_settings);
     t->comp_parts->storage_assign(t->comp_parts, 1, t->pos);

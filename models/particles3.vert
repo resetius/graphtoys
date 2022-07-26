@@ -18,24 +18,20 @@ layout(std140, binding=1) buffer PosBuffer {
     vec4 Position[];
 };
 
-layout(std140, binding=2) buffer NewPosBuffer {
-    vec4 NewPosition[];
-};
-
-layout(std140, binding=3) buffer VelBuffer {
+layout(std140, binding=2) buffer VelBuffer {
     vec4 Velocity[];
 };
 
-layout(std140, binding=4) buffer AccelBuffer {
+layout(std140, binding=3) buffer AccelBuffer {
     vec4 Accel[];
 };
 
-layout(std430, binding=5) buffer EBuffer {
+layout(std430, binding=4) buffer EBuffer {
     vec4 E[];
 };
 
 // pp-force
-layout(std430, binding=6) buffer ForceBuffer {
+layout(std430, binding=5) buffer ForceBuffer {
     vec4 F[];
 };
 
