@@ -23,6 +23,7 @@
 #include <models/particles3.h>
 
 struct Object* CreateGltf(struct Render* r, struct Config* cfg);
+struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg);
 
 struct App {
     struct EventProducer events;
@@ -222,6 +223,7 @@ int main(int argc, char** argv)
         {"particles", (ConstructorT)CreateParticles},
         {"particles2", (ConstructorT)CreateParticles2},
         {"particles3", (ConstructorT)CreateParticles3},
+        {"poisson", (ConstructorT)CreatePoissonTest},
         {"gltf", (ConstructorT)CreateGltf},
         {"test", NULL},
         {NULL, NULL}

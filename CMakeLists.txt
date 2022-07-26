@@ -134,6 +134,7 @@ add_library(engine
     models/particles.c
     models/particles2.c
     models/particles3.c
+    models/poisson_test.c
     models/stl.c
     opengl/buffer.c
     opengl/program.c
