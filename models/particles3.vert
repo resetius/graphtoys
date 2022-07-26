@@ -45,12 +45,8 @@ void main()
     float mass = Position[idx].w;
 
     gl_Position = MVP * vec4(vec3(Position[idx]), 1);
-    gl_PointSize = max(1, min(30, pow(mass, 1./3.))); // mass
-    if (mass > 0) {
-        color = out_color;
-    } else {
-        color = vec4(0);
-    }
+    gl_PointSize = clamp(pow(mass, 1./3.), 1, 30);
+    color = out_color;
 
     vec4 r = Position[idx] + tau*Velocity[idx] + 0.5 * tau*tau*Accel[idx];
     vec4 A = vec4(0);
