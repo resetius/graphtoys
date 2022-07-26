@@ -12,6 +12,9 @@
 #include <lib/linmath.h>
 #include <lib/object.h>
 
+#define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
+#define poff(i,k,j) (((i+nn)%nn)*nn*nn+((k+nn)%nn)*nn+((j+nn)%nn))
+
 struct CompSettings {
     vec4 origin;
     int particles;
@@ -53,8 +56,33 @@ struct Particles {
     double T;
 };
 
+static double ans1(int i, int k, int j, double dz, double dy, double dx, double x1, double y1, double z1, double x2, double y2, double z2) {
+    double x = x1+dx*j-dx/2;
+    double y = y1+dy*k-dy/2;
+    double z = z1+dz*i-dz/2;
+
+    double sx = sin(x);
+    double cy = cos(y);
+    double sz = sin(z);
+    return sx*sx*sx+cy*cy*cy*cy*cy-sz;
+}
+
+static double rp1(int i, int k, int j, double dz, double dy, double dx, double x1, double y1, double z1, double x2, double y2, double z2) {
+    double x = x1+dx*j-dx/2;
+    double y = y1+dy*k-dy/2;
+    double z = z1+dz*i-dz/2;
+
+    return 1./16. *
+        (-12.* sin(x) + 36.* sin(3* x)
+         - 10.* cos(y) - 45.* cos(3* y)
+         - 25.* cos(5* y) + 16.* sin(z));
+}
+
 static void draw_(struct Object* obj, struct DrawContext* ctx) {
     struct Particles* t = (struct Particles*)obj;
+    int nn = t->comp_set.nn;
+    float h = t->comp_set.h;
+    float l = t->comp_set.l;
 
     if (t->single_pass) {
         int stage = 0;
@@ -66,10 +94,46 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             t->comp_set.stage = stage;
             t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
 
-            int groups = t->comp_set.nn / 32;
+            int groups = nn / 32;
             t->comp_poisson->start_compute(t->comp_poisson, groups, groups, 1);
         }
     }
+
+    // OpenGL only yet!
+    // check accuracy and exit
+    double nrm = 0;
+    double nrm1= 0;
+    double avg = 0.0;
+    for (int i = 0; i < nn; i++) {
+        for (int k = 0; k < nn; k++) {
+            for (int j = 0; j < nn; j++) {
+                avg += t->psi[off(i,k,j)];
+            }
+        }
+    }
+    avg /= nn*nn*nn;
+    for (int i = 0; i < nn; i++) {
+        for (int k = 0; k < nn; k++) {
+            for (int j = 0; j < nn; j++) {
+                t->psi[off(i,k,j)] -= avg;
+            }
+        }
+    }
+
+    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
+    for (int i = 0; i < nn; i++) {
+        for (int k = 0; k < nn; k++) {
+            for (int j = 0; j < nn; j++) {
+                double f = ans1(i, k, j, h, h, h, 0, 0, 0, l, l, l);
+                nrm = fmax(nrm, fabs(t->psi[off(i,k,j)]));
+                nrm1 = fmax(nrm1, fabs(f));
+            }
+        }
+    }
+    nrm /= nrm1;
+    printf("err = '%e'\n", nrm);
+
+    exit(0);
 }
 
 static void free_(struct Object* obj) {
@@ -115,7 +179,6 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
         ->build(pl);
     printf("Done\n");
 
-    float origin[4] = {0,0,0,0};
     float l = 2*M_PI;
     t->single_pass = cfg_geti_def(cfg, "single_pass", 0);
 
@@ -129,12 +192,19 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
     t->comp_set.l = l;
 
     t->density = NULL;
-    //t->density = malloc(nn*nn*nn*sizeof(float));
-    //distribute(nn, 1, t->density, data.coords, t->particles, h, origin);
-    t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL /*t->density*/,
+    t->density = malloc(nn*nn*nn*sizeof(float));
+    for (int i = 0; i < nn; i++) {
+        for (int k = 0; k < nn; k++) {
+            for (int j = 0; j < nn; j++) {
+                t->density[off(i,k,j)] = rp1(i,k,j,h,h,h,0,0,0,l,l,l);
+            }
+        }
+    }
+    t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,
+                                    t->density,
                                     8*nn*nn*nn*sizeof(float));
     t->psi = malloc(nn*nn*nn*sizeof(float));
-    t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL,
+    t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, NULL,
                                 nn*nn*nn*sizeof(float));
 
     int fft_table_size = 3*2*nn*sizeof(float);
