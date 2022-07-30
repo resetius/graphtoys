@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdint.h>
 #include <stddef.h>
 
 struct Texture;
@@ -33,6 +34,13 @@ enum CounterType {
     COUNTER_COMPUTE = 0,
     COUNTER_VERTEX = 1,
     COUNTER_FRAG = 2,
+};
+
+struct Counter {
+    const char* name;
+    uint64_t value;
+    uint64_t count;
+    enum CounterType type;
 };
 
 struct Render {

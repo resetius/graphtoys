@@ -23,14 +23,6 @@ struct Texture {
     int has_set;
 };
 
-// TODO:
-struct Counter {
-    const char* name;
-    uint64_t value;
-    uint64_t count;
-    enum CounterType type;
-};
-
 struct RenderImpl {
     struct Render base;
     struct RenderConfig cfg;

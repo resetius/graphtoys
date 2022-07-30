@@ -30,6 +30,17 @@ struct RenderImpl {
     GLFWwindow* window;
     GLint major;
     GLint minor;
+
+    // counters
+    // TODO: move to separate file
+    uint32_t timestamp;
+    int queries_per_frame;
+    int queries_delay;
+    int query;
+    struct Counter counters[32];
+    int ncounters;
+    int query2counter[32];
+    GLuint queries[32];
 };
 
 static void GLAPIENTRY
@@ -98,6 +109,7 @@ static struct Char* rend_char_new_(struct Render* r, wchar_t ch, void* bm) {
 
 static void rend_free_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
+    glDeleteQueries(256, r->queries);
     free(r);
 }
 
@@ -111,12 +123,39 @@ static void set_viewport(struct Render* r, int w, int h) {
     glViewport(0, 0, w, h);
 }
 
-static void draw_begin_(struct Render* r) {
+static void draw_begin_(struct Render* r1) {
+    struct RenderImpl* r = (struct RenderImpl*)r1;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    r->timestamp = r->query*r->queries_per_frame;
+    glQueryCounter(r->queries[r->timestamp++], GL_TIMESTAMP);
 }
 
-static void draw_end_(struct Render* r) {
-    glfwSwapBuffers(((struct RenderImpl*)r)->window);
+static void draw_end_(struct Render* r1) {
+    struct RenderImpl* r = (struct RenderImpl*)r1;
+    int prev_query = (r->query+1) % r->queries_delay;
+
+    glfwSwapBuffers(r->window);
+
+    GLuint64 data[32];
+    for (int i = 0; i < r->timestamp-r->query*r->queries_per_frame; i++) {
+        glGetQueryObjectui64v(
+            r->queries[prev_query*r->queries_per_frame+i],
+            GL_QUERY_RESULT_NO_WAIT,
+            &data[i]
+            );
+    }
+
+    uint64_t s = data[0];
+    // i = 0 -- technical counter
+    for (int i = 1; i < r->timestamp-r->query*r->queries_per_frame&&i<32;i++) {
+        int j = r->query2counter[i];
+        r->counters[j].value += data[i] - s;
+        r->counters[j].count ++;
+        s = data[i];
+    }
+
+    r->query = (r->query+1)%r->queries_delay;
 }
 
 static void screenshot(struct Render* r, void** data, int* w, int* h) {
@@ -186,6 +225,10 @@ static void init_(struct Render* r1) {
         printf(#var ": %d\n", i);                                  \
     } while (0)
 
+    glGenQueries(256, r->queries);
+    r->queries_per_frame = 32;
+    r->queries_delay = 3;
+
 #define prnLimit3(var) do {                     \
         for (int k = 0; k < 3; k++) {           \
             GLint i = 0;                        \
@@ -224,10 +267,43 @@ static struct Texture* tex_new(struct Render* r, void* data, enum TexType tex_ty
     return (struct Texture*)tex_id;
 }
 
-static void print_compute_stats_(struct Render* r) { /* unimplemented */ }
-static int counter_new(struct Render* r, const char* name, enum CounterType counter_type)
-{ /*unimplemented*/ return 0; }
-static void counter_submit(struct Render* r, int id) { /* unimplemented */ }
+static void print_compute_stats_(struct Render* r1)
+{
+    struct RenderImpl* r = (struct RenderImpl*)r1;
+    double total = 0;
+    for (int i = 0; i < 32; i++) {
+        if (r->counters[i].count) {
+            double value = r->counters[i].value
+                *1e-6
+                /r->counters[i].count;
+
+            total += value;
+
+            printf("%02d %s %.2fms\n", i, r->counters[i].name, value);
+
+            r->counters[i].count = 0;
+            r->counters[i].value = 0;
+        }
+    }
+    if (total > 0) {
+        printf("Total: %.2fms\n", total);
+    }
+}
+
+static int counter_new(struct Render* r1, const char* name, enum CounterType type)
+{
+    struct RenderImpl* r = (struct RenderImpl*)r1;
+    r->counters[r->ncounters].name = name;
+    r->counters[r->ncounters].type = type;
+    return r->ncounters++;
+}
+
+static void counter_submit(struct Render* r1, int id) {
+    struct RenderImpl* r = (struct RenderImpl*)r1;
+
+    r->query2counter[r->timestamp-r->query*r->queries_per_frame] = id;
+    glQueryCounter(r->queries[r->timestamp++], GL_TIMESTAMP);
+}
 
 struct PipelineBuilder* pipeline_builder_opengl(struct Render*);
 
