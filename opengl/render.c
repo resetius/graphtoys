@@ -137,13 +137,17 @@ static void draw_end_(struct Render* r1) {
 
     glfwSwapBuffers(r->window);
 
+
     GLuint64 data[32] = {0};
     for (int i = 0; i < r->timestamp-r->query*r->queries_per_frame; i++) {
-        glGetQueryObjectui64v(
-            r->queries[prev_query*r->queries_per_frame+i],
-            GL_QUERY_RESULT,
-            &data[i]
-            );
+        GLuint query = r->queries[prev_query*r->queries_per_frame+i];
+        if (glIsQuery(query)) {
+            glGetQueryObjectui64v(
+                query,
+                GL_QUERY_RESULT,
+                &data[i]
+                );
+        }
     }
 
     uint64_t s = data[0];
@@ -154,6 +158,7 @@ static void draw_end_(struct Render* r1) {
         r->counters[j].count ++;
         s = data[i];
     }
+
 
     r->query = (r->query+1)%r->queries_delay;
 }
