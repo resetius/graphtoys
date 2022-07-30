@@ -40,7 +40,7 @@ struct RenderImpl {
     struct Counter counters[32];
     int ncounters;
     int query2counter[32];
-    GLuint queries[32];
+    GLuint queries[256];
 };
 
 static void GLAPIENTRY
@@ -137,11 +137,11 @@ static void draw_end_(struct Render* r1) {
 
     glfwSwapBuffers(r->window);
 
-    GLuint64 data[32];
+    GLuint64 data[32] = {0};
     for (int i = 0; i < r->timestamp-r->query*r->queries_per_frame; i++) {
         glGetQueryObjectui64v(
             r->queries[prev_query*r->queries_per_frame+i],
-            GL_QUERY_RESULT_NO_WAIT,
+            GL_QUERY_RESULT,
             &data[i]
             );
     }
@@ -226,8 +226,10 @@ static void init_(struct Render* r1) {
     } while (0)
 
     glGenQueries(256, r->queries);
+    r->timestamp = 0;
     r->queries_per_frame = 32;
     r->queries_delay = 3;
+    r->query = 0;
 
 #define prnLimit3(var) do {                     \
         for (int k = 0; k < 3; k++) {           \
