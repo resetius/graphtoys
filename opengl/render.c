@@ -52,9 +52,9 @@ message_callback( GLenum source,
                   const GLchar* message,
                   const void* userParam )
 {
-    fprintf( stderr, "GL CALLBACK: %s source = 0x%x, type = 0x%x, severity = 0x%x, message = %s\n",
+    fprintf( stderr, "GL CALLBACK: %s source = 0x%x, type = 0x%x, severity = 0x%x, id=%u, message = %s\n",
              ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
-             source, type, severity, message );
+             source, type, severity, id, message );
 }
 
 static void* char_texture_(struct Char* ch) {
