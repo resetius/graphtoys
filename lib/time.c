@@ -3,14 +3,14 @@
 
 struct Time now() {
     struct Time res;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &res.value);
+    clock_gettime(CLOCK_MONOTONIC, &res.value);
     return res;
 }
 
 struct Duration duration(struct Time* from, struct Time* to)
 {
     struct Duration res; memset(&res, 0, sizeof(res));
-    long diff = from->value.tv_nsec - to->value.tv_nsec;
+    long diff = to->value.tv_nsec - from->value.tv_nsec;
     res.value.tv_sec = to->value.tv_sec - from->value.tv_sec;
     if (diff < 0) {
         res.value.tv_sec -= 1;
