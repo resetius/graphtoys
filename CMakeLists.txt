@@ -165,6 +165,7 @@ add_library(engine
     lib/config.c
     lib/object.c
     lib/ref.c
+    lib/time.c
     font/font.c
     ${GENERATED}
     )
