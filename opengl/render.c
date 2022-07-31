@@ -129,7 +129,7 @@ static void draw_begin_(struct Render* r1) {
 
     r->timestamp = r->query*r->queries_per_frame;
 
-    glBeginQuery(GL_TIME_ELAPSED, r->queries[r->timestamp++]);
+    glBeginQuery(GL_TIME_ELAPSED, r->queries[r->timestamp]);
 }
 
 static void draw_end_(struct Render* r1) {
@@ -142,7 +142,7 @@ static void draw_end_(struct Render* r1) {
 
 
     GLuint64 data[32] = {0};
-    for (int i = 0; i < r->timestamp-r->query*r->queries_per_frame; i++) {
+    for (int i = 0; i < r->timestamp-r->query*r->queries_per_frame&&i<32; i++) {
         GLuint query = r->queries[prev_query*r->queries_per_frame+i];
         if (glIsQuery(query)) {
             glGetQueryObjectui64v(
@@ -153,15 +153,11 @@ static void draw_end_(struct Render* r1) {
         }
     }
 
-    uint64_t s = data[0];
-    // i = 0 -- technical counter
-    for (int i = 1; i < r->timestamp-r->query*r->queries_per_frame&&i<32;i++) {
+    for (int i = 0; i < r->timestamp-r->query*r->queries_per_frame&&i<32;i++) {
         int j = r->query2counter[i];
-        r->counters[j].value += data[i] - s;
+        r->counters[j].value += data[i];
         r->counters[j].count ++;
-        s = data[i];
     }
-
 
     r->query = (r->query+1)%r->queries_delay;
 }
@@ -315,7 +311,7 @@ static void counter_submit(struct Render* r1, int id) {
 
     glEndQuery(GL_TIME_ELAPSED);
 
-    glBeginQuery(GL_TIME_ELAPSED, r->queries[r->timestamp++]);
+    glBeginQuery(GL_TIME_ELAPSED, r->queries[++r->timestamp]);
 }
 
 struct PipelineBuilder* pipeline_builder_opengl(struct Render*);
