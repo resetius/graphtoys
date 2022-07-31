@@ -279,10 +279,8 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     //printf("particles %d\n", t->particles);
 
     int groups = t->comp_pp_set.nlists; // 8
-    t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
     t->comp_parts->start_compute(t->comp_parts, groups, 1, 1);
     t->r->counter_submit(t->r, t->counter_density_sort);
-
 
     t->comp_mass->start_compute(t->comp_mass, groups, 1, 1);
     t->r->counter_submit(t->r, t->counter_density);
@@ -292,9 +290,6 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     if (t->single_pass) {
         verify(nn == 32);
-        int stage = 0;
-        t->comp_set.stage = stage;
-        t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
         t->comp_poisson->start_compute(t->comp_poisson, 1, 1, 1);
     } else {
         for (int stage = 1; stage <= 7; stage ++) {
@@ -655,8 +650,6 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->fft_table_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, fft_table, fft_table_size);
     free(fft_table);
     t->work_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, 2*nn*nn*nn*sizeof(float));
-    t->comp_settings = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct CompSettings));
-    t->comp_pp_settings = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct CompPPSettings));
 
     t->indices = t->b->create(t->b, BUFFER_ARRAY, MEMORY_STATIC, data.indices, t->particles*sizeof(int));
 
@@ -699,6 +692,9 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     }
 
     t->list = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, (t->particles+64*32*32)*sizeof(int));
+
+    t->comp_settings = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, &t->comp_set, sizeof(t->comp_set));
+    t->comp_pp_settings = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, &t->comp_pp_set, sizeof(t->comp_pp_set));
 
     t->indices_vao = t->pl->buffer_assign(t->pl, 0, t->indices);
 
