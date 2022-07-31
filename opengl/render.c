@@ -128,12 +128,15 @@ static void draw_begin_(struct Render* r1) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     r->timestamp = r->query*r->queries_per_frame;
-    glQueryCounter(r->queries[r->timestamp++], GL_TIMESTAMP);
+
+    glBeginQuery(GL_TIME_ELAPSED, r->queries[r->timestamp++]);
 }
 
 static void draw_end_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
     int prev_query = (r->query+1) % r->queries_delay;
+
+    glEndQuery(GL_TIME_ELAPSED);
 
     glfwSwapBuffers(r->window);
 
@@ -309,7 +312,10 @@ static void counter_submit(struct Render* r1, int id) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
 
     r->query2counter[r->timestamp-r->query*r->queries_per_frame] = id;
-    glQueryCounter(r->queries[r->timestamp++], GL_TIMESTAMP);
+
+    glEndQuery(GL_TIME_ELAPSED);
+
+    glBeginQuery(GL_TIME_ELAPSED, r->queries[r->timestamp++]);
 }
 
 struct PipelineBuilder* pipeline_builder_opengl(struct Render*);
