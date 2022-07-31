@@ -283,11 +283,10 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     t->comp_parts->start_compute(t->comp_parts, groups, 1, 1);
     t->r->counter_submit(t->r, t->counter_density_sort);
 
-    t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
+
     t->comp_mass->start_compute(t->comp_mass, groups, 1, 1);
     t->r->counter_submit(t->r, t->counter_density);
 
-    t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
     t->comp_mass_sum->start_compute(t->comp_mass_sum, t->comp_set.nn/32, t->comp_set.nn/32, 1);
     t->r->counter_submit(t->r, t->counter_density);
 
@@ -297,7 +296,6 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         t->comp_set.stage = stage;
         t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
         t->comp_poisson->start_compute(t->comp_poisson, 1, 1, 1);
-        t->r->counter_submit(t->r, t->counter_e);
     } else {
         for (int stage = 1; stage <= 7; stage ++) {
             t->comp_set.stage = stage;
@@ -305,15 +303,14 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
             int groups = nn / 32;
             t->comp_poisson->start_compute(t->comp_poisson, groups, groups, 1);
-            t->r->counter_submit(t->r, t->counter_psi);
         }
     }
 
+    t->r->counter_submit(t->r, t->counter_psi);
+
     groups = nn / 32;
-    t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
     t->comp_strength->start_compute(t->comp_strength, groups, groups, 1);
     t->r->counter_submit(t->r, t->counter_e);
-
 
     if (t->pp_enabled) {
         t->comp_pp_set.stage = 1;
@@ -323,14 +320,9 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
         t->comp_pp_set.stage = 2;
         t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
-        //t->comp_pp->start_compute(t->comp_pp, groups, groups, groups);
-        //t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
         t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
         t->r->counter_submit(t->r, t->counter_pp);
     }
-
-//    int nn = t->comp_set.nn;
-//    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
 
     t->pl->start(t->pl);
     memcpy(t->vert.mvp, &mvp[0][0], sizeof(mat4x4));
@@ -685,7 +677,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.vels, size);
     t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.accel, size);
 
-    t->comp_pp_set.nn = t->comp_set.nn; // 32;
+    t->comp_pp_set.nn = 64; // t->comp_set.nn; // 32;
     memcpy(t->comp_pp_set.origin, t->comp_set.origin, sizeof(t->comp_pp_set.origin));
     t->comp_pp_set.particles = t->particles;
     t->comp_pp_set.cell_size = 512 / (t->comp_pp_set.nn/32);
