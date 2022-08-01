@@ -81,7 +81,7 @@ void pFFT_1(uint ooff, uint ioff, float dx, int N, int n) {
             }
             int idx2 = (1 << (s - 1)) * (2 * k - 1);
             W[ooff+yoff + idx2]  = s1;
-            W[ooff+_yoff + idx2] = s2;
+            W[ooff+N - idx2] = s2;
         }
     }
 
@@ -99,12 +99,6 @@ void pFFT_1(uint ooff, uint ioff, float dx, int N, int n) {
 
     for (int k = 1; k <= N_2-1; k++) {
         W[ooff+_yoff + k] = W[ooff+_yoff + k] * dx;
-    }
-
-    for (int k = 1; k < N_2/2; k++) {
-        float tmp = W[ooff+_yoff + k];
-        W[ooff+_yoff + k] = W[ooff+_yoff+N_2-k];
-        W[ooff+_yoff+N_2-k] = tmp;
     }
 }
 
@@ -157,25 +151,14 @@ void pFFT(uint ooff, uint ioff, float dx, int N, int n) {
 
     cFFT(ooff, ioff, dx, N_2, n-1, 2);
 
-    for (k = 1; k < N_2/2; k++) {
-        float tmp = W[ioff+N_2 + k];
-        W[ioff+N_2 + k] = W[ioff+N-k];
-        W[ioff+N-k] = tmp;
-    }
-
-    // S[N_2] not filled, N_2+1 first non empty
-    sFFT(ooff+N_2, ioff+N_2, dx, N_2, n-1, 2);
+    sFFT(ioff, ioff+N_2, dx, N_2, n-1, 2);
 
     for (k = 1; k <= N_2 - 1; k ++) {
-        float S_k   = (W[ooff+k] + W[ooff+N_2+k]);
-        float S_N_k = (W[ooff+k] - W[ooff+N_2+k]);
-        W[ooff+k]    = S_k;
-        W[ooff+N_2+k]= S_N_k;
-    }
-    for (int k = 1; k < N_2/2; k++) {
-        float tmp = W[ooff+N_2 + k];
-        W[ooff+N_2+k] = W[ooff+N-k];
-        W[ooff+N  -k] = tmp;
+        int r = k%2;
+        float S_k   = (W[ooff+k] + (2*r-1)*W[ioff+k]);
+        float S_N_k = (W[ooff+k] - (2*r-1)*W[ioff+k]);
+        W[ooff+k]   = S_k;
+        W[ooff+N-k] = S_N_k;
     }
 }
 
