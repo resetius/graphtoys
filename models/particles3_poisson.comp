@@ -87,7 +87,7 @@ void pFFT_1(uint ooff, uint ioff, float dx, int N, int n) {
 
     padvance(ioff, 1 << (n - (n-1)));
     W[ooff+yoff+(1 << (n - 2))]  = W[ioff+2];
-    W[ooff+_yoff+(1 << (n - 2))] = W[ioff+3];
+    W[ooff+N-(1 << (n - 2))] = W[ioff+3];
 
     padvance(ioff, 1 << (n - n));
     W[ooff+yoff + 0]             = W[ioff+0];
