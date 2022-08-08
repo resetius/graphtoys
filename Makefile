@@ -83,6 +83,7 @@ SOURCES=main.c\
 	models/particles.c\
 	models/particles2.c\
 	models/particles3.c\
+	models/poisson_test.c\
 	models/stl.c\
 	opengl/buffer.c\
 	opengl/program.c\
@@ -117,13 +118,33 @@ SOURCES=main.c\
 	contrib/json/json.c\
 	$(KTX_SOURCES)
 
-SHADERS=models/triangle.frag\
+SHADERS=\
+	models/base.frag\
+	models/dot.frag\
+	models/mandelbrot.frag\
+	models/mandelbulb.frag\
+	models/particles.frag\
+	models/particles2.frag\
+	models/stl.frag\
+	models/triangle.frag\
+	models/particles.vert\
 	models/triangle.vert\
 	models/torus.vert\
+	models/base.vert\
+	models/stl.vert\
 	models/mandelbrot.vert\
-	models/mandelbrot.frag\
 	models/mandelbulb.vert\
-	models/mandelbulb.frag\
+	models/particles2.vert\
+	models/dot.vert\
+	models/particles3.vert\
+	models/particles3_mass_sum.comp\
+	models/particles3_parts.comp\
+	models/particles3_strength.comp\
+	models/particles3_mass.comp\
+	models/particles3_pp.comp\
+	models/particles.comp\
+	models/particles3_pp_sort.comp\
+	models/particles3_poisson.comp\
 	font/font.vert\
 	font/font.frag
 
