@@ -25,3 +25,5 @@ uint globalIndex =
 
 #define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
 #define poff(i,k,j) (((i+nn)%nn)*nn*nn+((k+nn)%nn)*nn+((j+nn)%nn))
+
+#define _2(i) (1<<(i))

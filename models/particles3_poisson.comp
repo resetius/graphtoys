@@ -10,6 +10,9 @@ int Sin = 2*nn;
 int La = Sin+2*nn;
 int iCosOff = La + nn;
 
+uint boff = 4*nn*globalIndex+2*nn;
+uint nboff = boff+nn;
+
 layout(std430, binding=1) readonly buffer FFTBuffer {
     float FFT[];
 };
@@ -28,6 +31,14 @@ layout(std430, binding=3) buffer DensityBuffer {
 layout(std430, binding=4) buffer PotentialBuffer {
     float Psi[];
 };
+
+void swap(inout uint a, inout uint b) {
+    uint t = a; a = b; b = t;
+}
+
+void next() {
+    swap(boff, nboff);
+}
 
 float iCOS(int k, int l) {
     return FFT[iCosOff + (l+1)*nn+(k-1)];
@@ -130,24 +141,70 @@ void sFFT(uint ooff, uint ioff, float dx, int N, int n, int nr) {
 void cFFT(uint ooff, uint ioff, float dx, int N, int n, int nr) {
     W[ioff+0] *= 0.5; W[ioff+N] *= 0.5; // samarskii, (15)-(16) p 66
 
-    for (int s = 1; s <= n - 1; s++) {
-        int idx = 1 << (n - s);
-        int vm  = 1 << (s - 1);
-        cadvance(ioff, idx);
+#define o(a,b) ((a)*(_2(m))+(b-1))
+#define _o(a,b) ((a)*(_2(m-1))+(b-1))
 
-        for (int k = 1; k <= idx; k++) {
-            float y = 0;
-            for (int j = 0; j <= idx - 1; j++) {
-                y += W[ioff+idx * 2 - j] *
-                    FFT[Cos+((2 * k - 1) * vm * nr * j) % sz];
+    for (int l = n-1; l >= 1; l--) {
+        cadvance(ioff, _2(l));
+
+        int m = 0, j = 0, s = 0, k = 0;
+        for (j = 0; j <= _2(l-m)-1; j++) {
+            W[nboff+o(j,1)] = W[ioff + (_2(l+1))-j]; // (m=0)
+        }
+        next();
+
+        for (m = 1; m <= l-1; m++) {
+            for (s = 1; s <= _2(m-1); s++) {
+                j = 0;
+                W[nboff+o(j,2*s-1)] = W[boff+_o(2*j+1,s)];
+                W[nboff+o(j,2*s)] = W[boff+_o(2*j,s)];
+
+                for (j = 1; j <= _2(l-m)-1; j++) {
+                    W[nboff+o(j,2*s-1)] = W[boff+_o(2*j-1,s)]+W[boff+_o(2*j+1,s)];
+                    W[nboff+o(j,2*s)] = W[boff+_o(2*j,s)];
+                }
             }
-            W[ooff+(2 * k - 1) * vm] = y * dx;
+            next();
+        }
+
+        // m = l
+        for (s = 1; s <= _2(m-1); s++) {
+            W[nboff+o(0,2*s-1)] = W[boff+_o(1,s)];
+            for (j = 0; j <= _2(l-m)-1; j++) {
+                W[nboff+o(j,2*s)] = W[boff+_o(2*j,s)];
+            }
+        }
+        next();
+        for (s = 1; s <= _2(l); s++) {
+            W[nboff+o(1,s)] = W[boff+o(0,s)];
+        }
+        next();
+
+        for (m = l; m >= 1; m--) {
+            for (k = 1; k <= _2(l-m); k++) {
+                for (s = 1; s <= _2(m-1); s++) {
+                    W[nboff+_o(k,s)] = W[boff+o(k,2*s)]
+                        + iCOS(k,l-m)*W[boff+o(k,2*s-1)];
+                    W[nboff+_o(_2(l-m+1)-k+1,s)] = W[boff+o(k,2*s)]
+                        - iCOS(k,l-m)*W[boff+o(k,2*s-1)];
+                }
+            }
+            next();
+        }
+
+        for (k = 1; k <= _2(l); k++) {
+            W[ooff+(_2(n-l-1))*(2*k-1)] = dx*W[boff+o(k,1)];
         }
     }
     cadvance(ioff, 1 << (n-n));
+
     W[ooff+0]   = (W[ioff+0] + W[ioff+1]) * dx;
     W[ooff+N]   = (W[ioff+0] - W[ioff+1]) * dx;
     W[ooff+N/2] =  W[ioff+2] * dx;
+
+#undef o
+#undef _o
+
 }
 
 void pFFT(uint ooff, uint ioff, float dx, int N, int n) {
@@ -176,7 +233,7 @@ void main() {
     uint i,k,j;
     const float slh = sqrt(2./l);
 
-    const uint _off = 2 * nn * globalIndex;
+    const uint _off = 4 * nn * globalIndex;
     const uint ioff = _off;
     const uint ooff = _off+nn;
 
