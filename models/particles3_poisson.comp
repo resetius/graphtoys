@@ -8,6 +8,7 @@ int sz = 2*nn;
 int Cos = 0;
 int Sin = 2*nn;
 int La = Sin+2*nn;
+int iCosOff = La + nn;
 
 layout(std430, binding=1) readonly buffer FFTBuffer {
     float FFT[];
@@ -27,6 +28,10 @@ layout(std430, binding=3) buffer DensityBuffer {
 layout(std430, binding=4) buffer PotentialBuffer {
     float Psi[];
 };
+
+float iCOS(int k, int l) {
+    return FFT[iCosOff + (l+1)*nn+(k-1)];
+}
 
 void padvance(uint ioff, int idx)
 {

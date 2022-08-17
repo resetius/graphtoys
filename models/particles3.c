@@ -635,7 +635,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
                               4*nn*nn*nn*sizeof(float));
 
     int n = t->comp_set.n;
-    int fft_table_size = (3*2*nn+(n+1)*nn)*sizeof(float);
+    int fft_table_size = (2*nn+2*nn+nn+(n+1)*nn)*sizeof(float);
     float* fft_table = malloc(fft_table_size);
     int m = 0, m1;
     for (; m < 2*nn; m++) {
