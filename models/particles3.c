@@ -659,7 +659,12 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
 
     t->fft_table_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, fft_table, fft_table_size);
     free(fft_table);
-    t->work_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, 2*nn*nn*nn*sizeof(float));
+    // TODO: improve memory usage
+    // 1 -- input
+    // 2 -- output
+    // 3 -- temporary buffer 1
+    // 4 -- temporary buffer 2
+    t->work_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, 4*nn*nn*nn*sizeof(float));
 
     t->indices = t->b->create(t->b, BUFFER_ARRAY, MEMORY_STATIC, data.indices, t->particles*sizeof(int));
 
