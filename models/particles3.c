@@ -635,7 +635,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
                               4*nn*nn*nn*sizeof(float));
 
     int fft_table_size = 3*2*nn*sizeof(float);
-    float* fft_table = malloc(3*2*nn*sizeof(float));
+    int n = t->comp_set.n;
+    float* fft_table = malloc((3*2*nn+(n+1)*nn)*sizeof(float));
     int m = 0, m1;
     for (; m < 2*nn; m++) {
         fft_table[m] = cos(m * M_PI/nn);
@@ -646,6 +647,15 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     for (m1 = 0; m1 < nn; m++, m1++) {
         fft_table[m] = 4./h/h*sin(m1*M_PI/nn)*sin(m1*M_PI/nn);
     }
+#define off(k,l) ((l+1)*nn+(k-1))
+    for (int l = -1; l <= n-1; l++) {
+        for (int k = 1; k <= (1<<l); k++) {
+            double x = 2.*cos(M_PI*(2*k-1)/(1<<(l+2)));
+            x = 1./x;
+            fft_table[m+off(k,l)] = x;
+        }
+    }
+#undef off
 
     t->fft_table_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, fft_table, fft_table_size);
     free(fft_table);
