@@ -119,23 +119,63 @@ void pFFT_1(uint ooff, uint ioff, float dx, int N, int n) {
 }
 
 void sFFT(uint ooff, uint ioff, float dx, int N, int n, int nr) {
-    for (int s = 1; s <= n - 1; s++) {
-        int idx = 1 << (n - s);
-        int vm  = 1 << (s - 1);
-        sadvance(ioff, idx);
+#define o(a,b) ((a-1)*(_2(m))+(b-1))
+#define _o(a,b) ((a-1)*(_2(m-1))+(b-1))
 
-        for (int k = 1; k <= idx; k++) {
-            float y = 0;
-            for (int j = 1; j <= idx; j++) {
-                y += W[ioff+idx * 2 - j] *
-                    FFT[Sin+((2 * k - 1) * vm * nr * j) % sz];
+    for (int l = n-1; l >= 1; l--) {
+        sadvance(ioff, _2(l));
 
+        int m = 0, j = 0, s = 0, k = 0;
+        for (j = 1; j <= _2(l-m); j++) {
+            W[boff+o(j,1)] = W[ioff+(_2(l+1))-j]; // (m=0)
+        }
+
+        // b^m, m = 1, ... l, incr
+        for (m = 1; m <= l-1; m++) {
+            for (s = _2(m-1); s >= 1; s--) {
+                for (j = 1; j <= _2(l-m)-1; j++) {
+                    W[nboff+o(j,2*s-1)] = W[boff+_o(2*j-1,s)]+W[boff+_o(2*j+1,s)];
+                    W[nboff+o(j,2*s)]   = W[boff+_o(2*j,s)];
+                }
+                // j = _2(l-m)
+                W[nboff+o(j,2*s-1)] = W[boff+_o(_2(l-m+1)-1, s)];
+                W[nboff+o(j,2*s)]   = W[boff+_o(2*j,s)];
             }
-            W[ooff+(2 * k - 1) * vm] = y * dx;
+            next();
+        }
+        // m = l
+        for (s = 1; s <= _2(m-1); s++) {
+            for (j = 1; j <= _2(l-m); j++) {
+                W[nboff+o(j,2*s)] = W[boff+_o(2*j,s)];
+            }
+            W[nboff+o(_2(l-m),2*s-1)] = W[boff+_o(_2(l-m+1)-1,s)];
+        }
+        next();
+
+        // (37), p 172
+        // z^l = b^l
+        // z^m, m = l, ...,0, decr
+        for (m = l; m >= 1; m--) {
+            for (k = 1; k <= _2(l-m); k++) {
+                for (s = 1; s <= _2(m-1); s++) {
+                    W[nboff+_o(k,s)] = W[boff+o(k,2*s)]
+                        + iCOS(k,l-m)*W[boff+o(k,2*s-1)];
+                    W[nboff+_o(_2(l-m+1)-k+1,s)] = -W[boff+o(k,2*s)]
+                        + iCOS(k,l-m)*W[boff+o(k,2*s-1)];
+                }
+            }
+            next();
+        }
+        // z^0 -> y (ans)
+        for (k = 1; k <= _2(l); k++) {
+            W[ooff+(_2(n-l-1))*(2*k-1)] = dx*W[boff+o(k,1)];
         }
     }
     int idx = 1 << (n - 1);
     W[ooff+idx] = W[ioff+1] * dx;
+
+#undef o
+#undef _o
 }
 
 void cFFT(uint ooff, uint ioff, float dx, int N, int n, int nr) {
