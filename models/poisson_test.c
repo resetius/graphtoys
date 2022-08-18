@@ -12,9 +12,6 @@
 #include <lib/linmath.h>
 #include <lib/object.h>
 
-#define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
-#define poff(i,k,j) (((i+nn)%nn)*nn*nn+((k+nn)%nn)*nn+((j+nn)%nn))
-
 struct CompSettings {
     vec4 origin;
     int particles;
@@ -102,7 +99,8 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     // OpenGL only yet!
     // check accuracy and exit
     t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
-
+#define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
+#define poff(i,k,j) (((i+nn)%nn)*nn*nn+((k+nn)%nn)*nn+((j+nn)%nn))
     double nrm = 0;
     double nrm1= 0;
     double avg = 0.0;
@@ -133,7 +131,8 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     }
     nrm /= nrm1;
     fprintf(stderr, "err = '%e'\n", nrm);
-
+#undef off
+#undef poff
     exit(0);
 }
 
@@ -194,6 +193,7 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
 
     t->density = NULL;
     t->density = malloc(nn*nn*nn*sizeof(float));
+#define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
     for (int i = 0; i < nn; i++) {
         for (int k = 0; k < nn; k++) {
             for (int j = 0; j < nn; j++) {
@@ -201,15 +201,16 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
             }
         }
     }
+#undef off
     t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,
                                     t->density,
                                     nn*nn*nn*sizeof(float));
     t->psi = malloc(nn*nn*nn*sizeof(float));
     t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, NULL,
                                 nn*nn*nn*sizeof(float));
-
-    int fft_table_size = 3*2*nn*sizeof(float);
-    float* fft_table = malloc(3*2*nn*sizeof(float));
+    int n = t->comp_set.n;
+    int fft_table_size = (2*nn+2*nn+nn+(n+1)*nn)*sizeof(float);
+    float* fft_table = malloc(fft_table_size);
     int m = 0, m1;
     for (; m < 2*nn; m++) {
         fft_table[m] = cos(m * M_PI/nn);
@@ -220,10 +221,24 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
     for (m1 = 0; m1 < nn; m++, m1++) {
         fft_table[m] = 4./h/h*sin(m1*M_PI/nn)*sin(m1*M_PI/nn);
     }
+#define off(k,l) ((l+1)*nn+(k-1))
+    for (int l = -1; l <= n-1; l++) {
+        for (int k = 1; k <= (1<<(l+1)); k++) {
+            double x = 2.*cos(M_PI*(2*k-1)/(1<<(l+2)));
+            x = 1./x;
+            fft_table[m+off(k,l)] = x;
+        }
+    }
+#undef off
 
     t->fft_table_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, fft_table, fft_table_size);
     free(fft_table);
-    t->work_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, 2*nn*nn*nn*sizeof(float));
+    // TODO: improve memory usage
+    // 1 -- input
+    // 2 -- output
+    // 3 -- temporary buffer 1
+    // 4 -- temporary buffer 2
+    t->work_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, 4*nn*nn*nn*sizeof(float));
     t->comp_settings = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct CompSettings));
 
     t->comp_poisson->uniform_assign(t->comp_poisson, 0, t->comp_settings);
