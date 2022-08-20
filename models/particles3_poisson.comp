@@ -39,12 +39,22 @@ void next() {
     swap(boff, nboff);
 }
 
+shared float ffiCOS[8*256];
+void load_ffiCOS() {
+    uint id = gl_LocalInvocationIndex;
+    if (id < (n+1)*nn) {
+        ffiCOS[id] = FFT[iCosOff+id];
+    }
+}
+
 float iCOS(uint k, uint l) {
-    return FFT[iCosOff + (l+1)*nn+(k-1)];
+    //return FFT[iCosOff + (l+1)*nn+(k-1)];
+    return ffiCOS[(l+1)*nn+(k-1)];
 }
 
 float iCOS(int k, int l) {
-    return FFT[iCosOff + (l+1)*nn+(k-1)];
+    //return FFT[iCosOff + (l+1)*nn+(k-1)];
+    return ffiCOS[(l+1)*nn+(k-1)];
 }
 
 void padvance(uint ioff, int idx)
@@ -461,6 +471,11 @@ void main() {
     const uint _off = 4 * nn * globalIndex;
     const uint ioff = _off;
     const uint ooff = _off+nn;
+
+    if (stage != 4) {
+        load_ffiCOS();
+        barrier();
+    }
 
     if (stage == 1 || stage == 0) {
         // along z
