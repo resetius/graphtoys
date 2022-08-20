@@ -40,7 +40,7 @@ void next() {
     swap(boff, nboff);
 }
 
-float iCOS(int k, int l) {
+float iCOS(uint k, uint l) {
     return FFT[iCosOff + (l+1)*nn+(k-1)];
 }
 
@@ -219,6 +219,96 @@ void sFFT(uint ooff, uint ioff, float dx, int N, int n, int nr) {
 #undef _o
 }
 
+shared float S[512]; // in/out
+shared float T[512]; // tmp
+
+void sadvance_new(uint ioff, uint idx, uint id, uint work) {
+    for (uint j = id+1; j < id+1+work && j <= idx-1; j++) {
+        float a1 = S[ioff+j] - S[ioff+2*idx - j];
+        float a2 = S[ioff+j] + S[ioff+2*idx - j];
+        S[ioff+j]           = a1;
+        S[ioff+2 * idx - j] = a2;
+    }
+}
+
+void sFFT_new(uint ooff, uint ioff, float dx, int N, int n) {
+#define o(a,b) ((a-1)*(_2(m))+(b-1))
+#define _o(a,b) ((a-1)*(_2(m-1))+(b-1))
+
+    uint size = gl_WorkGroupSize.x;
+    uint thread_id = gl_LocalInvocationID.x;
+    uint work = max(2, N/size);
+    uint boff = 0;
+    uint nboff = boff+N/2;
+
+    for (uint l = n-1; l >= 1; l--) { // l=n-s
+        work >>= 1;
+        uint id = thread_id*work;
+
+        sadvance_new(ioff, _2(l), id, work);
+        barrier();
+
+        uint m = 0, j = 0, s = 0, k = 0, i = 0;
+        for (j = id+1; j < id+1+work && j <= _2(l); j++) {
+            T[boff+o(j,1)] = S[ioff+(_2(l+1))-j];
+        }
+
+        for (m = 1; m <= l-1; m++) {
+            uint ns = _2(m-1);
+            uint nj = _2(l-m);
+            barrier();
+
+            for (i = id; i < id+work; i++) {
+                j = i/ns + 1;
+                s = i%ns + 1;
+                if (j <= nj) {
+                    if (j == nj) {
+                        T[nboff+o(j,2*s-1)] = T[boff+_o(2*j-1,s)];
+                    } else {
+                        T[nboff+o(j,2*s-1)] = T[boff+_o(2*j-1,s)]+T[boff+_o(2*j+1,s)];
+                    }
+                    T[nboff+o(j,2*s)]   = T[boff+_o(2*j,s)];
+                }
+            }
+            swap(boff, nboff);
+        }
+
+        int ns = _2(m-1);
+        barrier();
+        for (s = id + 1; s < id+1+work && s <= ns; s++) {
+            T[nboff+o(1,2*s)] = T[boff+_o(2,s)];
+            T[nboff+o(1,2*s-1)] = T[boff+_o(1,s)];
+        }
+        swap(boff, nboff);
+
+        for (m = l; m >= 1; m--) {
+            int ns = _2(m-1);
+            int nk = _2(l-m);
+            barrier();
+            for (i = id, k=i/n+1, s=i%ns+1;
+                 k <= nk && i < id+work;
+                 i++, k=i/ns+1,s=i%ns+1)
+            {
+                T[nboff+_o(k,s)] = T[boff+o(k,2*s)]
+                    + iCOS(k,l-m)*T[boff+o(k,2*s-1)];
+                T[nboff+_o(_2(l-m+1)-k+1,s)] = -T[boff+o(k,2*s)]
+                    + iCOS(k,l-m)*T[boff+o(k,2*s-1)];
+            }
+            swap(boff, nboff);
+        }
+
+        barrier();
+        for (k = id+1; k < id+1+work&&k <= _2(l); k++) {
+            S[ooff+(_2(n-l-1))*(2*k-1)] = dx*T[boff+o(k,1)];
+        }
+    }
+
+    if (thread_id == 0) S[ooff+_2(n-1)] = dx*S[ioff+1];
+
+#undef o
+#undef _o
+}
+
 void cFFT(uint ooff, uint ioff, float dx, int N, int n, int nr) {
     W[ioff+0] *= 0.5; W[ioff+N] *= 0.5; // samarskii, (15)-(16) p 66
 
@@ -228,7 +318,7 @@ void cFFT(uint ooff, uint ioff, float dx, int N, int n, int nr) {
     for (int l = n-1; l >= 1; l--) {
         cadvance(ioff, _2(l));
 
-        int m = 0, j = 0, s = 0, k = 0;
+        uint m = 0, j = 0, s = 0, k = 0;
         for (j = 0; j <= _2(l-m)-1; j++) {
             W[nboff+o(j,1)] = W[ioff + (_2(l+1))-j]; // (m=0)
         }
