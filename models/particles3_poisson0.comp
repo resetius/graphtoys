@@ -1,0 +1,261 @@
+#version 460
+
+layout(local_size_x = 4, local_size_y = 4) in;
+
+#include "particles3_comp_base.h"
+
+int sz = 2*nn;
+int Cos = 0;
+int Sin = 2*nn;
+int La = Sin+2*nn;
+
+layout(std430, binding=1) readonly buffer FFTBuffer {
+    float FFT[];
+};
+
+// work memory
+layout(std430, binding=2) buffer WorkBuffer {
+    float W[];
+};
+
+// density
+layout(std430, binding=3) buffer DensityBuffer {
+    float Rho[];
+};
+
+// potential
+layout(std430, binding=4) buffer PotentialBuffer {
+    float Psi[];
+};
+
+void padvance(uint ioff, int idx)
+{
+    for (int j = 0; j <= idx - 1; j++) {
+        float a1 = W[ioff+j] + W[ioff+idx + j];
+        float a2 = W[ioff+j] - W[ioff+idx + j];
+        W[ioff+j]       = a1;
+        W[ioff+idx + j] = a2;
+    }
+}
+
+void sadvance(uint ioff, int idx) {
+    for (int j = 1; j <= idx - 1; j ++) {
+        float a1 = W[ioff+j] - W[ioff+2 * idx - j];
+        float a2 = W[ioff+j] + W[ioff+2 * idx - j];
+        W[ioff+j]           = a1;
+        W[ioff+2 * idx - j] = a2;
+    }
+}
+
+void cadvance(uint ioff, int idx) {
+    for (int j = 0; j <= idx - 1; j ++) {
+        float a1 = W[ioff+j] + W[ioff+2 * idx - j];
+        float a2 = W[ioff+j] - W[ioff+2 * idx - j];
+        W[ioff+j]           = a1;
+        W[ioff+2 * idx - j] = a2;
+    }
+}
+
+// fft s->S
+void pFFT_1(uint ooff, uint ioff, float dx, int N, int n) {
+    int N_2 = N/2;
+    int yoff = 0; // [0..N/2]
+    int _yoff = N_2; // [N/2+1..N-1]
+
+    for (int s = 1; s <= n - 2; s++) {
+        int idx = 1 << (n - s - 1);
+        int vm  = 1 << s;
+
+        padvance(ioff, 2*idx);
+
+        for (int k = 1; k <= idx; k++) {
+            float s1 = 0.0;
+            float s2 = 0.0;
+            for (int j = 0; j <= 2 * idx - 1; j++) {
+                s1 += W[ioff+2 * idx + j] *
+                    FFT[Cos + ((2 * k - 1) * vm * j) % sz];
+            }
+            for (int j = 1; j <= 2 * idx - 1; j++) {
+                s2 += W[ioff+2 * idx + j] *
+                    FFT[Sin + ((2 * k - 1) * vm * j) % sz];
+            }
+            int idx2 = (1 << (s - 1)) * (2 * k - 1);
+            W[ooff+yoff + idx2]  = s1;
+            W[ooff+N - idx2] = s2;
+        }
+    }
+
+    padvance(ioff, 1 << (n - (n-1)));
+    W[ooff+yoff+(1 << (n - 2))]  = W[ioff+2];
+    W[ooff+N-(1 << (n - 2))] = W[ioff+3];
+
+    padvance(ioff, 1 << (n - n));
+    W[ooff+yoff + 0]             = W[ioff+0];
+    W[ooff+yoff + N_2]           = W[ioff+1];
+
+    for (int k = 0; k <= N_2; k++) {
+        W[ooff+yoff + k] = W[ooff+yoff + k] * dx;
+    }
+
+    for (int k = 1; k <= N_2-1; k++) {
+        W[ooff+_yoff + k] = W[ooff+_yoff + k] * dx;
+    }
+}
+
+void sFFT(uint ooff, uint ioff, float dx, int N, int n, int nr) {
+    for (int s = 1; s <= n - 1; s++) {
+        int idx = 1 << (n - s);
+        int vm  = 1 << (s - 1);
+        sadvance(ioff, idx);
+
+        for (int k = 1; k <= idx; k++) {
+            float y = 0;
+            for (int j = 1; j <= idx; j++) {
+                y += W[ioff+idx * 2 - j] *
+                    FFT[Sin+((2 * k - 1) * vm * nr * j) % sz];
+
+            }
+            W[ooff+(2 * k - 1) * vm] = y * dx;
+        }
+    }
+    int idx = 1 << (n - 1);
+    W[ooff+idx] = W[ioff+1] * dx;
+}
+
+void cFFT(uint ooff, uint ioff, float dx, int N, int n, int nr) {
+    W[ioff+0] *= 0.5; W[ioff+N] *= 0.5; // samarskii, (15)-(16) p 66
+
+    for (int s = 1; s <= n - 1; s++) {
+        int idx = 1 << (n - s);
+        int vm  = 1 << (s - 1);
+        cadvance(ioff, idx);
+
+        for (int k = 1; k <= idx; k++) {
+            float y = 0;
+            for (int j = 0; j <= idx - 1; j++) {
+                y += W[ioff+idx * 2 - j] *
+                    FFT[Cos+((2 * k - 1) * vm * nr * j) % sz];
+            }
+            W[ooff+(2 * k - 1) * vm] = y * dx;
+        }
+    }
+    cadvance(ioff, 1 << (n-n));
+    W[ooff+0]   = (W[ioff+0] + W[ioff+1]) * dx;
+    W[ooff+N]   = (W[ioff+0] - W[ioff+1]) * dx;
+    W[ooff+N/2] =  W[ioff+2] * dx;
+}
+
+void pFFT(uint ooff, uint ioff, float dx, int N, int n) {
+    int N_2 = N/2;
+    int k;
+
+    cFFT(ooff, ioff, dx, N_2, n-1, 2);
+
+    sFFT(ioff, ioff+N_2, dx, N_2, n-1, 2);
+
+    for (k = 1; k <= N_2 - 1; k ++) {
+        int r = k%2;
+        float S_k   = (W[ooff+k] + (2*r-1)*W[ioff+k]);
+        float S_N_k = (W[ooff+k] - (2*r-1)*W[ioff+k]);
+        W[ooff+k]   = S_k;
+        W[ooff+N-k] = S_N_k;
+    }
+}
+
+void split(out uint i, out uint j) {
+    i = gl_GlobalInvocationID.x;
+    j = gl_GlobalInvocationID.y;
+}
+
+void main() {
+    uint i,k,j;
+    const float slh = sqrt(2./l);
+
+    const uint _off = 2 * nn * globalIndex;
+    const uint ioff = _off;
+    const uint ooff = _off+nn;
+
+    if (stage == 1 || stage == 0) {
+        // along z
+        split(k, j);
+        for (i = 0; i < nn; i++) {
+            W[ioff+i] = Rho[off(i,k,j)];
+        }
+        pFFT_1(ooff,ioff,h*slh,nn,n);
+        for (i = 0; i < nn; i++) {
+            Psi[off(i,k,j)] = W[ooff+i];
+        }
+        barrier();
+    }
+    if (stage == 2 || stage == 0) {
+        // along y
+        split(i, j);
+        for (k = 0; k < nn; k++) {
+            W[ioff+k] = Psi[off(i,k,j)];
+        }
+        pFFT_1(ooff,ioff,h*slh,nn,n);
+        for (k = 0; k < nn; k++) {
+            Psi[off(i,k,j)] = W[ooff+k];
+        }
+        barrier();
+    }
+    if (stage == 3 || stage == 0) {
+        // along x
+        split(i, k);
+        for (j = 0; j < nn; j++) {
+            W[ioff+j] = Psi[off(i,k,j)];
+        }
+        pFFT_1(ooff,ioff,h*slh,nn,n);
+        for (j = 0; j < nn; j++) {
+            Psi[off(i,k,j)] = W[ooff+j];
+        }
+        barrier();
+    }
+    if (stage == 4 || stage == 0) {
+        split(i, k);
+        for (j = 0; j < nn; j++) {
+            Psi[off(i,k,j)] /= -FFT[La+i]-FFT[La+k]-FFT[La+j];
+            //Psi[off(i,k,j)] *= exp((-FFT[La+i]-FFT[La+k]-FFT[La+j])*rcrit*rcrit);
+            //Psi[off(i,k,j)] *= exp((-i*i-k*k-j*j)*rcrit*rcrit);
+        }
+
+        Psi[off(0,0,0)] = 1;
+        barrier();
+    }
+    if (stage == 5 || stage == 0) {
+        // along x
+        split(i, k);
+        for (j = 0; j < nn; j++) {
+            W[ioff+j] = Psi[off(i,k,j)];
+        }
+        pFFT(ooff,ioff,slh,nn,n);
+        for (j = 0; j < nn; j++) {
+            Psi[off(i,k,j)] = W[ooff+j];
+        }
+        barrier();
+    }
+    if (stage == 6 || stage == 0) {
+        // along y
+        split(i, j);
+        for (k = 0; k < nn; k++) {
+            W[ioff+k] = Psi[off(i,k,j)];
+        }
+        pFFT(ooff,ioff,slh,nn,n);
+        for (k = 0; k < nn; k++) {
+            Psi[off(i,k,j)] = W[ooff+k];
+        }
+        barrier();
+    }
+    if (stage == 7 || stage == 0) {
+        // along z
+        split(k, j);
+        for (i = 0; i < nn; i++) {
+            W[ioff+i] = Psi[off(i,k,j)];
+        }
+        pFFT(ooff,ioff,slh,nn,n);
+        for (i = 0; i < nn; i++) {
+            Psi[off(i,k,j)] = W[ooff+i];
+        }
+        barrier();
+    }
+}

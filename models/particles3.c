@@ -15,6 +15,7 @@
 #include <models/particles3_parts.comp.spv.h>
 #include <models/particles3_mass.comp.spv.h>
 #include <models/particles3_mass_sum.comp.spv.h>
+#include <models/particles3_poisson0.comp.spv.h>
 #include <models/particles3_poisson.comp.spv.h>
 #include <models/particles3_poisson2.comp.spv.h>
 #include <models/particles3_strength.comp.spv.h>
@@ -69,6 +70,7 @@ struct Particles {
     struct Pipeline* comp_mass;
     struct Pipeline* comp_mass_sum;
     struct Pipeline* comp_parts;
+    struct Pipeline* comp_poisson0;
     struct Pipeline* comp_poisson;
     struct Pipeline* comp_poisson2;
     struct Pipeline* comp_strength;
@@ -92,7 +94,7 @@ struct Particles {
     int fft_table_index;
     int work_index;
     int comp_settings;
-    int poisson2;
+    int poisson_type;
     //
 
     // compute pp
@@ -295,22 +297,19 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         verify(nn == 32);
         t->comp_poisson->start_compute(t->comp_poisson, 1, 1, 1);
     } else {
-        if (t->poisson2) {
-            for (int stage = 1; stage <= 7; stage ++) {
-                t->comp_set.stage = stage;
-                t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
+        for (int stage = 1; stage <= 7; stage ++) {
+            t->comp_set.stage = stage;
+            t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
 
+            if (t->poisson_type == 0) {
+                int groups = nn/4;
+                t->comp_poisson0->start_compute(t->comp_poisson, groups, groups, 1);
+            } else if (t->poisson_type == 1) {
+                int groups = nn/4; // 16; //nn / 32;
+                t->comp_poisson->start_compute(t->comp_poisson, groups, groups, 1);
+            } else if (t->poisson_type == 2) {
                 int groups = nn;
                 t->comp_poisson2->start_compute(t->comp_poisson2, groups, groups, 1);
-            }
-        } else {
-            for (int stage = 1; stage <= 7; stage ++) {
-                t->comp_set.stage = stage;
-                t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
-
-                int groups = nn/4; // 16; //nn / 32;
-            //verify(groups == 32);
-                t->comp_poisson->start_compute(t->comp_poisson, groups, groups, 1);
             }
         }
     }
@@ -391,6 +390,7 @@ static void free_(struct Object* obj) {
     t->comp_parts->free(t->comp_parts);
     t->comp_mass->free(t->comp_mass);
     t->comp_mass_sum->free(t->comp_mass_sum);
+    t->comp_poisson0->free(t->comp_poisson0);
     t->comp_poisson->free(t->comp_poisson);
     t->comp_poisson2->free(t->comp_poisson2);
     t->comp_strength->free(t->comp_strength);
@@ -434,6 +434,10 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     struct ShaderCode compute_shader = {
         .spir_v = models_particles3_poisson_comp_spv,
         .size = models_particles3_poisson_comp_spv_size,
+    };
+    struct ShaderCode compute_poisson0_shader = {
+        .spir_v = models_particles3_poisson0_comp_spv,
+        .size = models_particles3_poisson0_comp_spv_size,
     };
     struct ShaderCode compute_poisson2_shader = {
         .spir_v = models_particles3_poisson2_comp_spv,
@@ -523,6 +527,21 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->set_bmgr(pl, t->b)
         ->begin_program(pl)
         ->add_cs(pl, compute_shader)
+        ->end_program(pl)
+
+        ->uniform_add(pl, 0, "Settings")
+
+        ->storage_add(pl, 1, "FFTBuffer")
+        ->storage_add(pl, 2, "WorkBuffer")
+        ->storage_add(pl, 3, "DensityBuffer")
+        ->storage_add(pl, 4, "PotentialBuffer")
+
+        ->build(pl);
+    pl = r->pipeline(r);
+    t->comp_poisson0 = pl
+        ->set_bmgr(pl, t->b)
+        ->begin_program(pl)
+        ->add_cs(pl, compute_poisson0_shader)
         ->end_program(pl)
 
         ->uniform_add(pl, 0, "Settings")
@@ -628,7 +647,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->pp_enabled = cfg_geti_def(cfg, "pp", 0);
     t->z = z0 + l + cfg_geti_def(cfg, "zoff", 1);
     t->expansion = cfg_getf_def(cfg, "expansion", 0);
-    t->poisson2 = cfg_geti_def(cfg, "poisson2", 0);
+    t->poisson_type = cfg_geti_def(cfg, "poisson_type", 1);
 
     float origin[] = {x0, y0, z0};
     int nn = cfg_geti_def(cfg, "nn", 32);
@@ -669,9 +688,17 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
                               4*nn*nn*nn*sizeof(float));
 
     int n = t->comp_set.n;
-    int fft_table_size = (nn+(n+1)*nn)*sizeof(float);
+    int fft_table_size = (2*nn+2*nn+nn+(n+1)*nn)*sizeof(float);
     float* fft_table = malloc(fft_table_size);
     int m = 0, m1;
+    if (t->poisson_type == 0) {
+        for (; m < 2*nn; m++) {
+            fft_table[m] = cos(m * M_PI/nn);
+        }
+        for (m1 = 0; m1 < 2*nn; m++, m1++) {
+            fft_table[m] = sin(m1 * M_PI/nn);
+        }
+    }
     for (m1 = 0; m1 < nn; m++, m1++) {
         fft_table[m] = 4./h/h*sin(m1*M_PI/nn)*sin(m1*M_PI/nn);
     }
@@ -763,6 +790,12 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_strength->uniform_assign(t->comp_strength, 0, t->comp_settings);
     t->comp_strength->storage_assign(t->comp_strength, 1, t->psi_index);
     t->comp_strength->storage_assign(t->comp_strength, 2, t->e_index);
+
+    t->comp_poisson0->uniform_assign(t->comp_poisson0, 0, t->comp_settings);
+    t->comp_poisson0->storage_assign(t->comp_poisson0, 1, t->fft_table_index);
+    t->comp_poisson0->storage_assign(t->comp_poisson0, 2, t->work_index);
+    t->comp_poisson0->storage_assign(t->comp_poisson0, 3, t->density_index);
+    t->comp_poisson0->storage_assign(t->comp_poisson0, 4, t->psi_index);
 
     t->comp_poisson->uniform_assign(t->comp_poisson, 0, t->comp_settings);
     t->comp_poisson->storage_assign(t->comp_poisson, 1, t->fft_table_index);

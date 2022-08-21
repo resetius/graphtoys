@@ -93,6 +93,7 @@ set(SHADERS
     models/particles3_parts.comp
     models/particles3_mass.comp
     models/particles3_mass_sum.comp
+    models/particles3_poisson0.comp
     models/particles3_poisson.comp
     models/particles3_poisson2.comp
     models/particles3_strength.comp
