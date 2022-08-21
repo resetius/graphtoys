@@ -1,6 +1,6 @@
 #version 460
 
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = 4, local_size_y = 4) in;
 //layout(local_size_x = 64) in;
 
 #include "particles3_comp_base.h"
@@ -48,13 +48,13 @@ void load_ffiCOS() {
 }
 
 float iCOS(uint k, uint l) {
-    //return FFT[iCosOff + (l+1)*nn+(k-1)];
-    return ffiCOS[(l+1)*nn+(k-1)];
+    return FFT[iCosOff + (l+1)*nn+(k-1)];
+    //return ffiCOS[(l+1)*nn+(k-1)];
 }
 
 float iCOS(int k, int l) {
-    //return FFT[iCosOff + (l+1)*nn+(k-1)];
-    return ffiCOS[(l+1)*nn+(k-1)];
+    return FFT[iCosOff + (l+1)*nn+(k-1)];
+    //return ffiCOS[(l+1)*nn+(k-1)];
 }
 
 void padvance(uint ioff, int idx)

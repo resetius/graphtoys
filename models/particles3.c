@@ -16,6 +16,7 @@
 #include <models/particles3_mass.comp.spv.h>
 #include <models/particles3_mass_sum.comp.spv.h>
 #include <models/particles3_poisson.comp.spv.h>
+#include <models/particles3_poisson2.comp.spv.h>
 #include <models/particles3_strength.comp.spv.h>
 #include <models/particles3_pp.comp.spv.h>
 #include <models/particles3_pp_sort.comp.spv.h>
@@ -296,7 +297,8 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             t->comp_set.stage = stage;
             t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
 
-            int groups = nn / 32;
+            int groups = nn/4; // 16; //nn / 32;
+            //verify(groups == 32);
             t->comp_poisson->start_compute(t->comp_poisson, groups, groups, 1);
         }
     }
