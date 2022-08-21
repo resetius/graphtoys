@@ -70,6 +70,7 @@ struct Particles {
     struct Pipeline* comp_mass_sum;
     struct Pipeline* comp_parts;
     struct Pipeline* comp_poisson;
+    struct Pipeline* comp_poisson2;
     struct Pipeline* comp_strength;
     struct Pipeline* comp_pp;
     struct Pipeline* comp_pp_sort;
@@ -91,6 +92,7 @@ struct Particles {
     int fft_table_index;
     int work_index;
     int comp_settings;
+    int poisson2;
     //
 
     // compute pp
@@ -293,13 +295,23 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         verify(nn == 32);
         t->comp_poisson->start_compute(t->comp_poisson, 1, 1, 1);
     } else {
-        for (int stage = 1; stage <= 7; stage ++) {
-            t->comp_set.stage = stage;
-            t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
+        if (t->poisson2) {
+            for (int stage = 1; stage <= 7; stage ++) {
+                t->comp_set.stage = stage;
+                t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
 
-            int groups = nn/4; // 16; //nn / 32;
+                int groups = nn;
+                t->comp_poisson2->start_compute(t->comp_poisson2, groups, groups, 1);
+            }
+        } else {
+            for (int stage = 1; stage <= 7; stage ++) {
+                t->comp_set.stage = stage;
+                t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
+
+                int groups = nn/4; // 16; //nn / 32;
             //verify(groups == 32);
-            t->comp_poisson->start_compute(t->comp_poisson, groups, groups, 1);
+                t->comp_poisson->start_compute(t->comp_poisson, groups, groups, 1);
+            }
         }
     }
 
@@ -380,6 +392,7 @@ static void free_(struct Object* obj) {
     t->comp_mass->free(t->comp_mass);
     t->comp_mass_sum->free(t->comp_mass_sum);
     t->comp_poisson->free(t->comp_poisson);
+    t->comp_poisson2->free(t->comp_poisson2);
     t->comp_strength->free(t->comp_strength);
     t->comp_pp->free(t->comp_pp);
     t->comp_pp_sort->free(t->comp_pp_sort);
@@ -421,6 +434,10 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     struct ShaderCode compute_shader = {
         .spir_v = models_particles3_poisson_comp_spv,
         .size = models_particles3_poisson_comp_spv_size,
+    };
+    struct ShaderCode compute_poisson2_shader = {
+        .spir_v = models_particles3_poisson2_comp_spv,
+        .size = models_particles3_poisson2_comp_spv_size,
     };
     struct ShaderCode compute_parts_shader = {
         .spir_v = models_particles3_parts_comp_spv,
@@ -516,6 +533,20 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 4, "PotentialBuffer")
 
         ->build(pl);
+    pl = r->pipeline(r);
+    t->comp_poisson2 = pl
+        ->set_bmgr(pl, t->b)
+        ->begin_program(pl)
+        ->add_cs(pl, compute_poisson2_shader)
+        ->end_program(pl)
+
+        ->uniform_add(pl, 0, "Settings")
+
+        ->storage_add(pl, 1, "FFTBuffer")
+        ->storage_add(pl, 2, "DensityBuffer")
+        ->storage_add(pl, 3, "PotentialBuffer")
+
+        ->build(pl);
     printf("Done\n");
 
     printf("Build comp pp shader\n");
@@ -597,6 +628,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->pp_enabled = cfg_geti_def(cfg, "pp", 0);
     t->z = z0 + l + cfg_geti_def(cfg, "zoff", 1);
     t->expansion = cfg_getf_def(cfg, "expansion", 0);
+    t->poisson2 = cfg_geti_def(cfg, "poisson2", 0);
 
     float origin[] = {x0, y0, z0};
     int nn = cfg_geti_def(cfg, "nn", 32);
@@ -737,6 +769,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     t->comp_poisson->storage_assign(t->comp_poisson, 2, t->work_index);
     t->comp_poisson->storage_assign(t->comp_poisson, 3, t->density_index);
     t->comp_poisson->storage_assign(t->comp_poisson, 4, t->psi_index);
+
+    t->comp_poisson2->uniform_assign(t->comp_poisson2, 0, t->comp_settings);
+    t->comp_poisson2->storage_assign(t->comp_poisson2, 1, t->fft_table_index);
+    t->comp_poisson2->storage_assign(t->comp_poisson2, 2, t->density_index);
+    t->comp_poisson2->storage_assign(t->comp_poisson2, 3, t->psi_index);
 
     if (t->pp_enabled) {
         t->comp_pp->uniform_assign(t->comp_pp, 0, t->comp_pp_settings);
