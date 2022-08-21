@@ -302,8 +302,8 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
 
             if (t->poisson_type == 0) {
-                int groups = nn/4;
-                t->comp_poisson0->start_compute(t->comp_poisson, groups, groups, 1);
+                int groups = nn/16;
+                t->comp_poisson0->start_compute(t->comp_poisson0, groups, groups, 1);
             } else if (t->poisson_type == 1) {
                 int groups = nn/4; // 16; //nn / 32;
                 t->comp_poisson->start_compute(t->comp_poisson, groups, groups, 1);
