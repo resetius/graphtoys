@@ -1,15 +1,12 @@
 #version 460
 
-layout(local_size_x = 16) in;
+layout(local_size_x = 32) in;
 
 #include "particles3_comp_base.h"
 
 int sz = 2*nn;
 int La = 0;
 int iCosOff = La + nn;
-
-uint boff = 4*nn*globalIndex+2*nn;
-uint nboff = boff+nn;
 
 layout(std430, binding=1) readonly buffer FFTBuffer {
     float FFT[];
@@ -29,21 +26,19 @@ void swap(inout uint a, inout uint b) {
     uint t = a; a = b; b = t;
 }
 
-void next() {
-    swap(boff, nboff);
-}
-
-shared float ffiCOS[8*256];
+//shared float ffiCOS[8*256];
 
 shared float S[512]; // in/out
 shared float T[512]; // tmp
 
+/*
 void load_ffiCOS() {
     uint id = gl_LocalInvocationIndex;
     if (id < (n+1)*nn) {
         ffiCOS[id] = FFT[iCosOff+id];
     }
 }
+*/
 
 float iCOS(int k, int l) {
     return FFT[iCosOff + (l+1)*nn+(k-1)];
@@ -295,7 +290,9 @@ void cFFT(uint ooff, uint ioff, float dx, int N, int n, uint boff0) {
             int nj = _2(l-m)-1;
 
             barrier();
-            for (int i = id; i < id+work; i++) {
+            for (i = id; i < id+work; i++) {
+                j = i/ns;
+                s = i%ns+1;
                 if (j == 0) {
                     T[nboff+o(j,2*s-1)] = T[boff+_o(2*j+1,s)];
                     T[nboff+o(j,2*s)] = T[boff+_o(2*j,s)];
