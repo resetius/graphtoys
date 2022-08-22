@@ -6,6 +6,7 @@
 #include <render/pipeline.h>
 
 #include <models/particles3_poisson.comp.spv.h>
+#include <models/particles3_poisson2.comp.spv.h>
 
 #include <lib/verify.h>
 #include <lib/config.h>
@@ -28,9 +29,11 @@ struct CompSettings {
 struct Particles {
     struct Object base;
     struct Pipeline* comp_poisson;
+    struct Pipeline* comp_poisson2;
     struct BufferManager* b;
     struct Render* r;
 
+    int poisson_type;
     int single_pass;
 
     // compute pm
@@ -91,8 +94,14 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             t->comp_set.stage = stage;
             t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
 
-            int groups = nn / 32;
-            t->comp_poisson->start_compute(t->comp_poisson, groups, groups, 1);
+            if (t->poisson_type == 1) {
+                int groups = nn / 4; // must be synchronized
+                                     // with local_size_x/local_size_y
+                t->comp_poisson->start_compute(t->comp_poisson, groups, groups, 1);
+            } else if (t->poisson_type == 2) {
+                int groups = nn;
+                t->comp_poisson2->start_compute(t->comp_poisson2, groups, groups, 1);
+            }
         }
     }
 
@@ -158,6 +167,10 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
         .spir_v = models_particles3_poisson_comp_spv,
         .size = models_particles3_poisson_comp_spv_size,
     };
+    struct ShaderCode compute_poisson2_shader = {
+        .spir_v = models_particles3_poisson2_comp_spv,
+        .size = models_particles3_poisson2_comp_spv_size,
+    };
 
     t->r = r;
     t->b = r->buffer_manager(r);
@@ -177,6 +190,22 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
         ->storage_add(pl, 4, "PotentialBuffer")
 
         ->build(pl);
+
+    pl = r->pipeline(r);
+    t->comp_poisson2 = pl
+        ->set_bmgr(pl, t->b)
+        ->begin_program(pl)
+        ->add_cs(pl, compute_poisson2_shader)
+        ->end_program(pl)
+
+        ->uniform_add(pl, 0, "Settings")
+
+        ->storage_add(pl, 1, "FFTBuffer")
+        ->storage_add(pl, 2, "DensityBuffer")
+        ->storage_add(pl, 3, "PotentialBuffer")
+
+        ->build(pl);
+
     printf("Done\n");
 
     float l = 2*M_PI;
@@ -190,6 +219,7 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
     t->comp_set.n = 31-__builtin_clz(nn);
     t->comp_set.h = h;
     t->comp_set.l = l;
+    t->poisson_type = cfg_geti_def(cfg, "poisson_type", 1);
 
     t->density = NULL;
     t->density = malloc(nn*nn*nn*sizeof(float));
@@ -240,6 +270,11 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
     t->comp_poisson->storage_assign(t->comp_poisson, 2, t->work_index);
     t->comp_poisson->storage_assign(t->comp_poisson, 3, t->density_index);
     t->comp_poisson->storage_assign(t->comp_poisson, 4, t->psi_index);
+
+    t->comp_poisson2->uniform_assign(t->comp_poisson2, 0, t->comp_settings);
+    t->comp_poisson2->storage_assign(t->comp_poisson2, 1, t->fft_table_index);
+    t->comp_poisson2->storage_assign(t->comp_poisson2, 2, t->density_index);
+    t->comp_poisson2->storage_assign(t->comp_poisson2, 3, t->psi_index);
 
     return (struct Object*)t;
 }
