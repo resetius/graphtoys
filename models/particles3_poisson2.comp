@@ -234,7 +234,7 @@ void sFFT(uint ooff, uint ioff, float dx, int N, int n, uint boff0) {
             int ns = _2(m-1);
             int nk = _2(l-m);
             barrier();
-            for (i = id, k=i/n+1, s=i%ns+1;
+            for (i = id, k=i/ns+1, s=i%ns+1;
                  k <= nk && i < id+work;
                  i++, k=i/ns+1,s=i%ns+1)
             {
