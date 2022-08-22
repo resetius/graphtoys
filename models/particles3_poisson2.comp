@@ -391,9 +391,8 @@ void main() {
     uint i,k,j;
     const float slh = sqrt(2./l);
 
-    const uint _off = 4 * nn * globalIndex;
-    const uint ioff = _off;
-    const uint ooff = _off+nn;
+    const uint ioff = 0;
+    const uint ooff = ioff+nn;
 
     uint size = gl_WorkGroupSize.x;
     uint thread_id = gl_LocalInvocationID.x;
@@ -406,7 +405,9 @@ void main() {
         for (i = id; i < id+work; i++) {
             S[ioff+i] = Rho[off(i,k,j)];
         }
+        barrier();
         pFFT_1(ooff,ioff,h*slh,nn,n);
+        barrier();
         for (i = id; i < id+work; i++) {
             Psi[off(i,k,j)] = S[ooff+i];
         }
@@ -415,11 +416,13 @@ void main() {
     if (stage == 2 || stage == 0) {
         // along y
         split(i, j);
-        for (i = id; i < id+work; i++) {
+        for (k = id; k < id+work; k++) {
             S[ioff+k] = Psi[off(i,k,j)];
         }
+        barrier();
         pFFT_1(ooff,ioff,h*slh,nn,n);
-        for (i = id; i < id+work; i++) {
+        barrier();
+        for (k = id; k < id+work; k++) {
             Psi[off(i,k,j)] = S[ooff+k];
         }
         barrier();
@@ -427,34 +430,38 @@ void main() {
     if (stage == 3 || stage == 0) {
         // along x
         split(i, k);
-        for (i = id; i < id+work; i++) {
+        for (j = id; j < id+work; j++) {
             S[ioff+j] = Psi[off(i,k,j)];
         }
+        barrier();
         pFFT_1(ooff,ioff,h*slh,nn,n);
-        for (i = id; i < id+work; i++) {
+        barrier();
+        for (j = id; j < id+work; j++) {
             Psi[off(i,k,j)] = S[ooff+j];
         }
         barrier();
     }
     if (stage == 4 || stage == 0) {
         split(i, k);
-        for (i = id; i < id+work; i++) {
+        for (j = id; j < id+work; j++) {
             Psi[off(i,k,j)] /= -FFT[La+i]-FFT[La+k]-FFT[La+j];
             //Psi[off(i,k,j)] *= exp((-FFT[La+i]-FFT[La+k]-FFT[La+j])*rcrit*rcrit);
             //Psi[off(i,k,j)] *= exp((-i*i-k*k-j*j)*rcrit*rcrit);
         }
 
-        if (id == 0) Psi[off(0,0,0)] = 1;
+        if (i == 0 && k == 0 && id == 0) Psi[off(0,0,0)] = 1;
         barrier();
     }
     if (stage == 5 || stage == 0) {
         // along x
         split(i, k);
-        for (i = id; i < id+work; i++) {
+        for (j = id; j < id+work; j++) {
             S[ioff+j] = Psi[off(i,k,j)];
         }
+        barrier();
         pFFT(ooff,ioff,slh,nn,n);
-        for (i = id; i < id+work; i++) {
+        barrier();
+        for (j = id; j < id+work; j++) {
             Psi[off(i,k,j)] = S[ooff+j];
         }
         barrier();
@@ -462,11 +469,13 @@ void main() {
     if (stage == 6 || stage == 0) {
         // along y
         split(i, j);
-        for (i = id; i < id+work; i++) {
+        for (k = id; k < id+work; k++) {
             S[ioff+k] = Psi[off(i,k,j)];
         }
+        barrier();
         pFFT(ooff,ioff,slh,nn,n);
-        for (i = id; i < id+work; i++) {
+        barrier();
+        for (k = id; k < id+work; k++) {
             Psi[off(i,k,j)] = S[ooff+k];
         }
         barrier();
@@ -477,7 +486,9 @@ void main() {
         for (i = id; i < id+work; i++) {
             S[ioff+i] = Psi[off(i,k,j)];
         }
+        barrier();
         pFFT(ooff,ioff,slh,nn,n);
+        barrier();
         for (i = id; i < id+work; i++) {
             Psi[off(i,k,j)] = S[ooff+i];
         }
