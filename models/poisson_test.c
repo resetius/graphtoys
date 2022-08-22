@@ -84,7 +84,9 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     int nn = t->comp_set.nn;
     float h = t->comp_set.h;
     float l = t->comp_set.l;
-
+#define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
+#define poff(i,k,j) (((i+nn)%nn)*nn*nn+((k+nn)%nn)*nn+((j+nn)%nn))
+ 
     if (t->single_pass) {
         int stage = 0;
         t->comp_set.stage = stage;
@@ -109,8 +111,6 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     // OpenGL only yet!
     // check accuracy and exit
     t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
-#define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
-#define poff(i,k,j) (((i+nn)%nn)*nn*nn+((k+nn)%nn)*nn+((j+nn)%nn))
     double nrm = 0;
     double nrm1= 0;
     double avg = 0.0;
@@ -142,7 +142,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     nrm /= nrm1;
     fprintf(stderr, "err = '%e'\n", nrm);
 
-    // check parts
+    if (0) // check parts
     {
         fft* ft = FFT_init(FFT_PERIODIC, nn);
         double* output = malloc(nn*sizeof(double));
@@ -150,14 +150,22 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         for (int i = 0; i < nn; i++) {
             input[i] = t->density[i];
         }
-        pFFT_2_1(output, input, 1, ft);
+        //pFFT_2_1(output, input, 1, ft); // ok
+	//sFFT_2(output, input, 1, ft); // ok
+	//cFFT_2(output, input, 1, ft); // ok
+	pFFT_2(output, input, 1, ft);
 
-        t->comp_set.stage = 8;
+        //t->comp_set.stage = 8; // ok
+	//t->comp_set.stage = 9; // ok
+	//t->comp_set.stage = 10; // ok
+	t->comp_set.stage = 11;
         t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
         t->comp_poisson2->start_compute(t->comp_poisson2, 1, 1, 1);
         t->b->read(t->b, t->psi_index, t->psi, 0, nn*sizeof(float));
         for (int i = 0; i < nn; i++) {
-            printf("%f <> %f\n", output[i], t->psi[i]);
+            if (fabs(output[i] - t->psi[i]) > 1e-4) {
+                printf("%d %.7e <> %.7e\n", i, output[i], t->psi[i]);
+	    }
         }
 
         free(input);
