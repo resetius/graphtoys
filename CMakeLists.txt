@@ -130,6 +130,7 @@ add_library(engine
     models/gltf.c
     models/triangle.c
     models/torus.c
+    models/asp_fft.c
     models/mandelbrot.c
     models/mandelbulb.c
     models/particles_data.c
