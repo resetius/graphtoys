@@ -494,4 +494,15 @@ void main() {
         }
         barrier();
     }
+    if (stage == 8) {
+        for (i = id; i < id+work; i++) {
+            S[ioff+i] = Psi[i];
+        }
+        barrier();
+        pFFT_1(ooff,ioff,1,nn,n);
+        barrier();
+        for (i = id; i < id+work; i++) {
+            Psi[off(i,k,j)] = S[ooff+i];
+        }
+    }
 }

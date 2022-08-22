@@ -7,6 +7,7 @@
 
 #include <models/particles3_poisson.comp.spv.h>
 #include <models/particles3_poisson2.comp.spv.h>
+#include <models/asp_fft.h>
 
 #include <lib/verify.h>
 #include <lib/config.h>
@@ -140,6 +141,30 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     }
     nrm /= nrm1;
     fprintf(stderr, "err = '%e'\n", nrm);
+
+    // check parts
+    {
+        fft* ft = FFT_init(FFT_PERIODIC, nn);
+        double* output = malloc(nn*sizeof(double));
+        double* input = malloc(nn*sizeof(double));
+        for (int i = 0; i < nn; i++) {
+            input[i] = t->density[i];
+        }
+        pFFT_2_1(output, input, 1, ft);
+
+        t->comp_set.stage = 8;
+        t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
+        t->comp_poisson2->start_compute(t->comp_poisson2, 1, 1, 1);
+        t->b->read(t->b, t->psi_index, t->psi, 0, nn*sizeof(float));
+        for (int i = 0; i < nn; i++) {
+            printf("%f <> %f\n", output[i], t->psi[i]);
+        }
+
+        free(input);
+        free(output);
+        FFT_free(ft);
+    }
+
 #undef off
 #undef poff
     exit(0);
