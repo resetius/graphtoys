@@ -496,13 +496,46 @@ void main() {
     }
     if (stage == 8) {
         for (i = id; i < id+work; i++) {
-            S[ioff+i] = Psi[i];
+            S[ioff+i] = Rho[i];
         }
         barrier();
         pFFT_1(ooff,ioff,1,nn,n);
         barrier();
         for (i = id; i < id+work; i++) {
-            Psi[off(i,k,j)] = S[ooff+i];
+            Psi[i] = S[ooff+i];
+        }
+    }
+    if (stage == 9) {
+        for (i = id; i < id+work; i++) {
+            S[ioff+i] = Rho[i];
+        }
+        barrier();
+        sFFT(ooff,ioff,1,nn,n,0);
+        barrier();
+        for (i = id; i < id+work; i++) {
+            Psi[i] = S[ooff+i];
+        }
+    }
+    if (stage == 10) {
+        for (i = id; i < id+work; i++) {
+            S[ioff+i] = Rho[i];
+        }
+        barrier();
+        cFFT(ooff,ioff,1,nn,n,0);
+        barrier();
+        for (i = id; i < id+work; i++) {
+            Psi[i] = S[ooff+i];
+        }
+    }
+    if (stage == 11) {
+        for (i = id; i < id+work; i++) {
+            S[ioff+i] = Rho[i];
+        }
+        barrier();
+        pFFT(ooff,ioff,1,nn,n);
+        barrier();
+        for (i = id; i < id+work; i++) {
+            Psi[i] = S[ooff+i];
         }
     }
 }
