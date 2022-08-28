@@ -4,21 +4,21 @@ layout(local_size_x = 32) in;
 
 #include "particles3_comp_base.h"
 
-const int La = 0; // Laplace operator eigen values offset
+const int La = 0; // Laplace operator eigenvalues offset
 int iCosOff = La + nn; // precalculated cos offsets
 
 layout(std430, binding=1) readonly buffer FFTBuffer {
-    float FFT[];
+    float FFT[]; // Laplace eigenvalues + precalculated cos
 };
 
 // density
 layout(std430, binding=2) buffer DensityBuffer {
-    float Rho[];
+    float Rho[]; // Input, \Laplace psi = 4 pi rho
 };
 
 // potential
 layout(std430, binding=3) buffer PotentialBuffer {
-    float Psi[];
+    float Psi[]; // Output
 };
 
 void swap(inout uint a, inout uint b) {
