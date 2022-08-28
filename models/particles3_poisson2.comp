@@ -4,9 +4,8 @@ layout(local_size_x = 32) in;
 
 #include "particles3_comp_base.h"
 
-int sz = 2*nn;
-int La = 0;
-int iCosOff = La + nn;
+const int La = 0; // Laplace operator eigen values offset
+int iCosOff = La + nn; // precalculated cos offsets
 
 layout(std430, binding=1) readonly buffer FFTBuffer {
     float FFT[];
