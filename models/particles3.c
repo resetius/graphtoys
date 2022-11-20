@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <GLFW/glfw3.h>
 
 #include <render/render.h>
 #include <render/pipeline.h>
@@ -63,6 +64,12 @@ struct VertBlock {
     float a;
     float dota;
     int nn;
+};
+
+struct Particles;
+struct KeyConsumer {
+    struct EventConsumer cons;
+    struct Particles* t;
 };
 
 struct Particles {
@@ -141,7 +148,8 @@ struct Particles {
 
     // screenshots
     int plot_interval; // periodic screenshots
-    int make_screenshot; // manual screenshots
+    int make_screenshot; // manual screenshots    
+    struct KeyConsumer cons;
 };
 
 // TODO: copy-paste
@@ -177,6 +185,18 @@ static void transform(struct Particles* t) {
     quat_mul(t->q, t->q, qz);
 
     t->ax = t->ay = t->az = 0;
+}
+
+static void key_event(struct EventConsumer* cons, struct InputEvent* ev) {
+    struct Particles* t = ((struct KeyConsumer*)cons)->t;
+    if (ev->action == GLFW_RELEASE && ev->key == GLFW_KEY_S) {
+        printf("Screenshot\n");
+        t->make_screenshot = 1;
+    }
+}
+
+static void mouse_move_event(struct EventConsumer* cons, struct InputEvent* ev) {
+
 }
 
 static void move_left(struct Object* obj, int mods) {
@@ -848,6 +868,11 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     t->label_enabled = cfg_geti_def(cfg, "label_show", 0);
 
     t->plot_interval = cfg_geti_def(cfg, "plot_interval", -1);
+
+    t->cons.t = t;
+    t->cons.cons.key_event = key_event;
+    t->cons.cons.mouse_move_event = mouse_move_event;
+    events->subscribe(events, (struct EventConsumer*)&t->cons);
 
     return (struct Object*)t;
 }
