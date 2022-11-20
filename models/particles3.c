@@ -388,7 +388,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         char buf[1024];
         void* data;
         int w, h;
-        snprintf(buf, sizeof(buf)-1, "particles3.%06d.tga", t->step);
+        snprintf(buf, sizeof(buf)-1, "particles3.%06d_%.02f.tga", t->step, t->T);
         t->r->screenshot(t->r, &data, &w, &h);
         if (data) {
             tga_write(buf, w, h, data, 4, 4);
