@@ -140,7 +140,8 @@ struct Particles {
     int label_enabled;
 
     // screenshots
-    int plot_interval;
+    int plot_interval; // periodic screenshots
+    int make_screenshot; // manual screenshots
 };
 
 // TODO: copy-paste
@@ -363,7 +364,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         label_render(&t->label);
     }
 
-    if (t->plot_interval >= 0 && t->step%t->plot_interval == 0) {
+    if (t->make_screenshot || ((t->plot_interval >= 0) && (t->step%t->plot_interval == 0))) {
         char buf[1024];
         void* data;
         int w, h;
@@ -373,6 +374,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             tga_write(buf, w, h, data, 4, 4);
             free(data);
         }
+        t->make_screenshot = 0;
     }
 
     t->T += t->vert.dt;
@@ -405,7 +407,7 @@ static void free_(struct Object* obj) {
     free(obj);
 }
 
-struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
+struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct EventProducer* events) {
     struct Particles* t = calloc(1, sizeof(struct Particles));
     struct Object base = {
         .move_left = move_left,
@@ -652,7 +654,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg) {
     float origin[] = {x0, y0, z0};
     int nn = cfg_geti_def(cfg, "nn", 32);
     float h = l/nn;
-    verify (nn % 32 == 0, "nn muste be divided by 32!\n");
+    verify (nn % 32 == 0, "nn must be divided by 32!\n");
     t->comp_set.nn = nn;
     t->comp_set.n = 31-__builtin_clz(nn);
     t->comp_set.h = h;
