@@ -63,6 +63,7 @@ struct VertBlock {
     float dt;
     float a;
     float dota;
+    float point_size_mult;
     int nn;
 };
 
@@ -686,6 +687,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
 
     t->vert.h = h;
     t->vert.nn = nn;
+    t->vert.point_size_mult = cfg_getf_def(cfg, "point_size_mult", 1.0);
     t->vert.dt = cfg_getf_def(cfg, "dt", 0.001);
     t->vert.a = 1;
     t->vert.dota = 0;

@@ -9,6 +9,7 @@ layout(std140, binding=0) uniform MatrixBlock {
     float tau;
     float a;
     float dota;
+    float point_size_mult;
     int nn;
 };
 
@@ -45,11 +46,18 @@ void main()
     float mass = Position[idx].w;
 
     gl_Position = MVP * vec4(vec3(Position[idx]), 1);
-    gl_PointSize = clamp(pow(mass, 1./3.), 1, 30);
+    gl_PointSize = point_size_mult*clamp(pow(mass, 1./3.), 1, 30);
     color = out_color;
 
     vec4 r = Position[idx] + tau*Velocity[idx] + 0.5 * tau*tau*Accel[idx];
     vec4 A = vec4(0);
+
+    /*if (dot(Position[idx].xyz,Position[idx].xyz) < 100/3.0*100/3.0) {
+        return;
+    }*/
+    if (Velocity[idx].w < 0) {
+        return;
+    }
 
     vec4 x = Position[idx]-origin;
     ivec4 ii = ivec4(floor(x/h));
