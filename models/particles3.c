@@ -149,8 +149,11 @@ struct Particles {
 
     // screenshots
     int plot_interval; // periodic screenshots
-    int make_screenshot; // manual screenshots    
+    int make_screenshot; // manual screenshots
     struct KeyConsumer cons;
+
+    //
+    int debug;
 };
 
 // TODO: copy-paste
@@ -250,6 +253,37 @@ static void zoom_out(struct Object* obj, int mods) {
     }
 }
 
+static void maybe_debug_output(struct Particles* t, const char* name, int index)
+{
+    if (!t->debug) {
+        return;
+    }
+
+    char buf[1024];
+    snprintf(buf, sizeof(buf)-1, "%s.%06d.txt", "density", t->step);
+
+    int nn = t->comp_set.nn;
+    int size = nn*nn*nn*sizeof(float);
+    float* data = malloc(size);
+
+    t->b->read(t->b, index, data, 0, size);
+
+    FILE* f = fopen(buf, "wb");
+#define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
+    for (int i = 0; i < nn; i++) {
+        for (int k = 0; k < nn; k++) {
+            for (int j = 0; j < nn; j++) {
+                printf("%e ", data[off(i,k,j)]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
+#undef off
+    fclose(f);
+    free(data);
+}
+
 static void draw_(struct Object* obj, struct DrawContext* ctx) {
     struct Particles* t = (struct Particles*)obj;
     mat4x4 m, p, v, mv, mvp;
@@ -314,6 +348,8 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     t->comp_mass_sum->start_compute(t->comp_mass_sum, t->comp_set.nn/32, t->comp_set.nn/32, 1);
     t->r->counter_submit(t->r, t->counter_density);
+
+    maybe_debug_output(t, "density", t->density_index);
 
     if (t->single_pass) {
         verify(nn == 32);
@@ -671,6 +707,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     t->z = z0 + l + cfg_geti_def(cfg, "zoff", 1);
     t->expansion = cfg_getf_def(cfg, "expansion", 0);
     t->poisson_type = cfg_geti_def(cfg, "poisson_type", 1);
+    t->debug = cfg_geti_def(cfg, "debug", 0);
 
     float origin[] = {x0, y0, z0};
     int nn = cfg_geti_def(cfg, "nn", 32);
@@ -702,7 +739,9 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     t->density = NULL;
     //t->density = malloc(nn*nn*nn*sizeof(float));
     //distribute(nn, 1, t->density, data.coords, t->particles, h, origin);
-    t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL /*t->density*/,
+    t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE,
+                                    t->debug ? MEMORY_DYNAMIC_READ : MEMORY_STATIC,
+                                    NULL /*t->density*/,
                                     nlists*nn*nn*nn*sizeof(float));
     t->psi = malloc(nn*nn*nn*sizeof(float));
     t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL,
