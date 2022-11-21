@@ -260,7 +260,7 @@ static void maybe_debug_output(struct Particles* t, const char* name, int index)
     }
 
     char buf[1024];
-    snprintf(buf, sizeof(buf)-1, "%s.%06d.txt", "density", t->step);
+    snprintf(buf, sizeof(buf)-1, "%s.%06d.txt", name, t->step);
 
     int nn = t->comp_set.nn;
     int size = nn*nn*nn*sizeof(float);
@@ -273,11 +273,11 @@ static void maybe_debug_output(struct Particles* t, const char* name, int index)
     for (int i = 0; i < nn; i++) {
         for (int k = 0; k < nn; k++) {
             for (int j = 0; j < nn; j++) {
-                printf("%e ", data[off(i,k,j)]);
+                fprintf(f, "%e ", data[off(i,k,j)]);
             }
-            printf("\n");
+            fprintf(f, "\n");
         }
-        printf("\n");
+        fprintf(f, "\n");
     }
 #undef off
     fclose(f);
