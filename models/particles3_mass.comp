@@ -27,7 +27,7 @@ void add_density(int cur, uint roff) {
             for (int k = 0; k < 2; k++) {
                 for (int j = 0; j < 2; j++) {
                     Rho[roff+poff(index.z+i,index.y+k,index.x+j)] +=
-                        4*M_PI*G*mass*abs((1-i-x.z)*(1-k-x.y)*(1-j-x.x));
+                        4*M_PI*G*mass*abs((1-i-x.z)*(1-k-x.y)*(1-j-x.x))/h/h/h; 
                 }
             }
         }
@@ -47,7 +47,7 @@ void main()
                 Rho[roff
                     +off(gl_LocalInvocationID.y*kk+y,
                          gl_LocalInvocationID.x*kk+x,
-                         j)] = -4*M_PI*rho;
+                         j)] = roff > 0 ? 0 : -4*M_PI*rho;
             }
         }
     }
