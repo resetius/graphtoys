@@ -22,7 +22,7 @@ void main() {
     uint from = globalIndex * work_size;
     uint to = min(particles, from+work_size);
 
-    for (uint i = from; i < to && i < particles; i++) {
+    for (uint i = from; i < to; i++) {
         list[i] = -1;
     }
 
@@ -35,11 +35,14 @@ void main() {
         vec2 x = vec2(Position[i])-vec2(origin);
         ivec2 index = ivec2(floor(x/h32));
 
+        // в lists[index.y][index.x] лежит голова списка, отвечающего за область (index.y,index.x)
+        // в list[i] сохраняем предыдущий элемент списка, в list[i] пишет только один поток, поэтому синхронизация не нужна
         list[i] = atomicExchange(lists[index.y][index.x], int(i));
     }
 
     barrier();
 
+    // заголовки списков сохраняем в массиве после самих списков
     uint ioff = particles+gl_WorkGroupID.x*32*32;
     list[ioff+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x] =
         lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x];
