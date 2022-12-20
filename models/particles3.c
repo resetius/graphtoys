@@ -110,6 +110,7 @@ struct Particles {
     struct CompPPSettings comp_pp_set;
     int comp_pp_settings;
     int pp_force;
+    int color;
     int cells;
     int list;
 
@@ -680,6 +681,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
         ->storage_add(pl, 3, "AccelBuffer")
         ->storage_add(pl, 4, "EBuffer")
         ->storage_add(pl, 5, "ForceBuffer")
+        ->storage_add(pl, 6, "ColorBuffer")
 
         ->begin_buffer(pl, 4)
         ->buffer_attribute(pl, 1, 1, DATA_INT, 0)
@@ -802,6 +804,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
     t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.vels, size);
     t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.accel, size);
+    t->color = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.color, size);
 
     t->comp_pp_set.nn = 64; // t->comp_set.nn; // 32;
     memcpy(t->comp_pp_set.origin, t->comp_set.origin, sizeof(t->comp_pp_set.origin));
@@ -837,6 +840,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     t->pl->storage_assign(t->pl, 3, t->accel);
     t->pl->storage_assign(t->pl, 4, t->e_index);
     t->pl->storage_assign(t->pl, 5, t->pp_force);
+    t->pl->storage_assign(t->pl, 6, t->color);
 
     t->comp_parts->uniform_assign(t->comp_parts, 0, t->comp_settings);
     t->comp_parts->storage_assign(t->comp_parts, 1, t->pos);

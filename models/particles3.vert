@@ -37,6 +37,11 @@ layout(std430, binding=5) readonly buffer ForceBuffer {
     vec4 F[];
 };
 
+// specific colors for points
+layout(std430, binding=6) readonly buffer ColorBuffer {
+    vec4 Col[];
+};
+
 layout (location = 1) in int idx;
 layout (location = 0) out vec4 color;
 
@@ -47,7 +52,11 @@ void main()
 
     gl_Position = MVP * vec4(vec3(Position[idx]), 1);
     gl_PointSize = point_size_mult*clamp(pow(mass, 1./3.), 1, 30);
-    color = out_color;
+    if (Col[idx].w < 0) {
+        color = out_color;
+    } else {
+        color = Col[idx];
+    }
 
     vec4 r = Position[idx] + tau*Velocity[idx] + 0.5 * tau*tau*Accel[idx];
     vec4 A = vec4(0);

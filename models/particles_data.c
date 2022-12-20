@@ -12,6 +12,7 @@ struct body
 {
     double x[3];
     double v[3];
+    double c[3];
     double mass;
     int fixed;
     char name[100];
@@ -39,6 +40,7 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
     //float side = 4.0f;
     float side = cfg_getf_def(cfg, "side", 7.5f);
     uint32_t seed = cfg_geti_def(cfg, "seed", -1);
+    memset(data, 0, sizeof(*data));
     if (seed == (uint32_t)-1) {
         seed = (uint32_t) time(NULL);
     }
@@ -51,8 +53,8 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
     if (!strcmp(name, "sunearth")) {
 
         struct body body[] = {
-            {{0, 0, 0}, {0, 0, 0}, 10000, 1, "Sun"},
-            {{0, 1, 0}, {-1, 0, 0}, 1, 0, "Earth"},
+            {{0, 0, 0}, {0, 0, 0}, {}, 10000, 1, "Sun"},
+            {{0, 1, 0}, {-1, 0, 0}, {}, 1, 0, "Earth"},
         };
         const int nbodies = 2;
 
@@ -72,16 +74,16 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
     } else if (!strcmp(name, "solar")) {
 
         struct body body[] = {
-            {{0, 0, 0}, {0, 0, 0}, 333333, 1, "Sun"},
-            {{0, 0.39, 0}, {1.58, 0, 0}, 0.038, 0, "Mercury"},
-            {{0, 0.72, 0}, {1.17, 0, 0}, 0.82, 0, "Venus"},
-            {{0, 1, 0}, {1, 0, 0}, 1, 0, "Earth"},
-            {{0, 1.00256, 0}, {1.03, 0, 0}, 0.012, 0, "Moon"},
-            {{0, 1.51, 0}, {0.8, 0, 0}, 0.1, 0, "Mars"},
-            {{0, 5.2, 0}, {0.43, 0, 0}, 317, 0, "Jupiter"},
-            {{0, 9.3, 0}, {0.32, 0, 0}, 95, 0, "Saturn"},
-            {{0, 19.3, 0}, {0.23, 0, 0}, 14.5, 0, "Uranus"},
-            {{0, 30, 0}, {0.18, 0, 0}, 16.7, 0, "Neptune"}};
+            {{0, 0, 0}, {0, 0, 0}, {}, 333333, 1, "Sun"},
+            {{0, 0.39, 0}, {1.58, 0, 0}, {}, 0.038, 0, "Mercury"},
+            {{0, 0.72, 0}, {1.17, 0, 0}, {}, 0.82, 0, "Venus"},
+            {{0, 1, 0}, {1, 0, 0}, {}, 1, 0, "Earth"},
+            {{0, 1.00256, 0}, {1.03, 0, 0}, {}, 0.012, 0, "Moon"},
+            {{0, 1.51, 0}, {0.8, 0, 0}, {}, 0.1, 0, "Mars"},
+            {{0, 5.2, 0}, {0.43, 0, 0}, {}, 317, 0, "Jupiter"},
+            {{0, 9.3, 0}, {0.32, 0, 0}, {}, 95, 0, "Saturn"},
+            {{0, 19.3, 0}, {0.23, 0, 0}, {}, 14.5, 0, "Uranus"},
+            {{0, 30, 0}, {0.18, 0, 0}, {}, 16.7, 0, "Neptune"}};
 
         const int nbodies = 10;
 
@@ -100,13 +102,15 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
         }
     } else if (!strcmp(name, "solar_lite")) {
         struct body body[] = {
-            {{0, 0, 0}, {0, 0, 0}, 333333, 1, "Sun"},
-            {{0, 0.39, 0}, {1.58, 0, 0}, 0.038, 0, "Mercury"},
-            {{0, 0.72, 0}, {1.17, 0, 0}, 0.82, 0, "Venus"},
-            {{0, 1, 0}, {1, 0, 0}, 1, 0, "Earth"},
-            {{0, 1.51, 0}, {0.8, 0, 0}, 0.1, 0, "Mars"}};
+            {{0, 0, 0}, {0, 0, 0}, {1,0,0}, 333333, 1, "Sun"},
+            {{0, 0.39, 0}, {1.58, 0, 0}, {0,1,0}, 0.038, 0, "Mercury"},
+            {{0, 0.72, 0}, {1.17, 0, 0}, {0,0,1}, 0.82, 0, "Venus"},
+            {{0, 1, 0}, {1, 0, 0}, {1,0,1}, 1, 0, "Earth"},
+            {{0, 1.51, 0}, {0.8, 0, 0}, {0,1,1}, 0.1, 0, "Mars"}};
 
         const int nbodies = 5;
+
+        data->color = calloc(4*nbodies,sizeof(float));
 
         for (i = 0; i < nbodies; i++) {
             coords[n] = body[i].x[0];
@@ -118,6 +122,11 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
             vels[n+1] = body[i].v[1];
             vels[n+2] = body[i].v[2];
             vels[n+3] = 0;
+
+            data->color[n+0] = body[i].c[0];
+            data->color[n+1] = body[i].c[1];
+            data->color[n+2] = body[i].c[2];
+            data->color[n+3] = 1;
 
             n += 4;
         }
@@ -198,12 +207,12 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
                 coords[n+2] = z;
                 coords[n+3] = m;
 
-                
+
                 vels[n] = vx;
                 vels[n+1] = vy;
                 vels[n+2] = vz;
                 vels[n+3] = 0;
-                
+
 
                 double R =
                 coords[n]*coords[n]+
@@ -298,7 +307,7 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
         double md = n_particles_d;
         int n_particles_s = n_particles-n_particles_d;
         double mass = 1;
-        double ms = mass*n_particles_s;        
+        double ms = mass*n_particles_s;
 #if 1
         // halo
         while (n < 4*n_particles_s) {
@@ -320,7 +329,7 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
                     coords[n+1]*coords[n+1]
                     ; // +coords[n+2]*coords[n+2];
                 R = sqrt(R)+0.05;
-                
+
                 //double V = 0.5*V0*sqrt(ms/R);
                 double V = V0*R;
                 //double V = V0;
@@ -351,7 +360,7 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
                     coords[n+1]*coords[n+1]+
                     coords[n+2]*coords[n+2];
                 R = sqrt(R);
-                
+
                 //double V = V0; // V0*sqrt(ms/R);
                 double V = V0*sqrt(ms/R);
                 //double V = V0*R;
@@ -429,7 +438,7 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
             vels[n+2] = 0;
             vels[n+3] = 0;
             n += 4;
-        }        
+        }
     } else { // sphere
 
         while (n < 4*n_particles) {
@@ -471,10 +480,18 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
     data->coords = coords;
     data->accel = accel;
     data->indices = indices;
+
+    if (!data->color) {
+        data->color = calloc(4*data->n_particles,sizeof(float));
+        for (int i = 0; i < data->n_particles; i++) {
+            data->color[i*4+3] = -1; // use default color
+        }
+    }
 }
 
 void particles_data_destroy(struct ParticlesData* data) {
     free(data->coords);
     free(data->vels);
     free(data->accel);
+    free(data->color);
 }

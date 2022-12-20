@@ -4,6 +4,7 @@ struct ParticlesData {
     float* coords;
     float* vels;
     float* accel;
+    float* color;
     int* indices;
     int n_particles;
 };
