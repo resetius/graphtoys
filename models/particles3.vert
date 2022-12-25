@@ -58,7 +58,11 @@ void main()
         color = Col[idx];
     }
 
-    vec4 r = Position[idx] + tau*Velocity[idx] + 0.5 * tau*tau*Accel[idx];
+    // 1. new_pos <- cur vel + cur accel (compute)
+    // 2. new_accel (E+F) <- new_pos
+    // 3. new_vel <- new_accel + cur accel
+
+//    vec4 r = Position[idx] + tau*Velocity[idx] + 0.5 * tau*tau*Accel[idx];
     vec4 A = vec4(0);
 
     /*if (dot(Position[idx].xyz,Position[idx].xyz) < 100/3.0*100/3.0) {
@@ -82,8 +86,11 @@ void main()
     }
 
     A += F[idx]/a/a - 2*tau*dota/a * Velocity[idx];
+
     Velocity[idx] += 0.5*tau*(vec4(vec3(A),0) + Accel[idx]);
     Accel[idx] = vec4(vec3(A), 0);
+
+    vec4 r = Position[idx] + tau*Velocity[idx] + 0.5 * tau*tau*Accel[idx];
     for (int i = 0; i < 3; i++) {
         if (r[i] < origin[i]) {
             r[i] += l;
