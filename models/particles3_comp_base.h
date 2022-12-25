@@ -9,6 +9,7 @@ layout(std140, binding=0) uniform Settings {
     float l;
     float rho;
     float rcrit;
+    float tau;
 };
 
 const float M_PI = 3.14159265359;

@@ -41,6 +41,7 @@ struct CompSettings {
     float l; // length of cube edge
     float rho;
     float rcrit;
+    float tau;
 };
 
 struct CompPPSettings {
@@ -813,6 +814,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     t->comp_pp_set.h = l / t->comp_pp_set.nn;
     t->comp_pp_set.l = l;
     t->comp_pp_set.rcrit = t->comp_pp_set.h; // TODO
+    t->comp_set.tau = t->vert.dt;
     t->comp_set.rcrit = t->comp_pp_set.rcrit;
     t->comp_set.nlists = t->comp_pp_set.nlists = nlists;
 

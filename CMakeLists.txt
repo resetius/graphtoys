@@ -90,6 +90,7 @@ set(SHADERS
     models/stl.frag
     models/triangle.frag
     models/particles.comp
+    models/particles3_move.comp
     models/particles3_parts.comp
     models/particles3_mass.comp
     models/particles3_mass_sum.comp
