@@ -1,0 +1,29 @@
+#version 460
+
+layout(local_size_x = 64) in;
+
+#include "particles3_comp_base.h"
+
+layout(std430, binding=1) buffer PosBuffer {
+    vec4 Position[];
+};
+
+layout(std430, binding=2) buffer VelBuffer {
+    vec4 Velocity[];
+};
+
+layout(std430, binding=3) buffer AccelBuffer {
+    vec4 Accel[];
+};
+
+void main() {
+    uint threads = xsize*ysize*zsize;
+    uint work_size = (particles + threads - 1) / threads;
+    uint from = globalIndex * work_size;
+    uint to = min(particles, from+work_size);
+
+    for (uint i = from; i < to; i++) {
+        vec4 r = Position[i] + tau*Velocity[i] + 0.5 * tau*tau*Accel[i];
+        Position[i].xyz = r.xyz;
+    }
+}
