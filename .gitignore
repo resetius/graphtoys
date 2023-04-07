@@ -6,3 +6,4 @@
 *.frag.h
 *.vert.h
 *.ttf.h
+build/**
