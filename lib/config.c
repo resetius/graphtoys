@@ -197,9 +197,9 @@ struct Config* cfg_section(struct Config* root, const char* section) {
                     }
                     last->next_key = node->next_key;
                 }
+                prev->next_section = node->next_section;
                 free(node->section);
                 free(node);
-                prev->next_section = node->next_section;
             }
         } else {
             prev = node;
