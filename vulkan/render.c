@@ -344,6 +344,7 @@ static void init_(struct Render* r1) {
     if (deviceCount == 0) { exit(-1); }
     if (deviceCount > sizeof(devices)/sizeof(VkPhysicalDevice)) {
         printf("Cut devices\n");
+        deviceCount = sizeof(devices)/sizeof(VkPhysicalDevice);
     }
 
     vkEnumeratePhysicalDevices(r->instance, &deviceCount, devices);
