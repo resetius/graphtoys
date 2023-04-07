@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <lib/config.h>
+#include <lib/verify.h>
 #include "particles_data.h"
 
 struct body
@@ -198,10 +199,10 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
                 printf("Cannot open file: %s\n", filename); exit(1);
             }
             int k; double t;
-            fscanf(f, "%d%lf", &k, &t);
+            verify(fscanf(f, "%d%lf", &k, &t) == 2);
             for (int i = 0; i < k; i++) {
                 double m,x,y,z,vx,vy,vz;
-                fscanf(f, "%lf%lf%lf%lf%lf%lf%lf", &m, &x, &y, &z, &vx, &vy, &vz);
+                verify(fscanf(f, "%lf%lf%lf%lf%lf%lf%lf", &m, &x, &y, &z, &vx, &vy, &vz) == 7);
                 coords[n] = x;
                 coords[n+1] = y;
                 coords[n+2] = z;
@@ -237,7 +238,7 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
             fclose(f);
         }
 
-        printf("%lf %lf, %lf %lf, %lf\n", minx, maxx, miny, maxy, minz, maxz);
+        printf("%lf %lf, %lf %lf, %lf %lf\n", minx, maxx, miny, maxy, minz, maxz);
     } else if (!strcmp(name, "disk1")) {
         //double m = 0.01;
         double m = 10;
@@ -304,7 +305,7 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
 
         double rho = 0.0; // 0.2;
         int n_particles_d = n_particles*rho;
-        double md = n_particles_d;
+        // double md = n_particles_d;
         int n_particles_s = n_particles-n_particles_d;
         double mass = 1;
         double ms = mass*n_particles_s;
