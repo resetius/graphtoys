@@ -6,7 +6,8 @@
 #include "buffer.h"
 #include "render.h"
 
-static struct BufferBase* buffer_acquire_(struct BufferManagerBase* b, int size) {
+static struct BufferBase* buffer_acquire_(struct BufferManager* bm, int size) {
+    struct BufferManagerBase* b = (struct BufferManagerBase*)bm;
     struct BufferBase* buf = NULL;
     if (b->n_buffers >= b->cap) {
         int i;
@@ -32,7 +33,7 @@ static struct BufferBase* buffer_acquire_(struct BufferManagerBase* b, int size)
         buf->id = id;
     }
     b->total_memory += size;
-    printf("(%p) buffer memory: %lld +%d\n", b, (long long)b->total_memory, (long long)size);
+    printf("(%p) buffer memory: %lld +%lld\n", b, (long long)b->total_memory, (long long)size);
     buf->valid = 1;
     buf->size = size;
     return buf;
