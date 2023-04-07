@@ -1,5 +1,6 @@
-project(graphtoys)
 cmake_minimum_required(VERSION 3.10)
+project(graphtoys)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if (EXISTS ${CMAKE_BINARY_DIR}/local.cmake)
 include(${CMAKE_BINARY_DIR}/local.cmake)
