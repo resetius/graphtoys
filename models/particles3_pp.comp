@@ -169,7 +169,7 @@ void calc_force_(int i, int k, int j)
     //int from = int(gl_WorkGroupID.y*work_size);
     int to = from+work_size;
     //int from = 0; int to = int(n1);
-    for (i0 = from; i0 < to && i0 < particles; i0++) {
+    for (i0 = from; i0 < to && i0 < n1; i0++) {
         F[cell_data[id*cell_size+i0+1]] = vec4(0);
     }
     for (i0 = -1; i0 <= 1; i0++) {
