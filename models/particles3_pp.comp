@@ -9,6 +9,7 @@ layout(std140, binding=0) uniform Settings {
     int cell_size;
     int stage;
     int nn; // nn for chain-grid
+    int nlists;
     float h; // h for chain-grid
     float l;
     float rcrit;
