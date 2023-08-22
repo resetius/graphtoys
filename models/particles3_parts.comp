@@ -33,7 +33,7 @@ void main() {
     // lists by x,y
     for (uint i = from; i < to; i++) {
         vec2 x = vec2(Position[i])-vec2(origin);
-        ivec2 index = clamp(ivec2(floor(x/h32)), 0, 32);
+        ivec2 index = clamp(ivec2(floor(x/h32)), 0, 31);
 
         // в lists[index.y][index.x] лежит голова списка, отвечающего за область (index.y,index.x)
         // в list[i] сохраняем предыдущий элемент списка, в list[i] пишет только один поток, поэтому синхронизация не нужна
