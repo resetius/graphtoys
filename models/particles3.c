@@ -31,17 +31,7 @@
 #include "particles_data.h"
 
 struct CompSettings {
-    vec4 origin;
-    int particles;
-    int stage;
-    int nn;  // grid nn x nn xnn
-    int n;   // log2(n)
-    int nlists;
-    float h; // l/h
-    float l; // length of cube edge
-    float rho;
-    float rcrit;
-    float tau;
+#include "particles3_comp_set.h"
 };
 
 struct CompPPSettings {

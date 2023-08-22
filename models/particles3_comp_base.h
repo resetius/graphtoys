@@ -1,15 +1,5 @@
 layout(std140, binding=0) uniform Settings {
-    vec4 origin;
-    int particles;
-    int stage;
-    int nn;  // nx=ny=nz=nn
-    int n;   // log(nn)
-    int nlists;
-    float h;
-    float l;
-    float rho;
-    float rcrit;
-    float tau;
+#include "particles3_comp_set.h"
 };
 
 const float M_PI = 3.14159265359;
