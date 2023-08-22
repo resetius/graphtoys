@@ -51,6 +51,7 @@ void main()
     float mass = Position[idx].w;
 
     gl_Position = MVP * vec4(vec3(Position[idx]), 1);
+    //gl_Position = MVP * vec4(vec2(Position[idx]), 0, 1);
     gl_PointSize = point_size_mult*clamp(pow(mass, 1./3.), 1, 30);
     if (Col[idx].w < 0) {
         color = out_color;
@@ -85,7 +86,7 @@ void main()
         }
     }
 
-    A += F[idx]/a/a - 2*tau*dota/a * Velocity[idx];
+    A += F[idx]/a/a/a - 2*dota/a * Velocity[idx];
 
     Velocity[idx] += 0.5*tau*(vec4(vec3(A),0) + Accel[idx]);
     Accel[idx] = vec4(vec3(A), 0);
