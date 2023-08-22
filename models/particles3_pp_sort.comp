@@ -52,7 +52,7 @@ void main() {
 
         while (cur != -1) {
             vec3 x = vec3(Position[cur]) - vec3(origin);
-            ivec3 index = ivec3(floor(x/h));
+            ivec3 index = clamp(ivec3(floor(x/h)), 0, nn-1);
             int cell_id = off(index.z,index.y,index.x);
             uint n = cell_data[cell_id*cell_size];
             if (n < max_per_cell) {

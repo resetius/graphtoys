@@ -74,7 +74,7 @@ void main()
     }
 
     vec4 x = Position[idx]-origin;
-    ivec4 ii = ivec4(floor(x/h));
+    ivec4 ii = clamp(ivec4(floor(x/h)), 0, nn-1);
     x = (x-ii*h)/h;
 
     for (int i = 0; i < 2; i++) {

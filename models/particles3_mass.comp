@@ -20,14 +20,14 @@ void add_density(int cur, uint roff) {
     while (cur != -1) {
         float mass = Position[cur].w;
         vec3 x = vec3(Position[cur]) - vec3(origin);
-        ivec3 index = ivec3(floor(x/h));
+        ivec3 index = clamp(ivec3(floor(x/h)), 0, nn-1);
         x = (x-index*h)/h;
 
         for (int i = 0; i < 2; i++) {
             for (int k = 0; k < 2; k++) {
                 for (int j = 0; j < 2; j++) {
                     Rho[roff+poff(index.z+i,index.y+k,index.x+j)] +=
-                        4*M_PI*G*mass*abs((1-i-x.z)*(1-k-x.y)*(1-j-x.x))/h/h/h; 
+                        4*M_PI*G*mass*abs((1-i-x.z)*(1-k-x.y)*(1-j-x.x))/h/h/h;
                 }
             }
         }
