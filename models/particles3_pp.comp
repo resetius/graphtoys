@@ -119,12 +119,12 @@ void process(uint id, uint other, vec3 dh, int from, int to) {
 // periodicity
 void calc_off(inout vec3 dh, int i, int k, int j) {
     dh = vec3(0);
-    if (i < 0)   dh.z = -l;
-    if (i >= nn) dh.z =  l;
-    if (k < 0)   dh.y = -l;
-    if (k >= nn) dh.y =  l;
-    if (j < 0)   dh.x = -l;
-    if (j >= nn) dh.x =  l;
+    if (i < 0)   dh.z =  l;
+    if (i >= nn) dh.z = -l;
+    if (k < 0)   dh.y =  l;
+    if (k >= nn) dh.y = -l;
+    if (j < 0)   dh.x =  l;
+    if (j >= nn) dh.x = -l;
 }
 
 void calc_force_single()
