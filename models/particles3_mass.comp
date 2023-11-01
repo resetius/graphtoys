@@ -41,13 +41,14 @@ void main()
     uint kk = nn/16;
     uint roff = gl_WorkGroupID.x*nn*nn*nn;
 
+    float init_value = roff > 0 ? 0 : -4*M_PI*rho;
     for (uint y = 0; y < kk; y++) {
         for (uint x = 0; x < kk; x ++) {
             for (int j = 0; j < nn; j++) {
                 Rho[roff
                     +off(gl_LocalInvocationID.y*kk+y,
                          gl_LocalInvocationID.x*kk+x,
-                         j)] = roff > 0 ? 0 : -4*M_PI*rho;
+                         j)] = init_value;
             }
         }
     }
