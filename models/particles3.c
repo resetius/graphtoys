@@ -47,6 +47,9 @@ struct VertBlock {
     float a;
     float dota;
     float point_size_mult;
+    float rho0;
+    float max_rho;
+    int enable_hsv;
     int nn;
 };
 
@@ -665,6 +668,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
         ->storage_add(pl, 4, "EBuffer")
         ->storage_add(pl, 5, "ForceBuffer")
         ->storage_add(pl, 6, "ColorBuffer")
+        ->storage_add(pl, 7, "DensityBuffer")
 
         ->begin_buffer(pl, 4)
         ->buffer_attribute(pl, 1, 1, DATA_INT, 0)
@@ -718,6 +722,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     t->vert.color[1] = 0;
     t->vert.color[2] = 1;
     t->vert.color[3] = 1;
+    t->vert.max_rho = cfg_geti_def(cfg, "max_rho", 200);
+    t->vert.enable_hsv = cfg_geti_def(cfg, "hsv", 0);
     cfg_getv4_def(cfg, t->vert.color, "color", t->vert.color);
     int nlists = cfg_geti_def(cfg, "nlists", 8);
 
@@ -779,9 +785,9 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     for (int i = 0; i < data.n_particles; i++) {
         mass += data.coords[4*i+3];
     }
-    t->rho = mass/(l*l*l);
+    t->vert.rho0 = t->rho = mass/(l*l*l);
     t->comp_set.rho = t->rho;
-    //printf("%e %e %e\n", t->rho, mass, l*l*l);
+    printf("> %e %e %e %e %e\n", t->rho, mass, h, l, l*l*l);
     //abort();
 
     t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
@@ -825,6 +831,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     t->pl->storage_assign(t->pl, 4, t->e_index);
     t->pl->storage_assign(t->pl, 5, t->pp_force);
     t->pl->storage_assign(t->pl, 6, t->color);
+    t->pl->storage_assign(t->pl, 7, t->density_index);
 
     t->comp_parts->uniform_assign(t->comp_parts, 0, t->comp_settings);
     t->comp_parts->storage_assign(t->comp_parts, 1, t->pos);

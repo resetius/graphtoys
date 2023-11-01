@@ -10,6 +10,9 @@ layout(std140, binding=0) uniform MatrixBlock {
     float a;
     float dota;
     float point_size_mult;
+    float rho0;
+    float max_rho;
+    int enable_hsv;
     int nn;
 };
 
@@ -42,8 +45,22 @@ layout(std430, binding=6) readonly buffer ColorBuffer {
     vec4 Col[];
 };
 
+// density
+layout(std430, binding=7) readonly buffer DensityBuffer {
+    float Rho[]; // Input, \Laplace psi = 4 pi rho
+};
+
 layout (location = 1) in int idx;
 layout (location = 0) out vec4 color;
+
+const float M_PI = 3.14159265359;
+
+// https://stackoverflow.com/questions/15095909/from-rgb-to-hsv-in-opengl-glsl
+vec4 hsv2rgb(vec3 hsv) {
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(hsv.xxx + K.xyz) * 6.0 - K.www);
+    return vec4(hsv.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), hsv.y), 1);
+}
 
 #define poff(i,k,j) (((i+nn)%nn)*nn*nn+((k+nn)%nn)*nn+((j+nn)%nn))
 void main()
@@ -84,6 +101,23 @@ void main()
                     abs((1-i-x.z)*(1-k-x.y)*(1-j-x.x))/a/a/a;
             }
         }
+    }
+
+    if (enable_hsv == 1) {
+        float rho = 0.0;
+        for (int i = 0; i < 2; i++) {
+            for (int k = 0; k < 2; k++) {
+                for (int j = 0; j < 2; j ++) {
+                    // for color
+                    rho += (Rho[poff(ii.z+i,ii.y+k,ii.x+j)] + rho0)
+                        * abs((1-i-x.z)*(1-k-x.y)*(1-j-x.x));
+                }
+            }
+        }
+
+        rho /= 4.0 * M_PI * rho0;
+        rho = clamp(rho, 0, max_rho) / max_rho;
+        color = hsv2rgb(vec3(rho, 1, 1));
     }
 
     A += F[idx]/a/a/a - 2*dota/a * Velocity[idx];
