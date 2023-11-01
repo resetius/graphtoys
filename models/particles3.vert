@@ -117,7 +117,7 @@ void main()
 
         rho /= 4.0 * M_PI * rho0;
         rho = clamp(rho, 0, max_rho) / max_rho;
-        color = hsv2rgb(vec3(rho, 1, 1));
+        color = hsv2rgb(vec3(clamp(rho, 0.15, 1), 1, 1));
     }
 
     A += F[idx]/a/a/a - 2*dota/a * Velocity[idx];
