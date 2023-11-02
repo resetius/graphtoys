@@ -125,6 +125,7 @@ SHADERS=\
 	models/mandelbulb.frag\
 	models/particles.frag\
 	models/particles2.frag\
+	models/particles3.frag\
 	models/stl.frag\
 	models/triangle.frag\
 	models/particles.vert\
@@ -136,7 +137,7 @@ SHADERS=\
 	models/mandelbulb.vert\
 	models/particles2.vert\
 	models/dot.vert\
-	models/particles3.vert\
+	models/3articles3.vert\
 	models/particles3_mass_sum.comp\
 	models/particles3_parts.comp\
 	models/particles3_strength.comp\

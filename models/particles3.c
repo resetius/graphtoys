@@ -10,9 +10,9 @@
 #include <font/font.h>
 
 #include <models/particles3.vert.h>
-#include <models/particles2.frag.h>
+#include <models/particles3.frag.h>
 #include <models/particles3.vert.spv.h>
-#include <models/particles2.frag.spv.h>
+#include <models/particles3.frag.spv.h>
 #include <models/particles3_parts.comp.spv.h>
 #include <models/particles3_mass.comp.spv.h>
 #include <models/particles3_mass_sum.comp.spv.h>
@@ -42,6 +42,8 @@ struct VertBlock {
     mat4x4 mvp;
     vec4 origin;
     vec4 color;
+    vec4 viewport;
+    float ratio;
     float h;
     float dt;
     float a;
@@ -379,6 +381,12 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     t->pl->start(t->pl);
     memcpy(t->vert.mvp, &mvp[0][0], sizeof(mat4x4));
+    // TODO: opengl uses other viewport
+    t->vert.viewport[0] = 0;
+    t->vert.viewport[1] = ctx->h;
+    t->vert.viewport[2] = ctx->w;
+    t->vert.viewport[3] = -ctx->h;
+    t->vert.ratio = ctx->ratio;
     buffer_update(t->b, t->uniform, &t->vert, 0, sizeof(t->vert));
 
     t->pl->draw(t->pl, t->indices_vao);
@@ -473,9 +481,9 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
         .size = models_particles3_vert_spv_size,
     };
     struct ShaderCode fragment_shader = {
-        .glsl = models_particles2_frag,
-        .spir_v = models_particles2_frag_spv,
-        .size = models_particles2_frag_spv_size,
+        .glsl = models_particles3_frag,
+        .spir_v = models_particles3_frag_spv,
+        .size = models_particles3_frag_spv_size,
     };
     struct ShaderCode compute_shader = {
         .spir_v = models_particles3_poisson_comp_spv,
@@ -675,6 +683,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
         ->end_buffer(pl)
 
         ->geometry(pl, GEOM_POINTS)
+        ->enable_blend(pl)
 
         ->build(pl);
 

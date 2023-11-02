@@ -5,6 +5,8 @@ layout(std140, binding=0) uniform MatrixBlock {
     mat4 MVP;
     vec4 origin;
     vec4 out_color;
+    vec4 viewport;
+    float ratio;
     float h;
     float tau;
     float a;
@@ -51,7 +53,9 @@ layout(std430, binding=7) readonly buffer DensityBuffer {
 };
 
 layout (location = 1) in int idx;
+
 layout (location = 0) out vec4 color;
+layout (location = 1) out vec2 vertexPos;
 
 const float M_PI = 3.14159265359;
 
@@ -75,6 +79,8 @@ void main()
     } else {
         color = Col[idx];
     }
+
+    vertexPos =  gl_Position.xy / gl_Position.w;
 
     // 1. new_pos <- cur vel + cur accel (compute)
     // 2. new_accel (E+F) <- new_pos
@@ -118,6 +124,11 @@ void main()
         rho /= 4.0 * M_PI * rho0;
         rho = clamp(rho, 0, max_rho) / max_rho;
         color = hsv2rgb(vec3(clamp(rho, 0.15, 1), 1, 1));
+
+        float alpha = gl_Position.z / gl_Position.w;
+        alpha = (alpha + 1) * 0.5;
+        alpha = clamp(alpha, 0.1, 1.0);
+        color = vec4(color.xyz, alpha);
     }
 
     A += F[idx]/a/a/a - 2*dota/a * Velocity[idx];

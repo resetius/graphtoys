@@ -86,6 +86,7 @@ set(SHADERS
     models/dot.frag
     models/mandelbrot.frag
     models/mandelbulb.frag
+    models/particles3.frag
     models/particles2.frag
     models/particles.frag
     models/stl.frag
