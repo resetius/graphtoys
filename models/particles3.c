@@ -335,8 +335,8 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     t->comp_mass->start_compute(t->comp_mass, groups, 1, 1);
     t->r->counter_submit(t->r, t->counter_density);
 
-    //t->comp_mass_sum->start_compute(t->comp_mass_sum, t->comp_set.nn/32, t->comp_set.nn/32, 1);
-    //t->r->counter_submit(t->r, t->counter_density);
+    t->comp_mass_sum->start_compute(t->comp_mass_sum, t->comp_set.nn/32, t->comp_set.nn/32, 1);
+    t->r->counter_submit(t->r, t->counter_density);
 
     maybe_debug_output(t, "density", t->density_index);
 
@@ -532,7 +532,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
 
         ->uniform_add(pl, 0, "Settings")
         ->storage_add(pl, 1, "PosBuffer")
-        ->storage_add(pl, 2, "CellsBuffer")
+        ->storage_add(pl, 2, "ListBuffer")
 
         ->build(pl);
 
@@ -546,7 +546,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
         ->uniform_add(pl, 0, "Settings")
         ->storage_add(pl, 1, "DensityBuffer")
         ->storage_add(pl, 2, "PosBuffer")
-        ->storage_add(pl, 3, "CellsBuffer")
+        ->storage_add(pl, 3, "ListBuffer")
 
         ->build(pl);
 
@@ -804,26 +804,27 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.accel, size);
     t->color = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.color, size);
 
-    t->comp_pp_set.nn = t->comp_set.nn; // 64;
+    t->comp_pp_set.nn = 64; // t->comp_set.nn; // 32;
     memcpy(t->comp_pp_set.origin, t->comp_set.origin, sizeof(t->comp_pp_set.origin));
     t->comp_pp_set.particles = t->particles;
-    t->comp_pp_set.cell_size = 1024 ; //  / (t->comp_pp_set.nn/32);
+    t->comp_pp_set.cell_size = 512 / (t->comp_pp_set.nn/32);
     t->comp_pp_set.h = l / t->comp_pp_set.nn;
     t->comp_pp_set.l = l;
     t->comp_pp_set.rcrit = t->comp_pp_set.h; // TODO
     t->comp_set.tau = t->vert.dt;
     t->comp_set.rcrit = t->comp_pp_set.rcrit;
     t->comp_set.nlists = t->comp_pp_set.nlists = nlists;
-    t->comp_set.cell_size = t->comp_pp_set.cell_size;
 
     // TODO: don't allocate it for pp-only
     t->pp_force = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);
 
-    int cells_size =
-        t->comp_pp_set.nn*t->comp_pp_set.nn*t->comp_pp_set.nn*
-        t->comp_pp_set.cell_size*sizeof(int);
+    if (t->pp_enabled) {
+        int cells_size =
+            t->comp_pp_set.nn*t->comp_pp_set.nn*t->comp_pp_set.nn*
+            t->comp_pp_set.cell_size*sizeof(int);
 
-    t->cells = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,NULL,cells_size);
+        t->cells = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,NULL,cells_size);
+    }
 
     t->list = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, (t->particles+64*32*32)*sizeof(int));
 
@@ -843,12 +844,12 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
 
     t->comp_parts->uniform_assign(t->comp_parts, 0, t->comp_settings);
     t->comp_parts->storage_assign(t->comp_parts, 1, t->pos);
-    t->comp_parts->storage_assign(t->comp_parts, 2, t->cells);
+    t->comp_parts->storage_assign(t->comp_parts, 2, t->list);
 
     t->comp_mass->uniform_assign(t->comp_mass, 0, t->comp_settings);
     t->comp_mass->storage_assign(t->comp_mass, 1, t->density_index);
     t->comp_mass->storage_assign(t->comp_mass, 2, t->pos);
-    t->comp_mass->storage_assign(t->comp_mass, 3, t->cells);
+    t->comp_mass->storage_assign(t->comp_mass, 3, t->list);
 
     t->comp_mass_sum->uniform_assign(t->comp_mass_sum, 0, t->comp_settings);
     t->comp_mass_sum->storage_assign(t->comp_mass_sum, 1, t->density_index);

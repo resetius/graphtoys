@@ -9,57 +9,41 @@ layout(std430, binding=1) readonly buffer PosBuffer {
     vec4 Position[];
 };
 
-layout(std430, binding=2) buffer CellsBuffer {
-    int cell_data[];
+layout(std430, binding=2) buffer ListBuffer {
+    int list[];
 };
 
-int npoints = 0;
-uint max_per_cell = cell_size-1;
-
-void flush(int j, int cell_id) {
-    int index = atomicAdd(cell_data[cell_id*cell_size], npoints);
-    for (int i = 0; i < npoints && index+i < max_per_cell; i++) {
-        cell_data[cell_id*cell_size+index+i+1] = j+i;
-    }
-    npoints = 0;
-}
+const int nl = 32; // must be equal to local_size_x/local_size_y
+shared int lists[nl][nl];
 
 void main() {
     uint threads = xsize*ysize*zsize;
     uint work_size = (particles + threads - 1) / threads;
     uint from = globalIndex * work_size;
     uint to = min(particles, from+work_size);
-    int kk = nn/32;
-    for (int y = 0; y < kk; y++) {
-        for (int x = 0; x < kk; x++) {
-            uint i = gl_LocalInvocationID.y;
-            uint k = gl_LocalInvocationID.x;
-            for (int j = 0; j < nn; j++) {
-                cell_data[(off(y*32+i,x*32+k,j))*cell_size] = 0;
-            }
-        }
-    }
-    barrier();
-
-    int prev_cell_id = -1;
-    int start_index = int(from);
 
     for (uint i = from; i < to; i++) {
-        vec3 x = vec3(Position[i])-vec3(origin);
-        ivec3 cell_index = clamp(ivec3(floor(x/h)), 0, nn-1);
-        int cell_id = off(cell_index.z,cell_index.y,cell_index.x);
-        if (prev_cell_id != -1 && cell_id != prev_cell_id) {
-            flush(start_index, prev_cell_id);
-            start_index = int(i);
-        }
-        npoints ++;
-        //int index = atomicAdd(cell_data[cell_id*cell_size], 1);
-        //if (index < max_per_cell) {
-        //    cell_data[cell_id*cell_size+index+1] = int(i);
-        //}
-        prev_cell_id = cell_id;
+        list[i] = -1;
     }
-    if (npoints > 0) {
-        flush(start_index, prev_cell_id);
+
+    lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x] = -1;
+    barrier();
+
+    float h32 = l/32;
+    // lists by x,y
+    for (uint i = from; i < to; i++) {
+        vec2 x = vec2(Position[i])-vec2(origin);
+        ivec2 index = clamp(ivec2(floor(x/h32)), 0, 31);
+
+        // в lists[index.y][index.x] лежит голова списка, отвечающего за область (index.y,index.x)
+        // в list[i] сохраняем предыдущий элемент списка, в list[i] пишет только один поток, поэтому синхронизация не нужна
+        list[i] = atomicExchange(lists[index.y][index.x], int(i));
     }
+
+    barrier();
+
+    // заголовки списков сохраняем в массиве после самих списков
+    uint ioff = particles+gl_WorkGroupID.x*32*32;
+    list[ioff+gl_LocalInvocationID.y*32+gl_LocalInvocationID.x] =
+        lists[gl_LocalInvocationID.y][gl_LocalInvocationID.x];
 }

@@ -28,36 +28,6 @@ static uint32_t rand_(uint32_t* seed) {
 
 static uint32_t rand_max = UINT_MAX;
 
-static int cmp(const void* a, const void* b) {
-    const float* f1 = a;
-    const float* f2 = b;
-    if (f1[0] < f2[0]) {
-        return -1;
-    } else if (f1[0] > f2[0]) {
-        return 1;
-    } else {
-        if (f1[1] < f2[1]) {
-            return -1;
-        } else if (f1[1] > f2[1]) {
-            return 1;
-        } else {
-            if (f1[2] < f2[2]) {
-                return -1;
-            } else if (f1[2] > f2[2]) {
-                return 1;
-            } else {
-                if (f1[3] < f2[3]) {
-                    return -1;
-                } else if (f1[3] > f2[3]) {
-                    return 1;
-                } else {
-                    return 0;
-                }
-            }
-        }
-    }
-}
-
 void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
     int n_particles = cfg_geti_def(cfg, "particles", 12000);
     double V0 = cfg_getf_def(cfg, "V", sqrt(200));
@@ -213,7 +183,6 @@ void particles_data_init(struct ParticlesData* data, struct Config* cfg) {
             vels[n+3] = 0;
             n += 4;
         }
-        qsort(coords, n / 4, 4*sizeof(float), cmp);
     } else if (!strcmp(name, "ics")) {
         char filename[1024];
         double minx = 1e15;
