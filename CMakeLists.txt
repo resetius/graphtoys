@@ -114,7 +114,7 @@ foreach (shader ${SHADERS})
         COMMAND rcc ${CMAKE_SOURCE_DIR}/${shader} -o ${CMAKE_BINARY_DIR}/${shader}.h --strip ${CMAKE_BINARY_DIR}/ -q
         DEPENDS ${CMAKE_SOURCE_DIR}/${shader} rcc)
     add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${shader}.spv
-        COMMAND glslc --target-env=vulkan1.1 -DGLSLC -fauto-bind-uniforms ${CMAKE_SOURCE_DIR}/${shader} -o ${CMAKE_BINARY_DIR}/${shader}.spv
+        COMMAND glslc -g -O --target-env=vulkan1.2 -DGLSLC -fauto-bind-uniforms ${CMAKE_SOURCE_DIR}/${shader} -o ${CMAKE_BINARY_DIR}/${shader}.spv
         DEPENDS ${CMAKE_SOURCE_DIR}/${shader} rcc)
     add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${shader}.spv.h
         COMMAND rcc ${CMAKE_BINARY_DIR}/${shader}.spv -o ${CMAKE_BINARY_DIR}/${shader}.spv.h --strip ${CMAKE_BINARY_DIR}/ -q
