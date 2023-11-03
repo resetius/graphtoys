@@ -1,6 +1,6 @@
 #version 460
 
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 #include "particles3_comp_base.h"
 
@@ -16,15 +16,17 @@ layout(std430, binding=3) readonly buffer CellsBuffer {
     int cell_data[];
 };
 
-uint max_per_cell = cell_size-1;
+uint par_size = nn*cell_size;
+uint max_per_cell = par_size-1;
 
-void add_density(uvec3 index) {
-    uint cell_id = off(index.z, index.y, index.x);
-    uint size = min(cell_data[cell_id*cell_size], max_per_cell);
+void add_density(uvec2 cell_index) {
+    uint cell_id = cell_index.y*nn+cell_index.x;
+    uint size = min(cell_data[cell_id*par_size], max_per_cell);
     for (int p = 0; p < size; p++) {
-        int cur = cell_data[cell_id*cell_size+p+1];
+        int cur = cell_data[cell_id*par_size+p+1];
         float mass = Position[cur].w;
         vec3 x = vec3(Position[cur]) - vec3(origin);
+        ivec3 index = clamp(ivec3(floor(x/h)), 0, nn-1);
         x = (x-index*h)/h;
 
         for (int i = 0; i < 2; i++) {
@@ -40,17 +42,17 @@ void add_density(uvec3 index) {
 
 void main()
 {
-    uint kk = nn/8;
+    uint kk = nn/32;
 
     float init_value = -4*M_PI*rho;
     for (uint z = 0; z < kk; z++) {
         for (uint y = 0; y < kk; y++) {
-            for (uint x = 0; x < kk; x ++) {
+            for (uint x = 0; x < nn; x ++) {
                 Rho[
                     off(
-                        gl_LocalInvocationID.z*kk+z,
-                        gl_LocalInvocationID.y*kk+y,
-                        gl_LocalInvocationID.x*kk+x
+                        gl_LocalInvocationID.y*kk+z,
+                        gl_LocalInvocationID.x*kk+y,
+                        x
                         )] = init_value;
             }
         }
@@ -82,11 +84,9 @@ void main()
 
     for (int i0 = 0; i0 < kk; i0++) {
         for (int k0 = 0; k0 < kk; k0++) {
-            for (int j0 = 0; j0 < kk; j0++) {
-                uvec3 index = kk * gl_LocalInvocationID + uvec3(j0, k0, i0);
-                add_density(index);
-                barrier();
-            }
+            uvec2 index = kk * uvec2(gl_LocalInvocationID) + uvec2(k0, i0);
+            add_density(index);
+            barrier();
         }
     }
 }

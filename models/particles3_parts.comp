@@ -14,12 +14,15 @@ layout(std430, binding=2) buffer CellsBuffer {
 };
 
 int npoints = 0;
-uint max_per_cell = cell_size-1;
+uint par_size = nn*cell_size;
+uint max_per_cell = par_size-1;
+
+shared int heads[64][64];
 
 void flush(int j, int cell_id) {
-    int index = atomicAdd(cell_data[cell_id*cell_size], npoints);
+    int index = atomicAdd(heads[cell_id/nn][cell_id%nn], npoints);
     for (int i = 0; i < npoints && index+i < max_per_cell; i++) {
-        cell_data[cell_id*cell_size+index+i+1] = j+i;
+        cell_data[cell_id*par_size+index+i+1] = j+i;
     }
     npoints = 0;
 }
@@ -34,9 +37,7 @@ void main() {
         for (int x = 0; x < kk; x++) {
             uint i = gl_LocalInvocationID.y;
             uint k = gl_LocalInvocationID.x;
-            for (int j = 0; j < nn; j++) {
-                cell_data[(off(y*32+i,x*32+k,j))*cell_size] = 0;
-            }
+            heads[kk*i+y][kk*k+x] = 0;
         }
     }
     barrier();
@@ -45,21 +46,28 @@ void main() {
     int start_index = int(from);
 
     for (uint i = from; i < to; i++) {
-        vec3 x = vec3(Position[i])-vec3(origin);
-        ivec3 cell_index = clamp(ivec3(floor(x/h)), 0, nn-1);
-        int cell_id = off(cell_index.z,cell_index.y,cell_index.x);
+        vec2 x = vec2(Position[i])-vec2(origin);
+        ivec2 cell_index = clamp(ivec2(floor(x/h)), 0, nn-1);
+        int cell_id = cell_index.y*nn+cell_index.x;
         if (prev_cell_id != -1 && cell_id != prev_cell_id) {
             flush(start_index, prev_cell_id);
             start_index = int(i);
         }
         npoints ++;
-        //int index = atomicAdd(cell_data[cell_id*cell_size], 1);
-        //if (index < max_per_cell) {
-        //    cell_data[cell_id*cell_size+index+1] = int(i);
-        //}
         prev_cell_id = cell_id;
     }
     if (npoints > 0) {
         flush(start_index, prev_cell_id);
+    }
+    barrier();
+
+    for (int y = 0; y < kk; y++) {
+        for (int x = 0; x < kk; x++) {
+            uint i = gl_LocalInvocationID.y;
+            uint k = gl_LocalInvocationID.x;
+            ivec2 cell_index = ivec2(kk*k+x, kk*i+y);
+            int cell_id = cell_index.y*nn+cell_index.x;
+            cell_data[cell_id*par_size] = heads[cell_index.y][cell_index.x];
+        }
     }
 }
