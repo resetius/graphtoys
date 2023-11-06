@@ -105,6 +105,7 @@ set(SHADERS
     models/particles3_count16.comp
     models/particles3_offsets16.comp
     models/particles3_cubes16.comp
+    models/particles3_mass16_64.comp
     font/font.frag
     font/font.vert
     )
