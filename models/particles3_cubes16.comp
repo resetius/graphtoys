@@ -1,0 +1,36 @@
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+#include "particles3_comp_base.h"
+
+layout(std430, binding=1) readonly buffer PosBuffer {
+    vec4 Position[];
+};
+
+layout(std430, binding=2) buffer SortedPosBuffer {
+    vec4 Sorted[];
+};
+
+layout(std430, binding=3) buffer CountsBuffer {
+    int Counts[];
+};
+
+layout(std430, binding=4) buffer OffsetsBuffer {
+    int Offsets[];
+};
+
+void main() {
+    uint threads = xsize*ysize*zsize;
+    uint work_size = (particles + threads - 1) / threads;
+    uint from = globalIndex * work_size;
+    uint to = min(particles, from+work_size);
+
+    const float h16 = l/16;
+    for (uint i = from; i < to; i++) {
+        vec3 x = vec3(Position[i])-vec3(origin);
+        ivec3 index = clamp(ivec3(floor(x/h16)), 0, 15);
+        int offset = atomicAdd(Counts[index.z*16*16+index.y*16+index.x], -1);
+        Sorted[Offsets[index.z*16*16+index.y*16+index.x+offset-1]] = Position[i];
+    }
+}
