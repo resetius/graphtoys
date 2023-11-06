@@ -1,0 +1,48 @@
+#version 450
+
+// each group works with one cube
+// one cube consists of 5x5x5 points
+layout(local_size_x = 5, local_size_y = 5, local_size_z = 5) in;
+
+#include "particles3_comp_base.h"
+
+layout(std430, binding=1) readonly buffer PosBuffer {
+    vec4 Sorted[];
+};
+
+layout(std430, binding=2) buffer DensityBuffer {
+    float Rho[];
+};
+
+layout(std430, binding=3) buffer OffsetsBuffer {
+    int Offsets[];
+};
+
+shared float localRho[5][5][5];
+
+ivec3 next_index(ivec3 index) {
+    ivec3 r = index;
+    r.x += 1;
+    if (r.x <= 15) {
+        return r;
+    }
+    r.x = 0;
+    r.y += 1;
+    if (r.y <= 15) {
+        return r;
+    }
+    r.y = 0;
+    r.z += 1;
+    return r;
+}
+
+void main() {
+    localRho[gl_LocalInvocationID.z][gl_LocalInvocationID.y][gl_LocalInvocationID.x] = 0;
+
+    ivec3 index = ivec3(gl_GlobalInvocationID)*2;
+    ivec3 next = next_index(index);
+    int offset = Offsets[index.z*16*16+index.y*16+index.x];
+    int size = index == ivec3(15, 15, 15)
+        ? particles - offset
+        : Offsets[next.z*16*16+next.y*16+next.x];
+}
