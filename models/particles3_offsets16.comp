@@ -8,6 +8,10 @@ layout(std430, binding=1) buffer CountsBuffer {
     int Counts[];
 };
 
+layout(std430, binding=2) buffer OffsetsBuffer {
+    int Offsets[];
+};
+
 // must be run with 64 groups of size 64
 
 const int size = 64;
@@ -39,7 +43,7 @@ void prefixSum() {
     }
 
     // Write results to output array
-    Counts[gid] = sharedCubes[tid];
+    Offsets[gid] = sharedCubes[tid];
 }
 
 void prefixSumStage2() {
@@ -48,7 +52,7 @@ void prefixSumStage2() {
     uint groups = gl_WorkGroupSize.x; // use 1 thread per group
     uint groupSize = 64; // TODO: remove hard code
 
-    sharedCubes[tid] = tid == 0 ? 0 : Counts[tid*groupSize-1];
+    sharedCubes[tid] = tid == 0 ? 0 : Offsets[tid*groupSize-1];
 
     barrier();
 
@@ -73,7 +77,7 @@ void prefixSumStage2() {
     barrier();
 
     for (int i = 0; i < groupSize; i++) {
-        Counts[i+tid*groupSize] += sharedCubes[tid];
+        Offsets[i+tid*groupSize] += sharedCubes[tid];
     }
 }
 
