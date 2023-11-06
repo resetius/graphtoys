@@ -1,0 +1,40 @@
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+#include "particles3_comp_base.h"
+
+layout(std430, binding=1) readonly buffer PosBuffer {
+    vec4 Position[];
+};
+
+layout(std430, binding=2) buffer CountsBuffer {
+    int Counts[];
+};
+
+shared int sharedCubes[16][16][16];
+
+void main() {
+    for (int i = 0; i < 16; i++) {
+        sharedCubes[gl_LocalInvocationID.y][gl_LocalInvocationID.x][i] = 0;
+    }
+
+    uint threads = xsize*ysize*zsize;
+    uint work_size = (particles + threads - 1) / threads;
+    uint from = globalIndex * work_size;
+    uint to = min(particles, from+work_size);
+
+    const float h16 = l/16;
+    for (uint i = from; i < to; i++) {
+        vec3 x = vec3(Position[i])-vec3(origin);
+        ivec3 index = clamp(ivec3(floor(x/h16)), 0, 15);
+        atomicAdd(sharedCubes[index.z][index.y][index.x], 1);
+    }
+
+    barrier();
+
+    for (uint i = 0; i < 16; i++) {
+        uint off = gl_LocalInvocationID.y*16*16+gl_LocalInvocationID.x*16+i;
+        atomicAdd(Counts[off], sharedCubes[gl_LocalInvocationID.y][gl_LocalInvocationID.y][i]);
+    }
+}

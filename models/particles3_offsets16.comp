@@ -1,0 +1,87 @@
+#version 450
+
+layout(local_size_x = 64) in;
+
+#include "particles3_comp_base.h"
+
+layout(std430, binding=1) buffer CountsBuffer {
+    int Counts[];
+};
+
+// must be run with 64 groups of size 64
+
+const int size = 64;
+shared int sharedCubes[size];
+
+void prefixSum() {
+    uint tid = gl_LocalInvocationID.x;
+    uint gid = gl_GlobalInvocationID.x;
+    
+    sharedCubes[tid] = Counts[gid];
+    barrier();
+
+    // Up-sweep (reduce) phase
+    for (int stride = 1; stride <= size; stride *= 2) {
+        uint index = (tid + 1) * stride * 2 - 1;
+        if (index < size) {
+            sharedCubes[index] += sharedCubes[index - stride];
+        }
+        barrier();
+    }
+
+    // Down-sweep phase
+    for (int stride = size / 2; stride > 0; stride /= 2) {
+        uint index = (tid + 1) * stride * 2 - 1;
+        if (index + stride < size) {
+            sharedCubes[index + stride] += sharedCubes[index];
+        }
+        barrier();
+    }
+
+    // Write results to output array
+    Counts[gid] = sharedCubes[tid];
+}
+
+void prefixSumStage2() {
+    // must be run in 1 group
+    uint tid = gl_LocalInvocationID.x;
+    uint groups = gl_WorkGroupSize.x; // use 1 thread per group
+    uint groupSize = 64; // TODO: remove hard code
+
+    sharedCubes[tid] = tid == 0 ? 0 : Counts[tid*groupSize-1];
+
+    barrier();
+
+    // Up-sweep (reduce) phase
+    for (int stride = 1; stride <= size; stride *= 2) {
+        uint index = (tid + 1) * stride * 2 - 1;
+        if (index < size) {
+            sharedCubes[index] += sharedCubes[index - stride];
+        }
+        barrier();
+    }
+
+    // Down-sweep phase
+    for (int stride = size / 2; stride > 0; stride /= 2) {
+        uint index = (tid + 1) * stride * 2 - 1;
+        if (index + stride < size) {
+            sharedCubes[index + stride] += sharedCubes[index];
+        }
+        barrier();
+    }
+
+    barrier();
+
+    for (int i = 0; i < groupSize; i++) {
+        Counts[i+tid*groupSize] += sharedCubes[tid];
+    }
+}
+
+void main() {
+    if (stage == 0 || stage == 1) {
+        prefixSum();
+    } 
+    if (stage == 0 || stage == 2) {
+        prefixSumStage2();
+    }
+}
