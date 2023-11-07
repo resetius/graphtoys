@@ -6,7 +6,7 @@
 #include "buffer.h"
 #include "render.h"
 
-static struct BufferBase* buffer_acquire_(struct BufferManager* bm, int size) {
+static struct BufferBase* buffer_acquire_(struct BufferManager* bm, size_t size) {
     struct BufferManagerBase* b = (struct BufferManagerBase*)bm;
     struct BufferBase* buf = NULL;
     if (b->n_buffers >= b->cap) {
@@ -82,7 +82,7 @@ int buffer_create(
     enum BufferType type,
     enum BufferMemoryType mem_type,
     const void* data,
-    int size)
+    size_t size)
 {
     return b->create(b, type, mem_type, data, size);
 }
@@ -91,13 +91,13 @@ void buffer_update(
     struct BufferManager* b,
     int id,
     const void* data,
-    int offset,
-    int size)
+    size_t offset,
+    size_t size)
 {
     return b->update(b, id, data, offset, size);
 }
 
-void buffermanager_base_ctor(struct BufferManagerBase* bm, int buffer_size) {
+void buffermanager_base_ctor(struct BufferManagerBase* bm, size_t buffer_size) {
     struct BufferManager iface = {
         .get = buffer_get_,
         .destroy = buffer_release_,

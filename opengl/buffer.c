@@ -63,7 +63,7 @@ static int create(
     enum BufferType type,
     enum BufferMemoryType mem_type,
     const void* data,
-    int size)
+    size_t size)
 {
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
     struct BufferImpl* buf = (struct BufferImpl*)b->base.iface.acquire(mgr, size);
@@ -83,8 +83,8 @@ static void update(
     struct BufferManager* mgr,
     int id,
     const void* data,
-    int offset,
-    int size)
+    size_t offset,
+    size_t size)
 {
     struct BufferImpl* buf = (struct BufferImpl*)mgr->get(mgr, id);
     glBindBuffer(buf->type, buf->buffer);
@@ -96,8 +96,8 @@ static void update_sync(
     struct BufferManager* mgr,
     int id,
     const void* data,
-    int offset,
-    int size,
+    size_t offset,
+    size_t size,
     int unused)
 {
     update(mgr, id, data, offset, size);
@@ -107,8 +107,8 @@ static void read(
     struct BufferManager* mgr,
     int id,
     void* data,
-    int offset,
-    int size)
+    size_t offset,
+    size_t size)
 {
     struct BufferImpl* buf = (struct BufferImpl*)mgr->get(mgr, id);
     glBindBuffer(buf->type, buf->buffer);

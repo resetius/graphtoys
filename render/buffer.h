@@ -31,14 +31,14 @@ struct BufferManager {
         enum BufferType type,
         enum BufferMemoryType mem_type,
         const void* data,
-        int size);
+        size_t size);
 
     void (*update)(
         struct BufferManager* mgr,
         int id,
         const void* data,
-        int offset,
-        int size);
+        size_t offset,
+        size_t size);
 
     // for OpenGL update_sync == update
     // for Vulkan vkCmdUpdateBuffer is used with Barrier
@@ -46,8 +46,8 @@ struct BufferManager {
         struct BufferManager* mgr,
         int id,
         const void* data,
-        int offset,
-        int size,
+        size_t offset,
+        size_t size,
         int flags // 0 for graphics queue, 1 for compute queue
         );
 
@@ -55,15 +55,15 @@ struct BufferManager {
         struct BufferManager* mgr,
         int id,
         void* data,
-        int offset,
-        int size);
+        size_t offset,
+        size_t size);
 
     void (*destroy)(struct BufferManager* mgr, int id);
 
     // internal handler
     void* (*get)(struct BufferManager* mgr, int id);
     void (*release)(struct BufferManager* mgr, void* buffer);
-    struct BufferBase* (*acquire)(struct BufferManager* mgr, int buffer_size);
+    struct BufferBase* (*acquire)(struct BufferManager* mgr, size_t buffer_size);
 
     void (*free)(struct BufferManager* mgr);
 };
@@ -73,14 +73,14 @@ int buffer_create(
     enum BufferType type,
     enum BufferMemoryType mem_type,
     const void* data,
-    int size);
+    size_t size);
 
 void buffer_update(
     struct BufferManager* b,
     int id,
     const void* data,
-    int offset,
-    int size);
+    size_t offset,
+    size_t size);
 
 // buffer_id
 // local_buffer_id (buffer_id in pipeline)
@@ -91,17 +91,17 @@ void buffer_update(
 struct BufferBase {
     int id;
     int valid;
-    int size;
+    size_t size;
 };
 
 struct BufferManagerBase {
     struct BufferManager iface;
 
-    int buffer_size;
+    size_t buffer_size;
     char* buffers;
     int n_buffers;
     int cap;
     int64_t total_memory;
 };
 
-void buffermanager_base_ctor(struct BufferManagerBase* bm, int buffer_size);
+void buffermanager_base_ctor(struct BufferManagerBase* bm, size_t buffer_size);

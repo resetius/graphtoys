@@ -20,7 +20,7 @@ static int create(
     enum BufferType type,
     enum BufferMemoryType mem_type,
     const void* data,
-    int size)
+    size_t size)
 {
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
     struct RenderImpl* r = b->r;
@@ -104,8 +104,8 @@ static void update(
     struct BufferManager* mgr,
     int id,
     const void* data,
-    int offset,
-    int size)
+    size_t offset,
+    size_t size)
 {
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
     struct BufferImpl* buf = (struct BufferImpl*)mgr->get(mgr, id);
@@ -125,8 +125,8 @@ static void update_sync(
     struct BufferManager* mgr,
     int id,
     const void* data,
-    int offset,
-    int size,
+    size_t offset,
+    size_t size,
     int flags)
 {
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
