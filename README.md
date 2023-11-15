@@ -26,7 +26,9 @@ You can build the project using either `make` or `CMake`. Both options are suppo
      ```
    - Using `CMake`:
      ```
-     cmake .
+     mkdir build
+     cd build
+     cmake ..
      make
      ```
 
