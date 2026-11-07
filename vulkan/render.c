@@ -155,42 +155,86 @@ static void counter_submit_(struct Render* r1, int id)
     }
 }
 
-static void draw_begin_(struct Render* r1) {
-    struct RenderImpl* r = (struct RenderImpl*)r1;
+static void viewport_from_extent_(struct RenderImpl* r) {
+    int w = r->sc.extent.width;
+    int h = r->sc.extent.height;
+    VkViewport viewport = {
+        .x = 0,
+        .y = h,
+        .width = w,
+        .height = -h,
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f
+    };
+    r->viewport = viewport;
+    VkRect2D scissor = {{0, 0}, r->sc.extent};
+    r->scissor = scissor;
+}
 
-    if (r->update_viewport) {
-        vkDeviceWaitIdle(r->log_dev);
+static void recreate_swapchain_(struct RenderImpl* r) {
+    vkDeviceWaitIdle(r->log_dev);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(r->phy_dev, r->surface, &r->caps);
+    // No swapchain can be created for a minimized (0x0) window.
+    while (r->caps.currentExtent.width == 0 || r->caps.currentExtent.height == 0) {
+        glfwWaitEvents();
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(r->phy_dev, r->surface, &r->caps);
-
-        int n_images = r->sc.n_images;
-        rt_destroy(&r->rt);
-        rp_destroy(&r->rp);
-        sc_destroy(&r->sc);
-
-        sc_init(&r->sc, r);
-        // Frames, uniform buffers and descriptor sets are created once for n_images.
-        if (r->sc.n_images != n_images) {
-            fprintf(stderr, "Swapchain image count changed from %d to %d on recreation, this is not supported\n",
-                    n_images, r->sc.n_images);
-            exit(-1);
-        }
-        rp_init(&r->rp, r->log_dev, r->sc.im_format, r->sc.depth_format);
-        rt_init(&r->rt, r);
-        r->update_viewport = 0;
-        VkRect2D scissor = {{0, 0}, r->sc.extent};
-        r->scissor = scissor;
     }
 
-    assert(r->n_recycled_semaphores > 0);
-    VkSemaphore acquire_sem = r->recycled_semaphores[--r->n_recycled_semaphores];
+    int n_images = r->sc.n_images;
+    rt_destroy(&r->rt);
+    rp_destroy(&r->rp);
+    sc_destroy(&r->sc);
 
-    vkAcquireNextImageKHR(
-        r->log_dev,
-        r->sc.swapchain,
-        UINT64_MAX,
-        acquire_sem,
-        VK_NULL_HANDLE,
-        &r->image_index);
+    sc_init(&r->sc, r);
+    // Frames, uniform buffers and descriptor sets are created once for n_images.
+    if (r->sc.n_images != n_images) {
+        fprintf(stderr, "Swapchain image count changed from %d to %d on recreation, this is not supported\n",
+                n_images, r->sc.n_images);
+        exit(-1);
+    }
+    rp_init(&r->rp, r->log_dev, r->sc.im_format, r->sc.depth_format);
+    rt_init(&r->rt, r);
+    r->update_viewport = 0;
+    // Recreation can start from an acquire or present result before the resize callback.
+    viewport_from_extent_(r);
+}
+
+static void draw_begin_(struct Render* r1) {
+    struct RenderImpl* r = (struct RenderImpl*)r1;
+    VkSemaphore acquire_sem;
+
+    for (;;) {
+        if (r->update_viewport) {
+            recreate_swapchain_(r);
+        }
+
+        assert(r->n_recycled_semaphores > 0);
+        acquire_sem = r->recycled_semaphores[--r->n_recycled_semaphores];
+
+        VkResult res = vkAcquireNextImageKHR(
+            r->log_dev,
+            r->sc.swapchain,
+            UINT64_MAX,
+            acquire_sem,
+            VK_NULL_HANDLE,
+            &r->image_index);
+
+        if (res == VK_SUCCESS) {
+            break;
+        }
+        if (res == VK_SUBOPTIMAL_KHR) {
+            // The image is acquired and the semaphore will be signaled: draw it, recreate next frame.
+            r->update_viewport = 1;
+            break;
+        }
+        // A failed acquire leaves the semaphore unsignaled, so it can be reused.
+        r->recycled_semaphores[r->n_recycled_semaphores++] = acquire_sem;
+        if (res != VK_ERROR_OUT_OF_DATE_KHR) {
+            fprintf(stderr, "Failed to acquire swapchain image: %d\n", res);
+            exit(-1);
+        }
+        r->update_viewport = 1;
+    }
 
     r->frame = &r->frames[r->image_index];
     if (r->frame->acquire_image != VK_NULL_HANDLE) {
@@ -276,7 +320,13 @@ static void draw_end_(struct Render* r1) {
         .pImageIndices = &r->image_index
     };
 
-    vkQueuePresentKHR(r->p_queue, &presentInfo);
+    VkResult res = vkQueuePresentKHR(r->p_queue, &presentInfo);
+    if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
+        r->update_viewport = 1;
+    } else if (res != VK_SUCCESS) {
+        fprintf(stderr, "Failed to present swapchain image: %d\n", res);
+        exit(-1);
+    }
 
     compute_counters_end_(r);
 }
@@ -463,19 +513,7 @@ static void init_(struct Render* r1) {
         frame_init(&r->frames[i], r);
     }
 
-    int w = r->sc.extent.width;
-    int h = r->sc.extent.height;
-    VkViewport viewport = {
-        .x = 0,
-        .y = h,
-        .width = w,
-        .height = -h,
-        .minDepth = 0.0f,
-        .maxDepth = 1.0f
-    };
-    r->viewport = viewport;
-    VkRect2D scissor = {{0, 0}, r->sc.extent};
-    r->scissor = scissor;
+    viewport_from_extent_(r);
 
     r->stats = vk_stats_new(r);
 
