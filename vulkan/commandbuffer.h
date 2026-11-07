@@ -8,7 +8,8 @@ struct CommandBuffer {
     VkCommandPool pool;
 };
 
-void cb_init(struct CommandBuffer* d, struct RenderImpl* r);
+// Buffers from the pool may only be submitted to queues of `family`.
+void cb_init(struct CommandBuffer* d, struct RenderImpl* r, uint32_t family);
 void cb_destroy(struct CommandBuffer* d);
 void cb_begin(struct CommandBuffer* d, VkCommandBuffer buffer);
 void cb_end(struct CommandBuffer* d, VkCommandBuffer buffer);
