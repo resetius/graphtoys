@@ -36,6 +36,8 @@ static void free_(struct Render* r1) {
         frame_destroy(&r->frames[i]);
     }
 
+    vkDestroySemaphore(r->log_dev, r->graphics_semaphore, NULL);
+
     for (i = 0; i < r->n_recycled_semaphores; i++) {
         vkDestroySemaphore(r->log_dev, r->recycled_semaphores[i], NULL);
     }
@@ -53,6 +55,9 @@ static void free_(struct Render* r1) {
 
 static void compute_counters_begin_(struct RenderImpl* r)
 {
+    if (!r->timestamps_supported) {
+        return;
+    }
     r->timestamp = r->query*r->queries_per_frame;
     r->queries_used |= 1u << r->query;
 
@@ -70,6 +75,9 @@ static void compute_counters_begin_(struct RenderImpl* r)
 
 static void compute_counters_end_(struct RenderImpl* r)
 {
+    if (!r->timestamps_supported) {
+        return;
+    }
     int prev_query = (r->query+1) % r->queries_delay;
     uint64_t data[4*256];
     VkResult result = VK_NOT_READY;
@@ -132,6 +140,9 @@ static void counter_submit_(struct Render* r1, int id)
 {
     struct RenderImpl* r = (struct RenderImpl*)r1;
 
+    if (!r->timestamps_supported) {
+        return;
+    }
     r->query2counter[r->timestamp-r->query*r->queries_per_frame] = id;
 
     if (r->counters[id].type == COUNTER_COMPUTE) {
@@ -251,22 +262,6 @@ static void draw_begin_(struct Render* r1) {
     r->compute_buffer = frame_compute_cb(r->frame);
     cb_begin(&r->frame->compute_cb, r->compute_buffer);
 
-    // Order compute after earlier graphics on the same queue, which uses the same buffers
-    // (particles3.vert writes Position; particles draws vertices that compute rewrites next).
-    VkMemoryBarrier graphics_to_compute = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
-        .srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
-        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_SHADER_WRITE_BIT,
-    };
-    vkCmdPipelineBarrier(
-        r->compute_buffer,
-        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT|VK_PIPELINE_STAGE_VERTEX_SHADER_BIT|VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        0,
-        1, &graphics_to_compute,
-        0, NULL,
-        0, NULL);
-
     vkCmdSetViewport(r->buffer, 0, 1, &r->viewport);
     vkCmdSetScissor(r->buffer, 0, 1, &r->scissor);
 
@@ -292,8 +287,14 @@ static void draw_end_(struct Render* r1) {
     cb_end(&r->frame->cb, r->buffer);
     cb_end(&r->frame->compute_cb, r->compute_buffer);
 
+    // Compute rewrites buffers that the previous graphics submit used (particles3.vert
+    // writes Position): wait for it, a barrier cannot order work across queues.
+    VkPipelineStageFlags computeWaitStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
     VkSubmitInfo computeSubmitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .waitSemaphoreCount = r->graphics_semaphore_signaled ? 1 : 0,
+        .pWaitSemaphores = &r->graphics_semaphore,
+        .pWaitDstStageMask = &computeWaitStage,
         .commandBufferCount = 1,
         .pCommandBuffers = &r->compute_buffer,
         .signalSemaphoreCount = 1,
@@ -316,6 +317,10 @@ static void draw_end_(struct Render* r1) {
         r->frame->compute_semaphore,
         r->frame->acquire_image
     };
+    VkSemaphore signalSemaphores[] = {
+        r->frame->render_finished,
+        r->graphics_semaphore
+    };
 
     VkSubmitInfo submitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -324,14 +329,15 @@ static void draw_end_(struct Render* r1) {
         .pWaitDstStageMask = waitStages,
         .waitSemaphoreCount = 2,
         .pWaitSemaphores = waitSemaphores,
-        .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &r->frame->render_finished
+        .signalSemaphoreCount = 2,
+        .pSignalSemaphores = signalSemaphores
     };
 
     if (vkQueueSubmit(r->g_queue, 1, &submitInfo, r->frame->fence) != VK_SUCCESS) {
         fprintf(stderr, "Failed to submit graphics command buffer\n");
         exit(-1);
     }
+    r->graphics_semaphore_signaled = 1;
 
     VkPresentInfoKHR presentInfo = {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
@@ -394,6 +400,14 @@ static void find_queue_families(struct RenderImpl* r) {
            r->present_family,
            r->graphics_family,
            r->compute_family);
+    // vkCmdWriteTimestamp needs timestampValidBits != 0 on its queue family, and every
+    // counter is measured from the first compute timestamp, so both families need it.
+    r->timestamps_supported = r->graphics_family >= 0 && r->compute_family >= 0
+        && families[r->graphics_family].timestampValidBits != 0
+        && families[r->compute_family].timestampValidBits != 0;
+    if (!r->timestamps_supported) {
+        printf("Timestamps are not supported, GPU counters are disabled\n");
+    }
     free(families);
 }
 
@@ -522,6 +536,8 @@ static void init_(struct Render* r1) {
     VkSemaphoreCreateInfo semaphoreInfo = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
+
+    vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->graphics_semaphore);
 
     r->n_recycled_semaphores = sizeof(r->recycled_semaphores)/sizeof(VkSemaphore);
     for (int i = 0; i < r->n_recycled_semaphores; i++) {

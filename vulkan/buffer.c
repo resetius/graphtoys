@@ -152,10 +152,11 @@ static void update_sync(
         VK_ACCESS_MEMORY_READ_BIT
     };
 
+    // vkCmdUpdateBuffer is a transfer write; the compute queue may not support graphics stages.
     vkCmdPipelineBarrier(
         flags == 0 ? r->buffer : r->compute_buffer,
-        VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        flags == 0 ? VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT : VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
         0,
         1, &barrier,
         0, NULL,

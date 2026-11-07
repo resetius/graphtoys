@@ -65,6 +65,9 @@ struct RenderImpl {
 
     // compute {
     VkCommandBuffer compute_buffer;
+    // Signaled by each graphics submit, waited by the next compute submit.
+    VkSemaphore graphics_semaphore;
+    int graphics_semaphore_signaled;
     // compute }
 
     VkSemaphore recycled_semaphores[10];
@@ -90,6 +93,7 @@ struct RenderImpl {
     int queries_delay;
     int query;
     uint32_t queries_used; // bit i: slot i was reset by a recorded frame
+    int timestamps_supported;
     struct Counter counters[32];
     int ncounters;
     int query2counter[32];
