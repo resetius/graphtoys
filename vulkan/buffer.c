@@ -49,6 +49,8 @@ static int create(
         vk_type = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     }
 
+    // CONCURRENT for both families when they differ: compute and graphics use the
+    // buffers without queue family ownership transfers.
     const uint32_t families[] = {r->graphics_family, r->compute_family};
     int n_families = r->graphics_family == r->compute_family
         ? 0

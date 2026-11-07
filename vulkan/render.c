@@ -307,8 +307,9 @@ static void draw_end_(struct Render* r1) {
     }
 
     // Compute does not use the swapchain image, so only the graphics submit waits for it.
+    // Compute results are read from vertex input on, so that wait must start there.
     VkPipelineStageFlags waitStages[] = {
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT|VK_PIPELINE_STAGE_VERTEX_SHADER_BIT|VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
     };
     VkSemaphore waitSemaphores[] = {
