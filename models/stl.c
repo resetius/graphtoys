@@ -107,9 +107,9 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     // light position in view coordinate
     mat4x4_mul_vec4(t->uniform.light, v, t->light);
 
-    t->pl->start(t->pl);
+    pl_start(t->pl);
     buffer_update(t->b, t->uniform_id, &t->uniform, 0, sizeof(t->uniform));
-    t->pl->draw(t->pl, t->model);
+    pl_draw(t->pl, t->model);
 
     mat4x4 m1;
     mat4x4_identity(m1);
@@ -119,9 +119,9 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_mul(mv, v, m1);
     mat4x4_mul(mvp, p, mv);
 
-    t->plt->start(t->plt);
+    pl_start(t->plt);
     buffer_update(t->b, t->dot_uniform_id, mvp, 0, sizeof(mvp));
-    t->plt->draw(t->plt, t->dot);
+    pl_draw(t->plt, t->dot);
 }
 
 static void transform(struct Stl* t) {
@@ -226,7 +226,7 @@ static void zoom_out(struct Object* obj, int mods) {
 
 static void t_free(struct Object* obj) {
     struct Stl* t = (struct Stl*)obj;
-    t->pl->free(t->pl);
+    pl_free(t->pl);
     buffer_mgr_free(t->b);
     free(t);
 }
@@ -306,7 +306,7 @@ struct Object* CreateStl(struct Render* r, struct Config* cfg) {
         ->build(pl);
 
     t->uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
-    t->pl->uniform_assign(t->pl, 0, t->uniform_id);
+    pl_uniform_assign(t->pl, 0, t->uniform_id);
 
     int model_buffer_id = buffer_create(t->b, BUFFER_ARRAY, MEMORY_STATIC, vertices, nvertices*sizeof(struct StlVertex));
     t->model = pl_buffer_assign(t->pl, 0, model_buffer_id);
@@ -343,7 +343,7 @@ struct Object* CreateStl(struct Render* r, struct Config* cfg) {
         ->build(plt);
 
     t->dot_uniform_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(mat4x4));
-    t->plt->uniform_assign(t->plt, 0, t->dot_uniform_id);
+    pl_uniform_assign(t->plt, 0, t->dot_uniform_id);
 
     int dot_buffer_id = buffer_create(t->b, BUFFER_ARRAY, MEMORY_STATIC, pp, sizeof(pp));
     t->dot = pl_buffer_assign(t->plt, 0, dot_buffer_id);

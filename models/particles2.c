@@ -169,7 +169,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     //printf("particles %d\n", t->particles);
 
-    t->pl->start(t->pl);
+    pl_start(t->pl);
 
     if (t->dirty) {
         struct UniformBlock block;
@@ -179,14 +179,14 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         t->dirty--;
     }
 
-    t->pl->draw(t->pl, t->indices_vao);
+    pl_draw(t->pl, t->indices_vao);
 
-    t->pl->storage_swap(t->pl, 1, 4);
+    pl_storage_swap(t->pl, 1, 4);
 }
 
 static void free_(struct Object* obj) {
     struct Particles* t = (struct Particles*)obj;
-    t->pl->free(t->pl);
+    pl_free(t->pl);
     buffer_mgr_free(t->b);
     free(obj);
 }
@@ -266,14 +266,14 @@ struct Object* CreateParticles2(struct Render* r, struct Config* cfg) {
     t->accel = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.accel, size);
     t->new_pos = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
 
-    t->indices_vao = t->pl->buffer_assign(t->pl, 0, t->indices);
+    t->indices_vao = pl_buffer_assign(t->pl, 0, t->indices);
 
-    t->pl->uniform_assign(t->pl, 0, t->uniform);
+    pl_uniform_assign(t->pl, 0, t->uniform);
 
-    t->pl->storage_assign(t->pl, 1, t->pos);
-    t->pl->storage_assign(t->pl, 2, t->vel);
-    t->pl->storage_assign(t->pl, 3, t->accel);
-    t->pl->storage_assign(t->pl, 4, t->new_pos);
+    pl_storage_assign(t->pl, 1, t->pos);
+    pl_storage_assign(t->pl, 2, t->vel);
+    pl_storage_assign(t->pl, 3, t->accel);
+    pl_storage_assign(t->pl, 4, t->new_pos);
 
 
     particles_data_destroy(&data);

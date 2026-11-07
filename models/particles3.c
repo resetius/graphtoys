@@ -334,20 +334,20 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     //printf("particles %d\n", t->particles);
 
     int groups = t->comp_pp_set.nlists; // 8
-    t->comp_parts->start_compute(t->comp_parts, groups, 1, 1);
+    pl_start_compute(t->comp_parts, groups, 1, 1);
     render_counter_submit(t->r, t->counter_density_sort);
 
-    t->comp_mass->start_compute(t->comp_mass, groups, 1, 1);
+    pl_start_compute(t->comp_mass, groups, 1, 1);
     render_counter_submit(t->r, t->counter_density);
 
-    t->comp_mass_sum->start_compute(t->comp_mass_sum, t->comp_set.nn/32, t->comp_set.nn/32, 1);
+    pl_start_compute(t->comp_mass_sum, t->comp_set.nn/32, t->comp_set.nn/32, 1);
     render_counter_submit(t->r, t->counter_density);
 
     maybe_debug_output(t, "density", t->density_index);
 
     if (t->single_pass) {
         verify(nn == 32);
-        t->comp_poisson->start_compute(t->comp_poisson, 1, 1, 1);
+        pl_start_compute(t->comp_poisson, 1, 1, 1);
     } else {
         for (int stage = 1; stage <= 7; stage ++) {
             t->comp_set.stage = stage;
@@ -355,13 +355,13 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
             if (t->poisson_type == 0) {
                 int groups = nn/16;
-                t->comp_poisson0->start_compute(t->comp_poisson0, groups, groups, 1);
+                pl_start_compute(t->comp_poisson0, groups, groups, 1);
             } else if (t->poisson_type == 1) {
                 int groups = nn/4; // 16; //nn / 32;
-                t->comp_poisson->start_compute(t->comp_poisson, groups, groups, 1);
+                pl_start_compute(t->comp_poisson, groups, groups, 1);
             } else if (t->poisson_type == 2) {
                 int groups = nn;
-                t->comp_poisson2->start_compute(t->comp_poisson2, groups, groups, 1);
+                pl_start_compute(t->comp_poisson2, groups, groups, 1);
             }
         }
     }
@@ -369,22 +369,22 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     render_counter_submit(t->r, t->counter_psi);
 
     groups = nn / 32;
-    t->comp_strength->start_compute(t->comp_strength, groups, groups, 1);
+    pl_start_compute(t->comp_strength, groups, groups, 1);
     render_counter_submit(t->r, t->counter_e);
 
     if (t->pp_enabled) {
         t->comp_pp_set.stage = 1;
         buffer_update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
-        t->comp_pp_sort->start_compute(t->comp_pp_sort, 1, 1, 1);
+        pl_start_compute(t->comp_pp_sort, 1, 1, 1);
         render_counter_submit(t->r, t->counter_pp_sort);
 
         t->comp_pp_set.stage = 2;
         buffer_update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
-        t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
+        pl_start_compute(t->comp_pp, 32, 32, 32);
         render_counter_submit(t->r, t->counter_pp);
     }
 
-    t->pl->start(t->pl);
+    pl_start(t->pl);
     memcpy(t->vert.mvp, &mvp[0][0], sizeof(mat4x4));
     // TODO: opengl uses other viewport
     t->vert.viewport[0] = 0;
@@ -394,7 +394,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     t->vert.ratio = ctx->ratio;
     buffer_update(t->b, t->uniform, &t->vert, 0, sizeof(t->vert));
 
-    t->pl->draw(t->pl, t->indices_vao);
+    pl_draw(t->pl, t->indices_vao);
     render_counter_submit(t->r, t->counter_pos);
     render_counter_submit(t->r, t->counter_frag);
 
@@ -445,16 +445,16 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
 static void free_(struct Object* obj) {
     struct Particles* t = (struct Particles*)obj;
-    t->pl->free(t->pl);
-    t->comp_parts->free(t->comp_parts);
-    t->comp_mass->free(t->comp_mass);
-    t->comp_mass_sum->free(t->comp_mass_sum);
-    t->comp_poisson0->free(t->comp_poisson0);
-    t->comp_poisson->free(t->comp_poisson);
-    t->comp_poisson2->free(t->comp_poisson2);
-    t->comp_strength->free(t->comp_strength);
-    t->comp_pp->free(t->comp_pp);
-    t->comp_pp_sort->free(t->comp_pp_sort);
+    pl_free(t->pl);
+    pl_free(t->comp_parts);
+    pl_free(t->comp_mass);
+    pl_free(t->comp_mass_sum);
+    pl_free(t->comp_poisson0);
+    pl_free(t->comp_poisson);
+    pl_free(t->comp_poisson2);
+    pl_free(t->comp_strength);
+    pl_free(t->comp_pp);
+    pl_free(t->comp_pp_sort);
     buffer_mgr_free(t->b);
     free(t->psi);
     free(t->pos_data);
@@ -838,61 +838,61 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     t->comp_settings = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, &t->comp_set, sizeof(t->comp_set));
     t->comp_pp_settings = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, &t->comp_pp_set, sizeof(t->comp_pp_set));
 
-    t->indices_vao = t->pl->buffer_assign(t->pl, 0, t->indices);
+    t->indices_vao = pl_buffer_assign(t->pl, 0, t->indices);
 
-    t->pl->uniform_assign(t->pl, 0, t->uniform);
-    t->pl->storage_assign(t->pl, 1, t->pos);
-    t->pl->storage_assign(t->pl, 2, t->vel);
-    t->pl->storage_assign(t->pl, 3, t->accel);
-    t->pl->storage_assign(t->pl, 4, t->e_index);
-    t->pl->storage_assign(t->pl, 5, t->pp_force);
-    t->pl->storage_assign(t->pl, 6, t->color);
-    t->pl->storage_assign(t->pl, 7, t->density_index);
+    pl_uniform_assign(t->pl, 0, t->uniform);
+    pl_storage_assign(t->pl, 1, t->pos);
+    pl_storage_assign(t->pl, 2, t->vel);
+    pl_storage_assign(t->pl, 3, t->accel);
+    pl_storage_assign(t->pl, 4, t->e_index);
+    pl_storage_assign(t->pl, 5, t->pp_force);
+    pl_storage_assign(t->pl, 6, t->color);
+    pl_storage_assign(t->pl, 7, t->density_index);
 
-    t->comp_parts->uniform_assign(t->comp_parts, 0, t->comp_settings);
-    t->comp_parts->storage_assign(t->comp_parts, 1, t->pos);
-    t->comp_parts->storage_assign(t->comp_parts, 2, t->list);
+    pl_uniform_assign(t->comp_parts, 0, t->comp_settings);
+    pl_storage_assign(t->comp_parts, 1, t->pos);
+    pl_storage_assign(t->comp_parts, 2, t->list);
 
-    t->comp_mass->uniform_assign(t->comp_mass, 0, t->comp_settings);
-    t->comp_mass->storage_assign(t->comp_mass, 1, t->density_index);
-    t->comp_mass->storage_assign(t->comp_mass, 2, t->pos);
-    t->comp_mass->storage_assign(t->comp_mass, 3, t->list);
+    pl_uniform_assign(t->comp_mass, 0, t->comp_settings);
+    pl_storage_assign(t->comp_mass, 1, t->density_index);
+    pl_storage_assign(t->comp_mass, 2, t->pos);
+    pl_storage_assign(t->comp_mass, 3, t->list);
 
-    t->comp_mass_sum->uniform_assign(t->comp_mass_sum, 0, t->comp_settings);
-    t->comp_mass_sum->storage_assign(t->comp_mass_sum, 1, t->density_index);
+    pl_uniform_assign(t->comp_mass_sum, 0, t->comp_settings);
+    pl_storage_assign(t->comp_mass_sum, 1, t->density_index);
 
-    t->comp_strength->uniform_assign(t->comp_strength, 0, t->comp_settings);
-    t->comp_strength->storage_assign(t->comp_strength, 1, t->psi_index);
-    t->comp_strength->storage_assign(t->comp_strength, 2, t->e_index);
+    pl_uniform_assign(t->comp_strength, 0, t->comp_settings);
+    pl_storage_assign(t->comp_strength, 1, t->psi_index);
+    pl_storage_assign(t->comp_strength, 2, t->e_index);
 
-    t->comp_poisson0->uniform_assign(t->comp_poisson0, 0, t->comp_settings);
-    t->comp_poisson0->storage_assign(t->comp_poisson0, 1, t->fft_table_index);
-    t->comp_poisson0->storage_assign(t->comp_poisson0, 2, t->work_index);
-    t->comp_poisson0->storage_assign(t->comp_poisson0, 3, t->density_index);
-    t->comp_poisson0->storage_assign(t->comp_poisson0, 4, t->psi_index);
+    pl_uniform_assign(t->comp_poisson0, 0, t->comp_settings);
+    pl_storage_assign(t->comp_poisson0, 1, t->fft_table_index);
+    pl_storage_assign(t->comp_poisson0, 2, t->work_index);
+    pl_storage_assign(t->comp_poisson0, 3, t->density_index);
+    pl_storage_assign(t->comp_poisson0, 4, t->psi_index);
 
-    t->comp_poisson->uniform_assign(t->comp_poisson, 0, t->comp_settings);
-    t->comp_poisson->storage_assign(t->comp_poisson, 1, t->fft_table_index);
-    t->comp_poisson->storage_assign(t->comp_poisson, 2, t->work_index);
-    t->comp_poisson->storage_assign(t->comp_poisson, 3, t->density_index);
-    t->comp_poisson->storage_assign(t->comp_poisson, 4, t->psi_index);
+    pl_uniform_assign(t->comp_poisson, 0, t->comp_settings);
+    pl_storage_assign(t->comp_poisson, 1, t->fft_table_index);
+    pl_storage_assign(t->comp_poisson, 2, t->work_index);
+    pl_storage_assign(t->comp_poisson, 3, t->density_index);
+    pl_storage_assign(t->comp_poisson, 4, t->psi_index);
 
-    t->comp_poisson2->uniform_assign(t->comp_poisson2, 0, t->comp_settings);
-    t->comp_poisson2->storage_assign(t->comp_poisson2, 1, t->fft_table_index);
-    t->comp_poisson2->storage_assign(t->comp_poisson2, 2, t->density_index);
-    t->comp_poisson2->storage_assign(t->comp_poisson2, 3, t->psi_index);
+    pl_uniform_assign(t->comp_poisson2, 0, t->comp_settings);
+    pl_storage_assign(t->comp_poisson2, 1, t->fft_table_index);
+    pl_storage_assign(t->comp_poisson2, 2, t->density_index);
+    pl_storage_assign(t->comp_poisson2, 3, t->psi_index);
 
     if (t->pp_enabled) {
-        t->comp_pp->uniform_assign(t->comp_pp, 0, t->comp_pp_settings);
-        t->comp_pp->storage_assign(t->comp_pp, 1, t->cells);
-        t->comp_pp->storage_assign(t->comp_pp, 2, t->pos);
-        t->comp_pp->storage_assign(t->comp_pp, 3, t->pp_force);
-        t->comp_pp->storage_assign(t->comp_pp, 4, t->list);
+        pl_uniform_assign(t->comp_pp, 0, t->comp_pp_settings);
+        pl_storage_assign(t->comp_pp, 1, t->cells);
+        pl_storage_assign(t->comp_pp, 2, t->pos);
+        pl_storage_assign(t->comp_pp, 3, t->pp_force);
+        pl_storage_assign(t->comp_pp, 4, t->list);
 
-        t->comp_pp_sort->uniform_assign(t->comp_pp_sort, 0, t->comp_pp_settings);
-        t->comp_pp_sort->storage_assign(t->comp_pp_sort, 1, t->cells);
-        t->comp_pp_sort->storage_assign(t->comp_pp_sort, 2, t->pos);
-        t->comp_pp_sort->storage_assign(t->comp_pp_sort, 3, t->list);
+        pl_uniform_assign(t->comp_pp_sort, 0, t->comp_pp_settings);
+        pl_storage_assign(t->comp_pp_sort, 1, t->cells);
+        pl_storage_assign(t->comp_pp_sort, 2, t->pos);
+        pl_storage_assign(t->comp_pp_sort, 3, t->list);
     }
     t->counter_density_sort = render_counter_new(r, "density_sort", COUNTER_COMPUTE);
     t->counter_density = render_counter_new(r, "density", COUNTER_COMPUTE);

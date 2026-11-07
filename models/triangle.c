@@ -42,14 +42,14 @@ void tr_draw(struct Object* obj, struct DrawContext* ctx) {
     mat4x4_ortho(p, -ctx->ratio, ctx->ratio, -1.f, 1.f, 1.f, -1.f);
     mat4x4_mul(mvp, p, m);
 
-    tr->pl->start(tr->pl);
+    pl_start(tr->pl);
     buffer_update(tr->b, tr->uniform_id, &mvp[0][0], 0, sizeof(mat4x4));
-    tr->pl->draw(tr->pl, tr->model);
+    pl_draw(tr->pl, tr->model);
 }
 
 void tr_free(struct Object* obj) {
     struct Triangle* tr = (struct Triangle*)obj;
-    tr->pl->free(tr->pl);
+    pl_free(tr->pl);
     free(obj);
 }
 

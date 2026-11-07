@@ -41,7 +41,10 @@ enum FilterType {
 };
 
 struct Pipeline {
+    const struct PipelineVtbl* vtbl;
+};
 
+struct PipelineVtbl {
     void (*free)(struct Pipeline*);
 
     void (*storage_assign)(struct Pipeline* p1, int storage_id, int buffer_id);
@@ -60,13 +63,16 @@ struct Pipeline {
     void (*draw_indexed)(struct Pipeline* p1, int buffer_id, int buffer_index_id, int index_byte_size);
 };
 
-void pl_free(struct Pipeline*);
-void pl_storage_assign(struct Pipeline* p1, int storage_id, int buffer_id);
-void pl_uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id);
-int pl_buffer_assign(struct Pipeline* p1, int descriptor_id, int buffer_id);
-void pl_use_texture(struct Pipeline* p1, void* texture);
-void pl_start(struct Pipeline*);
-void pl_draw(struct Pipeline* p1, int buffer_id);
+#define pl_free(p) ((p)->vtbl->free(p))
+#define pl_storage_assign(p, storage_id, buffer_id) ((p)->vtbl->storage_assign((p), (storage_id), (buffer_id)))
+#define pl_uniform_assign(p, uniform_id, buffer_id) ((p)->vtbl->uniform_assign((p), (uniform_id), (buffer_id)))
+#define pl_buffer_assign(p, descriptor_id, buffer_id) ((p)->vtbl->buffer_assign((p), (descriptor_id), (buffer_id)))
+#define pl_storage_swap(p, dst, src) ((p)->vtbl->storage_swap((p), (dst), (src)))
+#define pl_use_texture(p, texture) ((p)->vtbl->use_texture((p), (texture)))
+#define pl_start_compute(p, sx, sy, sz) ((p)->vtbl->start_compute((p), (sx), (sy), (sz)))
+#define pl_start(p) ((p)->vtbl->start(p))
+#define pl_draw(p, buffer_id) ((p)->vtbl->draw((p), (buffer_id)))
+#define pl_draw_indexed(p, buffer_id, index_id, index_byte_size) ((p)->vtbl->draw_indexed((p), (buffer_id), (index_id), (index_byte_size)))
 
 struct PipelineBuilder {
     struct PipelineBuilder* (*set_bmgr)(struct PipelineBuilder*, struct BufferManager*);

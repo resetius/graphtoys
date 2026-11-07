@@ -147,7 +147,6 @@ add_library(engine
     opengl/render.c
     opengl/pipeline.c
     render/buffer.c
-    render/pipeline.c
     vulkan/loader.c
     vulkan/buffer.c
     vulkan/char.c

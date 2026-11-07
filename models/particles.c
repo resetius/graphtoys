@@ -165,24 +165,24 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     //printf("particles %d\n", t->particles);
 
     buffer_update(t->b, t->comp_uniform, &t->particles, 0, sizeof(int));
-    t->comp->start_compute(t->comp, max(1, t->particles/100), 1, 1);
+    pl_start_compute(t->comp, max(1, t->particles/100), 1, 1);
 
     //t->pl->buffer_copy(t->pl, t->pos, t->new_pos);
 
-    t->pl->start(t->pl);
+    pl_start(t->pl);
     buffer_update(t->b, t->uniform, &mvp[0][0], 0, sizeof(mat4x4));
 
     //t->pl->draw(t->pl, t->new_pos_vao);
-    t->pl->draw(t->pl, t->pos_vao);
+    pl_draw(t->pl, t->pos_vao);
 
     int tt = t->pos_vao; t->pos_vao = t->new_pos_vao; t->new_pos_vao = tt;
-    t->comp->storage_swap(t->comp, 1, 4);
+    pl_storage_swap(t->comp, 1, 4);
 }
 
 static void free_(struct Object* obj) {
     struct Particles* t = (struct Particles*)obj;
-    t->pl->free(t->pl);
-    t->comp->free(t->comp);
+    pl_free(t->pl);
+    pl_free(t->comp);
     buffer_mgr_free(t->b);
     free(obj);
 }
@@ -275,16 +275,16 @@ struct Object* CreateParticles(struct Render* r, struct Config* cfg) {
     t->accel = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, data.accel, size);
     t->new_pos = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, data.coords, size);
 
-    t->pos_vao = t->pl->buffer_assign(t->pl, 0, t->pos);
-    t->new_pos_vao = t->pl->buffer_assign(t->pl, 0, t->new_pos);
+    t->pos_vao = pl_buffer_assign(t->pl, 0, t->pos);
+    t->new_pos_vao = pl_buffer_assign(t->pl, 0, t->new_pos);
 
-    t->pl->uniform_assign(t->pl, 0, t->uniform);
+    pl_uniform_assign(t->pl, 0, t->uniform);
 
-    t->comp->uniform_assign(t->comp, 0, t->comp_uniform);
-    t->comp->storage_assign(t->comp, 1, t->pos);
-    t->comp->storage_assign(t->comp, 2, t->vel);
-    t->comp->storage_assign(t->comp, 3, t->accel);
-    t->comp->storage_assign(t->comp, 4, t->new_pos);
+    pl_uniform_assign(t->comp, 0, t->comp_uniform);
+    pl_storage_assign(t->comp, 1, t->pos);
+    pl_storage_assign(t->comp, 2, t->vel);
+    pl_storage_assign(t->comp, 3, t->accel);
+    pl_storage_assign(t->comp, 4, t->new_pos);
 
     return (struct Object*)t;
 }
