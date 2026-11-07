@@ -57,6 +57,7 @@ static void free_(struct Render* r1) {
 static void compute_counters_begin_(struct RenderImpl* r)
 {
     r->timestamp = r->query*r->queries_per_frame;
+    r->queries_used |= 1u << r->query;
 
     vkCmdResetQueryPool(
         r->compute_buffer, r->timestamps,
@@ -74,12 +75,16 @@ static void compute_counters_end_(struct RenderImpl* r)
 {
     int prev_query = (r->query+1) % r->queries_delay;
     uint64_t data[4*256];
-    VkResult result = vkGetQueryPoolResults(
-        r->log_dev, r->timestamps,
-        prev_query*r->queries_per_frame,
-        r->timestamp-r->query*r->queries_per_frame,
-        sizeof(data), data, sizeof(uint64_t),
-        VK_QUERY_RESULT_64_BIT);
+    VkResult result = VK_NOT_READY;
+    // In the first frames prev_query's queries were never reset: reading them is invalid.
+    if (r->queries_used & (1u << prev_query)) {
+        result = vkGetQueryPoolResults(
+            r->log_dev, r->timestamps,
+            prev_query*r->queries_per_frame,
+            r->timestamp-r->query*r->queries_per_frame,
+            sizeof(data), data, sizeof(uint64_t),
+            VK_QUERY_RESULT_64_BIT);
+    }
 
     if (result == VK_SUCCESS) {
         uint64_t s = data[0];

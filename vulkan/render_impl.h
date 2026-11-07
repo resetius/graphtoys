@@ -91,6 +91,7 @@ struct RenderImpl {
     int queries_per_frame;
     int queries_delay;
     int query;
+    uint32_t queries_used; // bit i: slot i was reset by a recorded frame
     struct Counter counters[32];
     int ncounters;
     int query2counter[32];
