@@ -45,6 +45,17 @@ void rp_init(struct RenderPass* r, VkDevice logDev, VkFormat swapChainImageForma
         .pDepthStencilAttachment = &depthAttachmentRef
     };
 
+	// Color: start the layout transition after the acquire semaphore wait (COLOR_ATTACHMENT_OUTPUT).
+	// Depth: the image is shared by all frames, so wait for the previous frame's store op.
+	VkSubpassDependency dependency = {
+        .srcSubpass = VK_SUBPASS_EXTERNAL,
+        .dstSubpass = 0,
+        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+        .srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+    };
+
 	VkAttachmentDescription attachments[] = { colorAttachment, depthAttachment };
     uint32_t n_attachments = 2;
 
@@ -53,7 +64,9 @@ void rp_init(struct RenderPass* r, VkDevice logDev, VkFormat swapChainImageForma
         .attachmentCount = n_attachments,
         .pAttachments = attachments,
         .subpassCount = 1,
-        .pSubpasses = &subpass
+        .pSubpasses = &subpass,
+        .dependencyCount = 1,
+        .pDependencies = &dependency
     };
 
 	if (vkCreateRenderPass(logDev, &rpCreateInfo, NULL, &r->rp) != VK_SUCCESS)
