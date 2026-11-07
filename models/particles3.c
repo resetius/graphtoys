@@ -766,7 +766,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
         fft_table[m] = 4./h/h*sin(m1*M_PI/nn)*sin(m1*M_PI/nn);
     }
 #define off(k,l) ((l+1)*nn+(k-1))
-    for (int l = -1; l <= n-1; l++) {
+    // Level l = -1 has no entries; 1 << -1 is undefined behavior.
+    for (int l = 0; l <= n-1; l++) {
         for (int k = 1; k <= (1<<l); k++) {
             double x = 2.*cos(M_PI*(2*k-1)/(1<<(l+2)));
             x = 1./x;
