@@ -253,6 +253,22 @@ static void draw_begin_(struct Render* r1) {
     r->compute_buffer = frame_compute_cb(r->frame);
     cb_begin(&r->frame->compute_cb, r->compute_buffer);
 
+    // Order compute after earlier graphics on the same queue, which uses the same buffers
+    // (particles3.vert writes Position; particles draws vertices that compute rewrites next).
+    VkMemoryBarrier graphics_to_compute = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+        .srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_SHADER_WRITE_BIT,
+    };
+    vkCmdPipelineBarrier(
+        r->compute_buffer,
+        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT|VK_PIPELINE_STAGE_VERTEX_SHADER_BIT|VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        0,
+        1, &graphics_to_compute,
+        0, NULL,
+        0, NULL);
+
     vkCmdSetViewport(r->buffer, 0, 1, &r->viewport);
     vkCmdSetScissor(r->buffer, 0, 1, &r->scissor);
 
