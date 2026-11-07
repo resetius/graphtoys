@@ -187,20 +187,21 @@ static void free_(struct Object* obj) {
     free(obj);
 }
 
+static const struct ObjectVtbl object_vtbl = {
+    .move_left = move_left,
+    .move_right = move_right,
+    .move_up = move_up,
+    .move_down = move_down,
+
+    .zoom_in = zoom_in,
+    .zoom_out = zoom_out,
+    .draw = draw_,
+    .free = free_
+};
+
 struct Object* CreateParticles(struct Render* r, struct Config* cfg) {
     struct Particles* t = calloc(1, sizeof(struct Particles));
-    struct Object base = {
-        .move_left = move_left,
-        .move_right = move_right,
-        .move_up = move_up,
-        .move_down = move_down,
-
-        .zoom_in = zoom_in,
-        .zoom_out = zoom_out,
-        .draw = draw_,
-        .free = free_
-    };
-    t->base = base;
+    t->base.vtbl = &object_vtbl;
 
     struct PipelineBuilder* pl = r->pipeline(r);
     struct ShaderCode vertex_shader = {

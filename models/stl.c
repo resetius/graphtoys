@@ -231,19 +231,19 @@ static void t_free(struct Object* obj) {
     free(t);
 }
 
+static const struct ObjectVtbl object_vtbl = {
+    .draw = t_draw,
+    .free = t_free,
+    .move_left = move_left,
+    .move_right = move_right,
+    .move_up = move_up,
+    .move_down = move_down,
+    .zoom_in = zoom_in,
+    .zoom_out = zoom_out,
+};
+
 struct Object* CreateStl(struct Render* r, struct Config* cfg) {
     struct Stl* t = calloc(1, sizeof(struct Stl));
-    struct Object base = {
-        .draw = t_draw,
-        .free = t_free,
-        .move_left = move_left,
-        .move_right = move_right,
-        .move_up = move_up,
-        .move_down = move_down,
-        .zoom_in = zoom_in,
-        .zoom_out = zoom_out,
-    };
-
     struct StlVertex* vertices;
     int nvertices;
 
@@ -272,7 +272,7 @@ struct Object* CreateStl(struct Render* r, struct Config* cfg) {
     //mat4x4_identity(t->m);
     quat_identity(t->q);
 
-    t->base = base;
+    t->base.vtbl = &object_vtbl;
     vec4 light = {0, 0, 0, 1};
     vec4_dup(t->light, light);
 

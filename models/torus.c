@@ -159,13 +159,13 @@ static void t_free(struct Object* obj) {
     free(t);
 }
 
+static const struct ObjectVtbl object_vtbl = {
+    .draw = t_draw,
+    .free = t_free
+};
+
 struct Object* CreateTorus(struct Render* r, struct Config* cfg) {
     struct Torus* t = calloc(1, sizeof(struct Torus));
-    struct Object base = {
-        .draw = t_draw,
-        .free = t_free
-    };
-
     struct Vertex* vertices;
     int nvertices;
 
@@ -180,7 +180,7 @@ struct Object* CreateTorus(struct Render* r, struct Config* cfg) {
         .size = models_triangle_frag_spv_size,
     };
 
-    t->base = base;
+    t->base.vtbl = &object_vtbl;
     t->b = r->buffer_manager(r);
 
     vertices = init(&nvertices);

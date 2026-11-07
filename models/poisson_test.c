@@ -187,13 +187,14 @@ static void free_(struct Object* obj) {
     free(obj);
 }
 
+static const struct ObjectVtbl object_vtbl = {
+    .draw = draw_,
+    .free = free_
+};
+
 struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
     struct Particles* t = calloc(1, sizeof(struct Particles));
-    struct Object base = {
-        .draw = draw_,
-        .free = free_
-    };
-    t->base = base;
+    t->base.vtbl = &object_vtbl;
 
     struct PipelineBuilder* pl = r->pipeline(r);
     struct ShaderCode compute_shader = {

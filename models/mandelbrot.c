@@ -96,6 +96,17 @@ static void t_free(struct Object* obj) {
     free(t);
 }
 
+static const struct ObjectVtbl object_vtbl = {
+    .draw = t_draw,
+    .free = t_free,
+    .move_left = t_left,
+    .move_right = t_right,
+    .move_up = t_up,
+    .move_down = t_down,
+    .zoom_in = t_zoom_in,
+    .zoom_out = t_zoom_out
+};
+
 struct Object* CreateMandelbrot(struct Render* r, struct Config* cfg) {
     struct Mandelbrot* t = calloc(1, sizeof(struct Mandelbrot));
     struct Vertex vertices[] = {
@@ -109,17 +120,6 @@ struct Object* CreateMandelbrot(struct Render* r, struct Config* cfg) {
     };
     int nvertices = 6;
 
-    struct Object base = {
-        .draw = t_draw,
-        .free = t_free,
-        .move_left = t_left,
-        .move_right = t_right,
-        .move_up = t_up,
-        .move_down = t_down,
-        .zoom_in = t_zoom_in,
-        .zoom_out = t_zoom_out
-    };
-
     struct ShaderCode vertex_shader = {
         .glsl = models_mandelbrot_vert,
         .spir_v = models_mandelbrot_vert_spv,
@@ -131,7 +131,7 @@ struct Object* CreateMandelbrot(struct Render* r, struct Config* cfg) {
         .size = models_mandelbrot_frag_spv_size,
     };
 
-    t->base = base;
+    t->base.vtbl = &object_vtbl;
     t->b = r->buffer_manager(r);
 
     struct PipelineBuilder* pl = r->pipeline(r);

@@ -53,13 +53,14 @@ void tr_free(struct Object* obj) {
     free(obj);
 }
 
+static const struct ObjectVtbl object_vtbl = {
+    .draw = tr_draw,
+    .free = tr_free
+};
+
 struct Object* CreateTriangle(struct Render* r, struct Config* cfg) {
     struct Triangle* tr = calloc(1, sizeof(struct Triangle));
-    struct Object base = {
-        .draw = tr_draw,
-        .free = tr_free
-    };
-    tr->base = base;
+    tr->base.vtbl = &object_vtbl;
 
     struct PipelineBuilder* pl = r->pipeline(r);
     struct ShaderCode vertex_shader = {
