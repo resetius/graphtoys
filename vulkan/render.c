@@ -36,8 +36,6 @@ static void free_(struct Render* r1) {
         frame_destroy(&r->frames[i]);
     }
 
-    vkDestroySemaphore(r->log_dev, r->compute_semaphore, NULL);
-
     for (i = 0; i < r->n_recycled_semaphores; i++) {
         vkDestroySemaphore(r->log_dev, r->recycled_semaphores[i], NULL);
     }
@@ -249,7 +247,7 @@ static void draw_begin_(struct Render* r1) {
     r->buffer = frame_cb(r->frame);
     cb_begin(&r->frame->cb, r->buffer);
 
-    // Safe to reset after the frame fence: the graphics submit waits on compute_semaphore.
+    // Safe to reset after the frame fence: the graphics submit waits on this frame's compute_semaphore.
     r->compute_buffer = frame_compute_cb(r->frame);
     cb_begin(&r->frame->compute_cb, r->compute_buffer);
 
@@ -299,9 +297,14 @@ static void draw_end_(struct Render* r1) {
         .commandBufferCount = 1,
         .pCommandBuffers = &r->compute_buffer,
         .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &r->compute_semaphore,
+        .pSignalSemaphores = &r->frame->compute_semaphore,
     };
-    vkQueueSubmit(r->c_queue, 1, &computeSubmitInfo, VK_NULL_HANDLE);
+    // Each signal of the frame's compute_semaphore must be waited by the graphics submit
+    // below: if either submit fails, that pairing breaks, so stop.
+    if (vkQueueSubmit(r->c_queue, 1, &computeSubmitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+        fprintf(stderr, "Failed to submit compute command buffer\n");
+        exit(-1);
+    }
 
     // Compute does not use the swapchain image, so only the graphics submit waits for it.
     VkPipelineStageFlags waitStages[] = {
@@ -309,7 +312,7 @@ static void draw_end_(struct Render* r1) {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
     };
     VkSemaphore waitSemaphores[] = {
-        r->compute_semaphore,
+        r->frame->compute_semaphore,
         r->frame->acquire_image
     };
 
@@ -324,7 +327,10 @@ static void draw_end_(struct Render* r1) {
         .pSignalSemaphores = &r->frame->render_finished
     };
 
-    vkQueueSubmit(r->g_queue, 1, &submitInfo, r->frame->fence);
+    if (vkQueueSubmit(r->g_queue, 1, &submitInfo, r->frame->fence) != VK_SUCCESS) {
+        fprintf(stderr, "Failed to submit graphics command buffer\n");
+        exit(-1);
+    }
 
     VkPresentInfoKHR presentInfo = {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
@@ -515,10 +521,6 @@ static void init_(struct Render* r1) {
     VkSemaphoreCreateInfo semaphoreInfo = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
-
-    // compute {
-    vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->compute_semaphore);
-    // compute }
 
     r->n_recycled_semaphores = sizeof(r->recycled_semaphores)/sizeof(VkSemaphore);
     for (int i = 0; i < r->n_recycled_semaphores; i++) {

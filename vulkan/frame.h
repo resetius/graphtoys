@@ -13,6 +13,9 @@ struct Frame {
     VkFence fence;
     VkSemaphore acquire_image;
     VkSemaphore render_finished;
+    // Signaled by this frame's compute submit, waited by its graphics submit.
+    // The frame fence makes it unsignaled again before the frame is reused.
+    VkSemaphore compute_semaphore;
 };
 
 void frame_init(struct Frame* frame, struct RenderImpl* r);

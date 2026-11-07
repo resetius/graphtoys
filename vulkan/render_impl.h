@@ -65,7 +65,6 @@ struct RenderImpl {
 
     // compute {
     VkCommandBuffer compute_buffer;
-    VkSemaphore compute_semaphore;
     // compute }
 
     VkSemaphore recycled_semaphores[10];

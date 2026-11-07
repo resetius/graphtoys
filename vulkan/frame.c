@@ -25,11 +25,13 @@ void frame_init(struct Frame* frame, struct RenderImpl* r) {
     };
 
     vkCreateSemaphore(frame->cb.dev, &sem_info, NULL, &frame->render_finished);
+    vkCreateSemaphore(frame->cb.dev, &sem_info, NULL, &frame->compute_semaphore);
 }
 
 void frame_destroy(struct Frame* frame) {
     vkDestroyFence(frame->cb.dev, frame->fence, NULL);
     vkDestroySemaphore(frame->cb.dev, frame->render_finished, NULL);
+    vkDestroySemaphore(frame->cb.dev, frame->compute_semaphore, NULL);
     if (frame->acquire_image != VK_NULL_HANDLE) {
         vkDestroySemaphore(frame->cb.dev, frame->acquire_image, NULL);
     }
