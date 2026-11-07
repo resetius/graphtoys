@@ -6,8 +6,7 @@
 
 #include <glad/gl.h>
 
-struct ProgramImpl {
-    struct Program base;
+struct Program {
     GLuint program;
     GLint major;
     GLint minor;
@@ -18,7 +17,7 @@ static void log_func(const char* msg) {
     puts(msg);
 }
 
-static void prog_log(struct ProgramImpl* p, const char* format, ...) {
+static void prog_log(struct Program* p, const char* format, ...) {
     char buffer[256];
     va_list args;
     va_start(args, format);
@@ -27,8 +26,7 @@ static void prog_log(struct ProgramImpl* p, const char* format, ...) {
     va_end(args);
 }
 
-static void prog_free_(struct Program* p1) {
-    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+void prog_free(struct Program* p) {
     GLint numShaders = 0;
     GLuint *shaders;
     int i;
@@ -50,7 +48,7 @@ static void prog_free_(struct Program* p1) {
     free(p);
 }
 
-static int prog_add_(struct ProgramImpl* p, struct ShaderCode code, GLuint shader) {
+static int prog_add_(struct Program* p, struct ShaderCode code, GLuint shader) {
     int result;
 
     if (code.glsl) {
@@ -81,20 +79,17 @@ static int prog_add_(struct ProgramImpl* p, struct ShaderCode code, GLuint shade
     return 1;
 }
 
-static int prog_add_vs_(struct Program* p1, struct ShaderCode shader) {
-    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+int prog_add_vs(struct Program* p, struct ShaderCode shader) {
     GLuint shaderId = glCreateShader(GL_VERTEX_SHADER);
     return prog_add_(p, shader, shaderId);
 }
 
-static int prog_add_fs_(struct Program* p1, struct ShaderCode shader) {
-    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+int prog_add_fs(struct Program* p, struct ShaderCode shader) {
     GLuint shaderId = glCreateShader(GL_FRAGMENT_SHADER);
     return prog_add_(p, shader, shaderId);
 }
 
-static int prog_add_cs_(struct Program* p1, struct ShaderCode shader) {
-    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+int prog_add_cs(struct Program* p, struct ShaderCode shader) {
     if (p->major > 4 || (p->major == 4 && p->minor >= 3)) {
         GLuint shaderId = glCreateShader(GL_COMPUTE_SHADER);
         return prog_add_(p, shader, shaderId);
@@ -105,14 +100,12 @@ static int prog_add_cs_(struct Program* p1, struct ShaderCode shader) {
     }
 }
 
-static int prog_use_(struct Program* p1) {
-    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+int prog_use(struct Program* p) {
     glUseProgram(p->program);
     return 1;
 }
 
-static int prog_link_(struct Program* p1) {
-    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+int prog_link(struct Program* p) {
     int result;
     glLinkProgram(p->program);
 
@@ -135,8 +128,7 @@ static int prog_link_(struct Program* p1) {
     return 1;
 }
 
-static int prog_set_mat3x3_(struct Program* p1, const char* name, const mat3x3* mat) {
-    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+int prog_set_mat3x3(struct Program* p, const char* name, const mat3x3* mat) {
     GLint location = glGetUniformLocation(p->program, name);
     if (location < 0) {
         prog_log(p, "Unknown location: '%s'", name);
@@ -146,8 +138,7 @@ static int prog_set_mat3x3_(struct Program* p1, const char* name, const mat3x3* 
     return 1;
 }
 
-static int prog_set_mat4x4_(struct Program* p1, const char* name, const mat4x4* mat) {
-    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+int prog_set_mat4x4(struct Program* p, const char* name, const mat4x4* mat) {
     GLint location = glGetUniformLocation(p->program, name);
     if (location < 0) {
         prog_log(p, "Unknown location: '%s'", name);
@@ -157,8 +148,7 @@ static int prog_set_mat4x4_(struct Program* p1, const char* name, const mat4x4* 
     return 1;
 }
 
-static int prog_set_vec3_(struct Program* p1, const char* name, const vec3* vec) {
-    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+int prog_set_vec3(struct Program* p, const char* name, const vec3* vec) {
     GLint location = glGetUniformLocation(p->program, name);
     if (location < 0) {
         prog_log(p, "Unknown location: '%s'", name);
@@ -168,8 +158,7 @@ static int prog_set_vec3_(struct Program* p1, const char* name, const vec3* vec)
     return 1;
 }
 
-static int prog_set_int_(struct Program*p1, const char* name, int* values, int n_values) {
-    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+int prog_set_int(struct Program* p, const char* name, int* values, int n_values) {
     GLint location = glGetUniformLocation(p->program, name);
     if (location < 0) {
         prog_log(p, "Unknown location: '%s'", name);
@@ -180,103 +169,28 @@ static int prog_set_int_(struct Program*p1, const char* name, int* values, int n
 }
 
 
-static int prog_set_sub_fs_(struct Program* p1, const char* name) {
-    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+int prog_set_sub_fs(struct Program* p, const char* name) {
     GLuint location = glGetSubroutineIndex(p->program, GL_FRAGMENT_SHADER, name);
     glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &location);
     return 1;
 }
 
 
-static int prog_attrib_location_(struct Program* p1, const char* name) {
-    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+int prog_attrib_location(struct Program* p, const char* name) {
     return glGetAttribLocation(p->program, name);
 }
 
-static int prog_handle_(struct Program* p1) {
-    struct ProgramImpl* p = (struct ProgramImpl*)p1;
+int prog_handle(struct Program* p) {
     return p->program;
 }
 
 struct Program* prog_opengl_new(void) {
-    struct ProgramImpl* p = calloc(1, sizeof(struct ProgramImpl));
-    struct Program base = {
-        .free = prog_free_,
-        .link = prog_link_,
-        .use = prog_use_,
-        .add_vs = prog_add_vs_,
-        .add_fs = prog_add_fs_,
-        .add_cs = prog_add_cs_,
-        .set_mat3x3 = prog_set_mat3x3_,
-        .set_mat4x4 = prog_set_mat4x4_,
-        .set_vec3 = prog_set_vec3_,
-        .set_int = prog_set_int_,
-        .set_sub_fs = prog_set_sub_fs_,
-        .attrib_location = prog_attrib_location_,
-        .handle = prog_handle_
-    };
-    p->base = base;
+    struct Program* p = calloc(1, sizeof(struct Program));
     p->program = glCreateProgram();
     p->log = log_func;
 
     glGetIntegerv(GL_MAJOR_VERSION, &p->major);
     glGetIntegerv(GL_MINOR_VERSION, &p->minor);
 
-    return (struct Program*)p;
-}
-
-void prog_free(struct Program* p) {
-    p->free(p);
-}
-
-int prog_add_vs(struct Program* p, struct ShaderCode shader) {
-    return p->add_vs(p, shader);
-}
-
-int prog_add_fs(struct Program* p, struct ShaderCode shader) {
-    return p->add_fs(p, shader);
-}
-
-int prog_add_cs(struct Program* p, struct ShaderCode shader) {
-    return p->add_cs(p, shader);
-}
-
-int prog_link(struct Program* p) {
-    return p->link(p);
-}
-
-int prog_use(struct Program* p) {
-    return p->use(p);
-}
-
-int prog_validate(struct Program* p) {
-    return p->validate(p);
-}
-
-int prog_set_mat3x3(struct Program* p, const char* name, const mat3x3* mat) {
-    return p->set_mat3x3(p, name, mat);
-}
-
-int prog_set_mat4x4(struct Program* p, const char* name, const mat4x4* mat) {
-    return p->set_mat4x4(p, name, mat);
-}
-
-int prog_set_vec3(struct Program* p, const char* name, const vec3* vec) {
-    return p->set_vec3(p, name, vec);
-}
-
-int prog_set_int(struct Program* p, const char* name, int* values, int n_values) {
-    return p->set_int(p, name, values, n_values);
-}
-
-int prog_set_sub_fs(struct Program* p, const char* name) {
-    return p->set_sub_fs(p, name);
-}
-
-int prog_attrib_location(struct Program* p, const char* name) {
-    return p->attrib_location(p, name);
-}
-
-int prog_handle(struct Program* p) {
-    return p->handle(p);
+    return p;
 }
