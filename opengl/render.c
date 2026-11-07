@@ -69,15 +69,16 @@ static void char_free_(struct Char* ch) {
     }
 }
 
+static const struct CharVtbl char_vtbl = {
+    .texture = char_texture_,
+    .free = char_free_
+};
+
 static struct Char* rend_char_new_(struct Render* r, wchar_t ch, void* bm) {
     struct CharImpl* c = calloc(1, sizeof(*c));
     FT_Face face = (FT_Face)bm;
     FT_Bitmap bitmap = face->glyph->bitmap;
-    struct Char base = {
-        .texture = char_texture_,
-        .free = char_free_
-    };
-    c->base = base;
+    c->base.vtbl = &char_vtbl;
     c->base.ch = ch;
     c->base.w = bitmap.width;
     c->base.h = bitmap.rows;
