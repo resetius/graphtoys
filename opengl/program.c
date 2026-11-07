@@ -198,7 +198,7 @@ static int prog_handle_(struct Program* p1) {
     return p->program;
 }
 
-struct Program* prog_opengl_new() {
+struct Program* prog_opengl_new(void) {
     struct ProgramImpl* p = calloc(1, sizeof(struct ProgramImpl));
     struct Program base = {
         .free = prog_free_,

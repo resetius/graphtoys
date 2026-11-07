@@ -45,4 +45,4 @@ int prog_set_sub_fs(struct Program* p, const char* name);
 int prog_attrib_location(struct Program* p, const char* name);
 int prog_handle(struct Program* p);
 
-struct Program* prog_opengl_new();
+struct Program* prog_opengl_new(void);

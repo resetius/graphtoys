@@ -181,7 +181,7 @@ static struct PipelineBuilder* storage_add(
 
 static struct PipelineBuilder* begin_program(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
-    p->cur_program = p->programs[p->n_programs++] = prog_opengl_new(p->r);
+    p->cur_program = p->programs[p->n_programs++] = prog_opengl_new();
     return p1;
 }
 
