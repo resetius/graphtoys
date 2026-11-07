@@ -64,6 +64,10 @@ static void subscribe(struct EventProducer* prod, struct EventConsumer* cons) {
     app->cons[app->n_cons++] = cons;
 }
 
+static const struct EventProducerVtbl app_events_vtbl = {
+    .subscribe = subscribe
+};
+
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     struct App* app = glfwGetWindowUserPointer(window);
@@ -133,7 +137,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     }
 
     for (i = 0; i < app->n_cons; i++) {
-        app->cons[i]->key_event(app->cons[i], &ev);
+        ev_key_event(app->cons[i], &ev);
     }
 }
 
@@ -160,7 +164,7 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
     };
 
     for (i = 0; i < app->n_cons; i++) {
-        app->cons[i]->mouse_move_event(app->cons[i], &ev);
+        ev_mouse_move_event(app->cons[i], &ev);
     }
 
     app->x = xpos; app->y = ypos;
@@ -255,7 +259,7 @@ int main(int argc, char** argv)
         }
     }
 
-    app.events.subscribe = subscribe;
+    app.events.vtbl = &app_events_vtbl;
 
     glfwSetErrorCallback(error_callback);
 

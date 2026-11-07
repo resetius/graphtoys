@@ -173,11 +173,12 @@ static void mouse_move_event(struct EventConsumer* cons, struct InputEvent* ev)
     }
 }
 
+static const struct EventConsumerVtbl cam_event_vtbl = {
+    .key_event = cam_key_event,
+    .mouse_move_event = mouse_move_event
+};
+
 void cam_event_consumer_init(struct CameraEventConsumer* cons, struct Camera* cam) {
-    struct EventConsumer base = {
-        .key_event = cam_key_event,
-        .mouse_move_event = mouse_move_event
-    };
-    cons->base = base;
+    cons->base.vtbl = &cam_event_vtbl;
     cons->cam = cam;
 }
