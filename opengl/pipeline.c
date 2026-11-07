@@ -285,7 +285,7 @@ static int buffer_assign(struct Pipeline* p1, int id, int buffer_id) {
     struct Buffer* buf = &p->buffers[logical_id];
     memset(buf, 0, sizeof(*buf));
     buf->id = buffer_id;
-    memcpy(&buf->base, p->b->get(p->b, buf->id), sizeof(buf->base));
+    memcpy(&buf->base, buffer_get(p->b, buf->id), sizeof(buf->base));
 
     buf->stride = descr->stride;
     buf->n_vertices = buf->base.size / descr->stride;
@@ -328,7 +328,7 @@ static void uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id)
     assert(uniform_id < p->n_uniforms);
     p->uniforms[uniform_id].id = buffer_id;
     memcpy(&p->uniforms[uniform_id].base,
-           p->b->get(p->b, buffer_id),
+           buffer_get(p->b, buffer_id),
            sizeof(p->uniforms[uniform_id].base));
 }
 
@@ -445,7 +445,7 @@ static void draw_indexed(struct Pipeline* p1, int id, int index, int index_byte_
     }
     glBindVertexArray(p->buffers[id].vao);
 
-    struct BufferImpl* ibuf = p->b->get(p->b, index);
+    struct BufferImpl* ibuf = buffer_get(p->b, index);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuf->buffer);
     assert(index_byte_size == 2 || index_byte_size == 4 || index_byte_size == 1);
 

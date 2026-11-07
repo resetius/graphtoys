@@ -6,7 +6,7 @@
 #include "buffer.h"
 #include "render.h"
 
-static struct BufferBase* buffer_acquire_(struct BufferManager* bm, size_t size) {
+struct BufferBase* buffer_acquire(struct BufferManager* bm, size_t size) {
     struct BufferManagerBase* b = (struct BufferManagerBase*)bm;
     struct BufferBase* buf = NULL;
     if (b->n_buffers >= b->cap) {
@@ -39,7 +39,7 @@ static struct BufferBase* buffer_acquire_(struct BufferManager* bm, size_t size)
     return buf;
 }
 
-static void buffer_release_(struct BufferManager* mgr, int id) {
+void buffer_destroy(struct BufferManager* mgr, int id) {
     struct BufferManagerBase* b = (struct BufferManagerBase*)mgr;
     struct BufferBase base = {
         .id = id,
@@ -48,7 +48,7 @@ static void buffer_release_(struct BufferManager* mgr, int id) {
     };
     assert(id < b->n_buffers);
 
-    b->iface.release(&b->iface, &b->buffers[id*b->buffer_size]);
+    b->iface.vtbl->release(&b->iface, &b->buffers[id*b->buffer_size]);
 
     b->total_memory -= ((struct BufferBase*)&b->buffers[id*b->buffer_size])->size;
     printf("(%p) free buffer memory: %lld\n", b, (long long)b->total_memory);
@@ -62,49 +62,21 @@ static void buffer_release_(struct BufferManager* mgr, int id) {
     }
 }
 
-static void buffer_mgr_free_(struct BufferManager* mgr) {
+void buffer_mgr_free(struct BufferManager* mgr) {
     struct BufferManagerBase* b = (struct BufferManagerBase*)mgr;
     while (b->n_buffers > 0) {
-        buffer_release_(mgr, b->n_buffers-1);
+        buffer_destroy(mgr, b->n_buffers-1);
     }
     free(b->buffers);
     free(b);
 }
 
-static void* buffer_get_(struct BufferManager* mgr, int id) {
+void* buffer_get(struct BufferManager* mgr, int id) {
     struct BufferManagerBase* b = (struct BufferManagerBase*)mgr;
     assert(id < b->n_buffers);
     return &b->buffers[id*b->buffer_size];
 }
 
-int buffer_create(
-    struct BufferManager* b,
-    enum BufferType type,
-    enum BufferMemoryType mem_type,
-    const void* data,
-    size_t size)
-{
-    return b->create(b, type, mem_type, data, size);
-}
-
-void buffer_update(
-    struct BufferManager* b,
-    int id,
-    const void* data,
-    size_t offset,
-    size_t size)
-{
-    return b->update(b, id, data, offset, size);
-}
-
 void buffermanager_base_ctor(struct BufferManagerBase* bm, size_t buffer_size) {
-    struct BufferManager iface = {
-        .get = buffer_get_,
-        .destroy = buffer_release_,
-        .free = buffer_mgr_free_,
-        .acquire = buffer_acquire_,
-    };
-
-    bm->iface = iface;
     bm->buffer_size = buffer_size;
 }

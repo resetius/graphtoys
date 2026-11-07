@@ -112,7 +112,7 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
 static void t_free(struct Object* obj) {
     struct Mandelbulb* t = (struct Mandelbulb*)obj;
     t->pl->free(t->pl);
-    t->b->free(t->b);
+    buffer_mgr_free(t->b);
     free(t);
 }
 

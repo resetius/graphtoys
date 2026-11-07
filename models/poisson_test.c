@@ -90,12 +90,12 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     if (t->single_pass) {
         int stage = 0;
         t->comp_set.stage = stage;
-        t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
+        buffer_update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
         t->comp_poisson->start_compute(t->comp_poisson, 1, 1, 1);
     } else {
         for (int stage = 1; stage <= 7; stage ++) {
             t->comp_set.stage = stage;
-            t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
+            buffer_update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
 
             if (t->poisson_type == 1) {
                 int groups = nn / 4; // must be synchronized
@@ -110,7 +110,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     // OpenGL only yet!
     // check accuracy and exit
-    t->b->read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
+    buffer_read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
     double nrm = 0;
     double nrm1= 0;
     double avg = 0.0;
@@ -159,9 +159,9 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 	//t->comp_set.stage = 9; // ok
 	//t->comp_set.stage = 10; // ok
 	t->comp_set.stage = 11;
-        t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
+        buffer_update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
         t->comp_poisson2->start_compute(t->comp_poisson2, 1, 1, 1);
-        t->b->read(t->b, t->psi_index, t->psi, 0, nn*sizeof(float));
+        buffer_read(t->b, t->psi_index, t->psi, 0, nn*sizeof(float));
         for (int i = 0; i < nn; i++) {
             if (fabs(output[i] - t->psi[i]) > 1e-4) {
                 printf("%d %.7e <> %.7e\n", i, output[i], t->psi[i]);
@@ -181,7 +181,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 static void free_(struct Object* obj) {
     struct Particles* t = (struct Particles*)obj;
     t->comp_poisson->free(t->comp_poisson);
-    t->b->free(t->b);
+    buffer_mgr_free(t->b);
     free(t->psi);
     free(t->density);
     free(obj);
@@ -266,11 +266,11 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
         }
     }
 #undef off
-    t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,
+    t->density_index = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,
                                     t->density,
                                     nn*nn*nn*sizeof(float));
     t->psi = malloc(nn*nn*nn*sizeof(float));
-    t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, NULL,
+    t->psi_index = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_READ, NULL,
                                 nn*nn*nn*sizeof(float));
     int n = t->comp_set.n;
     int fft_table_size = (nn+(n+1)*nn)*sizeof(float);
@@ -289,15 +289,15 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
     }
 #undef off
 
-    t->fft_table_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, fft_table, fft_table_size);
+    t->fft_table_index = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, fft_table, fft_table_size);
     free(fft_table);
     // TODO: improve memory usage
     // 1 -- input
     // 2 -- output
     // 3 -- temporary buffer 1
     // 4 -- temporary buffer 2
-    t->work_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, 4*nn*nn*nn*sizeof(float));
-    t->comp_settings = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct CompSettings));
+    t->work_index = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, 4*nn*nn*nn*sizeof(float));
+    t->comp_settings = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct CompSettings));
 
     t->comp_poisson->uniform_assign(t->comp_poisson, 0, t->comp_settings);
     t->comp_poisson->storage_assign(t->comp_poisson, 1, t->fft_table_index);

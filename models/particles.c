@@ -183,7 +183,7 @@ static void free_(struct Object* obj) {
     struct Particles* t = (struct Particles*)obj;
     t->pl->free(t->pl);
     t->comp->free(t->comp);
-    t->b->free(t->b);
+    buffer_mgr_free(t->b);
     free(obj);
 }
 
@@ -267,13 +267,13 @@ struct Object* CreateParticles(struct Render* r, struct Config* cfg) {
 
     int size = t->particles*4*sizeof(float);
 
-    t->uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(mat4x4));
-    t->comp_uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(int));
+    t->uniform = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(mat4x4));
+    t->comp_uniform = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(int));
 
-    t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, data.coords, size);
-    t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, data.vels, size);
-    t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, data.accel, size);
-    t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, data.coords, size);
+    t->pos = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, data.coords, size);
+    t->vel = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, data.vels, size);
+    t->accel = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC_COPY, data.accel, size);
+    t->new_pos = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_DYNAMIC, data.coords, size);
 
     t->pos_vao = t->pl->buffer_assign(t->pl, 0, t->pos);
     t->new_pos_vao = t->pl->buffer_assign(t->pl, 0, t->new_pos);

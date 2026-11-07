@@ -148,14 +148,14 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     memcpy(t->uniform.norm, norm, sizeof(norm));
 
     t->pl->start(t->pl);
-    t->b->update(t->b, t->uniform_buffer_id, &t->uniform, 0, sizeof(t->uniform));
+    buffer_update(t->b, t->uniform_buffer_id, &t->uniform, 0, sizeof(t->uniform));
     t->pl->draw(t->pl, t->model);
 }
 
 static void t_free(struct Object* obj) {
     struct Torus* t = (struct Torus*)obj;
     t->pl->free(t->pl);
-    t->b->free(t->b);
+    buffer_mgr_free(t->b);
     free(t);
 }
 
@@ -207,10 +207,10 @@ struct Object* CreateTorus(struct Render* r, struct Config* cfg) {
 
         ->build(pl);
 
-    t->uniform_buffer_id = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
+    t->uniform_buffer_id = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
     t->pl->uniform_assign(t->pl, 0, t->uniform_buffer_id);
 
-    t->model_buffer_id = t->b->create(t->b, BUFFER_ARRAY, MEMORY_STATIC, vertices, nvertices*sizeof(struct Vertex));
+    t->model_buffer_id = buffer_create(t->b, BUFFER_ARRAY, MEMORY_STATIC, vertices, nvertices*sizeof(struct Vertex));
     t->model = t->pl->buffer_assign(t->pl, 0, t->model_buffer_id);
 
     free(vertices);
