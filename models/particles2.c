@@ -207,7 +207,7 @@ struct Object* CreateParticles2(struct Render* r, struct Config* cfg) {
     struct Particles* t = calloc(1, sizeof(struct Particles));
     t->base.vtbl = &object_vtbl;
 
-    struct PipelineBuilder* pl = r->pipeline(r);
+    struct PipelineBuilder* pl = render_pipeline(r);
     struct ShaderCode vertex_shader = {
         .glsl = models_particles2_vert,
         .spir_v = models_particles2_vert_spv,
@@ -219,9 +219,9 @@ struct Object* CreateParticles2(struct Render* r, struct Config* cfg) {
         .size = models_particles2_frag_spv_size,
     };
 
-    t->b = r->buffer_manager(r);
+    t->b = render_buffer_manager(r);
 
-    pl = r->pipeline(r);
+    pl = render_pipeline(r);
 
     t->pl = pl
         ->set_bmgr(pl, t->b)

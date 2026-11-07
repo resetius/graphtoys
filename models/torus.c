@@ -181,11 +181,11 @@ struct Object* CreateTorus(struct Render* r, struct Config* cfg) {
     };
 
     t->base.vtbl = &object_vtbl;
-    t->b = r->buffer_manager(r);
+    t->b = render_buffer_manager(r);
 
     vertices = init(&nvertices);
 
-    struct PipelineBuilder* pl = r->pipeline(r);
+    struct PipelineBuilder* pl = render_pipeline(r);
     t->pl = pl
         ->set_bmgr(pl, t->b)
         ->begin_program(pl)

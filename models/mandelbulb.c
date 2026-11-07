@@ -156,11 +156,11 @@ struct Object* CreateMandelbulb(struct Render* r, struct Config* cfg) {
         .size = models_mandelbulb_frag_spv_size,
     };
 
-    t->b = r->buffer_manager(r);
+    t->b = render_buffer_manager(r);
     t->base.vtbl = &object_vtbl;
     t->T[0] = t->T[1] = 0.0; t->T[2] = 2.0;
 
-    struct PipelineBuilder* p = r->pipeline(r);
+    struct PipelineBuilder* p = render_pipeline(r);
     t->pl = p
         ->set_bmgr(p, t->b)
 

@@ -282,9 +282,9 @@ struct Object* CreateStl(struct Render* r, struct Config* cfg) {
     //FILE* f = fopen("Doraemon_Lucky_Cat.stl", "rb");
 
     vertices = stl_load(fn, &nvertices);
-    t->b = r->buffer_manager(r);
+    t->b = render_buffer_manager(r);
 
-    struct PipelineBuilder* pl = r->pipeline(r);
+    struct PipelineBuilder* pl = render_pipeline(r);
     t->pl = pl
         ->set_bmgr(pl, t->b)
         ->begin_program(pl)
@@ -321,7 +321,7 @@ struct Object* CreateStl(struct Render* r, struct Config* cfg) {
         {{1.0, 0.0, 1.0}, {0.0, 0.0, 0.0}, {  1,  1, 0}}
     };
 
-    struct PipelineBuilder* plt = r->pipeline(r);
+    struct PipelineBuilder* plt = render_pipeline(r);
     t->plt = plt
         ->set_bmgr(plt, t->b)
         ->begin_program(plt)

@@ -295,7 +295,7 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
 
     // TODO: use indices
 
-    struct PipelineBuilder* pl = r->pipeline(r);
+    struct PipelineBuilder* pl = render_pipeline(r);
     n->pl = pl
         ->set_bmgr(pl, b)
         ->begin_program(pl)
@@ -361,7 +361,7 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
     const char* fn = cfg_gets_def(cfg, "name", "./assets/khr/scenes/sponza/Sponza01.gltf");
     t->scale = cfg_getf_def(cfg, "scale", 1.0);
 
-    t->b = r->buffer_manager(r);
+    t->b = render_buffer_manager(r);
 
     struct Gltf gltf;
     gltf_ctor(&gltf, fn);
@@ -381,7 +381,7 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
     void** images = malloc(gltf.n_images * sizeof(void*));
     for (int i = 0; i < gltf.n_images; i++) {
         printf("Loading '%s'\n", gltf.images[i].name); fflush(stdout);
-        images[i] = r->tex_new(r, gltf.images[i].texture, TEX_KTX);
+        images[i] = render_tex_new(r, gltf.images[i].texture, TEX_KTX);
     }
     if (gltf.n_images == 0) {
         // load by mesh name
@@ -394,7 +394,7 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
             strcat(buf, ".ktx");
             printf("Loading '%s'\n", buf);
             char* img = gltf_load_image_uri(buf); // gltf_file_by_name(&gltf, buf, &size);
-            images[i] = img ? r->tex_new(r, img, TEX_KTX) : NULL;
+            images[i] = img ? render_tex_new(r, img, TEX_KTX) : NULL;
             buf[l] = 0;
         }
     }

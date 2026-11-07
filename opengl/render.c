@@ -318,26 +318,27 @@ static void counter_submit(struct Render* r1, int id) {
 struct PipelineBuilder* pipeline_builder_opengl(struct Render*);
 
 
-struct Render* rend_opengl_new(struct RenderConfig cfg)
+static const struct RenderVtbl render_vtbl = {
+    .free = rend_free_,
+    .char_new = rend_char_new_,
+    .set_view_entity = set_view_entity_,
+    .draw_begin = draw_begin_,
+    .draw_end = draw_end_,
+    .init = init_,
+    .pipeline = pipeline_builder_opengl,
+    .set_viewport = set_viewport,
+    .buffer_manager = buf_mgr_opengl_new,
+    .tex_new = tex_new,
+    .print_compute_stats = print_compute_stats_,
+    .counter_new = counter_new,
+    .counter_submit = counter_submit,
+    .screenshot = screenshot,
+};
+
+struct Render* render_opengl_new(struct RenderConfig cfg)
 {
     struct RenderImpl* r = calloc(1, sizeof(*r));
-    struct Render base = {
-        .free = rend_free_,
-        .char_new = rend_char_new_,
-        .set_view_entity = set_view_entity_,
-        .draw_begin = draw_begin_,
-        .draw_end = draw_end_,
-        .init = init_,
-        .pipeline = pipeline_builder_opengl,
-        .set_viewport = set_viewport,
-        .buffer_manager = buf_mgr_opengl_new,
-        .tex_new = tex_new,
-        .print_compute_stats = print_compute_stats_,
-        .counter_new = counter_new,
-        .counter_submit = counter_submit,
-        .screenshot = screenshot,
-    };
-    r->base = base;
+    r->base.vtbl = &render_vtbl;
     r->cfg = cfg;
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
