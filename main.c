@@ -359,6 +359,12 @@ int main(int argc, char** argv)
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
+        // A minimized window can be 0x0: skip the frame, so closing it still works.
+        if (glfwGetWindowAttrib(window, GLFW_ICONIFIED)) {
+            glfwWaitEvents();
+            continue;
+        }
+
         render->draw_begin(render);
 
         app.ctx.time = (float)glfwGetTime();
