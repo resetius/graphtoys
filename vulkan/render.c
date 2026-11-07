@@ -278,24 +278,23 @@ static void draw_end_(struct Render* r1) {
     cb_end(&r->frame->cb, r->buffer);
     cb_end(&r->frame->compute_cb, r->compute_buffer);
 
-    VkPipelineStageFlags computeWaitStages[] = {VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT};
-
     VkSubmitInfo computeSubmitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .commandBufferCount = 1,
         .pCommandBuffers = &r->compute_buffer,
-        .pWaitDstStageMask = computeWaitStages,
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &r->frame->acquire_image,
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &r->compute_semaphore,
     };
     vkQueueSubmit(r->c_queue, 1, &computeSubmitInfo, VK_NULL_HANDLE);
 
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    // Compute does not use the swapchain image, so only the graphics submit waits for it.
+    VkPipelineStageFlags waitStages[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+    };
     VkSemaphore waitSemaphores[] = {
-        //r->frame->acquire_image,
-        r->compute_semaphore
+        r->compute_semaphore,
+        r->frame->acquire_image
     };
 
     VkSubmitInfo submitInfo = {
@@ -303,7 +302,7 @@ static void draw_end_(struct Render* r1) {
         .commandBufferCount = 1,
         .pCommandBuffers = &r->buffer,
         .pWaitDstStageMask = waitStages,
-        .waitSemaphoreCount = 1,
+        .waitSemaphoreCount = 2,
         .pWaitSemaphores = waitSemaphores,
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &r->frame->render_finished
