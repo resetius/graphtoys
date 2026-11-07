@@ -600,26 +600,27 @@ static void screenshot_(struct Render* r, void** data, int* w, int* h) {
 }
 
 struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r);
-struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm);
+struct Char* render_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm);
 
-struct Render* rend_vulkan_new(struct RenderConfig cfg) {
+static const struct RenderVtbl render_vtbl = {
+    .free = free_,
+    .init = init_,
+    .set_view_entity = set_window_,
+    .draw_begin = draw_begin_,
+    .draw_end = draw_end_,
+    .set_viewport = set_viewport_,
+    .pipeline = pipeline_builder_vulkan,
+    .char_new =  render_vulkan_char_new,
+    .buffer_manager = buf_mgr_vulkan_new,
+    .tex_new = vk_tex_new,
+    .print_compute_stats = print_compute_stats_,
+    .counter_new = counter_new_,
+    .counter_submit = counter_submit_,
+    .screenshot = screenshot_,
+};
+
+struct Render* render_vulkan_new(struct RenderConfig cfg) {
     struct RenderImpl* r = calloc(1, sizeof(*r));
-    struct Render base = {
-        .free = free_,
-        .init = init_,
-        .set_view_entity = set_window_,
-        .draw_begin = draw_begin_,
-        .draw_end = draw_end_,
-        .set_viewport = set_viewport_,
-        .pipeline = pipeline_builder_vulkan,
-        .char_new =  rend_vulkan_char_new,
-        .buffer_manager = buf_mgr_vulkan_new,
-        .tex_new = vk_tex_new,
-        .print_compute_stats = print_compute_stats_,
-        .counter_new = counter_new_,
-        .counter_submit = counter_submit_,
-        .screenshot = screenshot_,
-    };
     if (!glfwVulkanSupported()) {
         fprintf(stderr, "Cannot find the Vulkan loader (libvulkan)\n");
         exit(-1);
@@ -681,7 +682,7 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg) {
         printf("'%s'\n", extensionNames[i]);
     }
 
-    r->base = base;
+    r->base.vtbl = &render_vtbl;
     r->cfg = cfg;
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);

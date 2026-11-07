@@ -335,13 +335,13 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     int groups = t->comp_pp_set.nlists; // 8
     t->comp_parts->start_compute(t->comp_parts, groups, 1, 1);
-    t->r->counter_submit(t->r, t->counter_density_sort);
+    render_counter_submit(t->r, t->counter_density_sort);
 
     t->comp_mass->start_compute(t->comp_mass, groups, 1, 1);
-    t->r->counter_submit(t->r, t->counter_density);
+    render_counter_submit(t->r, t->counter_density);
 
     t->comp_mass_sum->start_compute(t->comp_mass_sum, t->comp_set.nn/32, t->comp_set.nn/32, 1);
-    t->r->counter_submit(t->r, t->counter_density);
+    render_counter_submit(t->r, t->counter_density);
 
     maybe_debug_output(t, "density", t->density_index);
 
@@ -366,22 +366,22 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         }
     }
 
-    t->r->counter_submit(t->r, t->counter_psi);
+    render_counter_submit(t->r, t->counter_psi);
 
     groups = nn / 32;
     t->comp_strength->start_compute(t->comp_strength, groups, groups, 1);
-    t->r->counter_submit(t->r, t->counter_e);
+    render_counter_submit(t->r, t->counter_e);
 
     if (t->pp_enabled) {
         t->comp_pp_set.stage = 1;
         t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
         t->comp_pp_sort->start_compute(t->comp_pp_sort, 1, 1, 1);
-        t->r->counter_submit(t->r, t->counter_pp_sort);
+        render_counter_submit(t->r, t->counter_pp_sort);
 
         t->comp_pp_set.stage = 2;
         t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
         t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
-        t->r->counter_submit(t->r, t->counter_pp);
+        render_counter_submit(t->r, t->counter_pp);
     }
 
     t->pl->start(t->pl);
@@ -395,8 +395,8 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     buffer_update(t->b, t->uniform, &t->vert, 0, sizeof(t->vert));
 
     t->pl->draw(t->pl, t->indices_vao);
-    t->r->counter_submit(t->r, t->counter_pos);
-    t->r->counter_submit(t->r, t->counter_frag);
+    render_counter_submit(t->r, t->counter_pos);
+    render_counter_submit(t->r, t->counter_frag);
 
     // dota = -4 pi G / 3 / a / a * rho0
     //double rho0 = 10*t->rho; // TODO
@@ -426,7 +426,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         void* data;
         int w, h;
         snprintf(buf, sizeof(buf)-1, "particles3.%06d_%.02f.tga", t->step, t->T);
-        t->r->screenshot(t->r, &data, &w, &h);
+        render_screenshot(t->r, &data, &w, &h);
         if (data) {
             tga_write(buf, w, h, data, 4, 4);
             free(data);
@@ -480,7 +480,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     struct Particles* t = calloc(1, sizeof(struct Particles));
     t->base.vtbl = &object_vtbl;
 
-    struct PipelineBuilder* pl = r->pipeline(r);
+    struct PipelineBuilder* pl = render_pipeline(r);
     struct ShaderCode vertex_shader = {
         .glsl = models_particles3_vert,
         .spir_v = models_particles3_vert_spv,
@@ -529,7 +529,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     };
 
     t->r = r;
-    t->b = r->buffer_manager(r);
+    t->b = render_buffer_manager(r);
     t->comp_parts = pl
         ->set_bmgr(pl, t->b)
         ->begin_program(pl)
@@ -542,7 +542,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
 
         ->build(pl);
 
-    pl = r->pipeline(r);
+    pl = render_pipeline(r);
     t->comp_mass = pl
         ->set_bmgr(pl, t->b)
         ->begin_program(pl)
@@ -556,7 +556,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
 
         ->build(pl);
 
-    pl = r->pipeline(r);
+    pl = render_pipeline(r);
     t->comp_mass_sum = pl
         ->set_bmgr(pl, t->b)
         ->begin_program(pl)
@@ -568,7 +568,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
 
         ->build(pl);
 
-    pl = r->pipeline(r);
+    pl = render_pipeline(r);
     t->comp_strength = pl
         ->set_bmgr(pl, t->b)
         ->begin_program(pl)
@@ -582,7 +582,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
         ->build(pl);
 
     printf("Build comp shader\n");
-    pl = r->pipeline(r);
+    pl = render_pipeline(r);
     t->comp_poisson = pl
         ->set_bmgr(pl, t->b)
         ->begin_program(pl)
@@ -597,7 +597,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
         ->storage_add(pl, 4, "PotentialBuffer")
 
         ->build(pl);
-    pl = r->pipeline(r);
+    pl = render_pipeline(r);
     t->comp_poisson0 = pl
         ->set_bmgr(pl, t->b)
         ->begin_program(pl)
@@ -612,7 +612,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
         ->storage_add(pl, 4, "PotentialBuffer")
 
         ->build(pl);
-    pl = r->pipeline(r);
+    pl = render_pipeline(r);
     t->comp_poisson2 = pl
         ->set_bmgr(pl, t->b)
         ->begin_program(pl)
@@ -629,7 +629,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     printf("Done\n");
 
     printf("Build comp pp shader\n");
-    pl = r->pipeline(r);
+    pl = render_pipeline(r);
 
     t->comp_pp = pl
         ->set_bmgr(pl, t->b)
@@ -646,7 +646,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
 
         ->build(pl);
 
-    pl = r->pipeline(r);
+    pl = render_pipeline(r);
 
     t->comp_pp_sort = pl
         ->set_bmgr(pl, t->b)
@@ -664,7 +664,7 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
 
     printf("Done\n");
 
-    pl = r->pipeline(r);
+    pl = render_pipeline(r);
 
     t->pl = pl
         ->set_bmgr(pl, t->b)
@@ -894,14 +894,14 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
         t->comp_pp_sort->storage_assign(t->comp_pp_sort, 2, t->pos);
         t->comp_pp_sort->storage_assign(t->comp_pp_sort, 3, t->list);
     }
-    t->counter_density_sort = r->counter_new(r, "density_sort", COUNTER_COMPUTE);
-    t->counter_density = r->counter_new(r, "density", COUNTER_COMPUTE);
-    t->counter_psi = r->counter_new(r, "psi", COUNTER_COMPUTE);
-    t->counter_e = r->counter_new(r, "e", COUNTER_COMPUTE);
-    t->counter_pp_sort = r->counter_new(r, "pp_sort", COUNTER_COMPUTE);
-    t->counter_pp = r->counter_new(r, "pp", COUNTER_COMPUTE);
-    t->counter_pos = r->counter_new(r, "pos", COUNTER_VERTEX);
-    t->counter_frag = r->counter_new(r, "frag", COUNTER_FRAG);
+    t->counter_density_sort = render_counter_new(r, "density_sort", COUNTER_COMPUTE);
+    t->counter_density = render_counter_new(r, "density", COUNTER_COMPUTE);
+    t->counter_psi = render_counter_new(r, "psi", COUNTER_COMPUTE);
+    t->counter_e = render_counter_new(r, "e", COUNTER_COMPUTE);
+    t->counter_pp_sort = render_counter_new(r, "pp_sort", COUNTER_COMPUTE);
+    t->counter_pp = render_counter_new(r, "pp", COUNTER_COMPUTE);
+    t->counter_pos = render_counter_new(r, "pos", COUNTER_VERTEX);
+    t->counter_frag = render_counter_new(r, "frag", COUNTER_FRAG);
 
     particles_data_destroy(&data);
 

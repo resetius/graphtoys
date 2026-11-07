@@ -52,7 +52,7 @@ static void resize_callback(GLFWwindow* window, int w, int h)
     app->ctx.w = w;
     app->ctx.h = h;
     app->ctx.ratio = w/(float)h;
-    app->r->set_viewport(app->r, w, h);
+    render_set_viewport(app->r, w, h);
 }
 
 static void subscribe(struct EventProducer* prod, struct EventConsumer* cons) {
@@ -260,9 +260,9 @@ int main(int argc, char** argv)
     enable_labels = rcfg.show_fps;
 
     if (!strcmp(rcfg.api, "opengl")) {
-        render = rend_opengl_new(rcfg);
+        render = render_opengl_new(rcfg);
     } else if (!strcmp(rcfg.api, "vulkan")) {
-        render = rend_vulkan_new(rcfg);
+        render = render_vulkan_new(rcfg);
     } else {
         fprintf(stderr, "Unknown render: '%s'\n", rcfg.api);
         return -1;
@@ -312,9 +312,9 @@ int main(int argc, char** argv)
     }
     /* Make the window's context current */
 
-    render->set_view_entity(render, window);
+    render_set_view_entity(render, window);
 
-    render->init(render);
+    render_init(render);
 
     app.r = render;
 
@@ -355,7 +355,7 @@ int main(int argc, char** argv)
             continue;
         }
 
-        render->draw_begin(render);
+        render_draw_begin(render);
 
         app.ctx.time = (float)glfwGetTime();
 
@@ -375,7 +375,7 @@ int main(int argc, char** argv)
         }
 
         /* Swap front and back buffers */
-        render->draw_end(render);
+        render_draw_end(render);
 
         /* Poll for and process events */
         glfwPollEvents();
@@ -391,7 +391,7 @@ int main(int argc, char** argv)
             printf("FPS:%.2f, %.1fms\n", fp, ms);
             frames = 0;
             t1 = t2;
-            render->print_compute_stats(render);
+            render_print_compute_stats(render);
         }
     }
 
@@ -401,7 +401,7 @@ int main(int argc, char** argv)
         //label_dtor(&text);
     }
     font_free(font);
-    rend_free(render);
+    render_free(render);
     cfg_free(cfg);
     glfwTerminate();
     return 0;

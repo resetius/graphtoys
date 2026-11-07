@@ -44,6 +44,10 @@ struct Counter {
 };
 
 struct Render {
+    const struct RenderVtbl* vtbl;
+};
+
+struct RenderVtbl {
     struct PipelineBuilder* (*pipeline)(struct Render*);
     struct BufferManager* (*buffer_manager)(struct Render*);
     struct Texture* (*tex_new)(struct Render*, void* data, enum TexType tex_type);
@@ -63,10 +67,20 @@ struct Render {
     void (*screenshot)(struct Render*, void** data, int* w, int* h);
 };
 
-struct Render* rend_opengl_new(struct RenderConfig cfg);
-struct Render* rend_vulkan_new(struct RenderConfig cfg);
+struct Render* render_opengl_new(struct RenderConfig cfg);
+struct Render* render_vulkan_new(struct RenderConfig cfg);
 
-void rend_free(struct Render*);
-
-struct Texture* rend_tex_new(struct Render*, void* data, enum TexType tex_type);
-struct Char* rend_char_new(struct Render*, wchar_t ch, void* face);
+#define render_pipeline(r) ((r)->vtbl->pipeline(r))
+#define render_buffer_manager(r) ((r)->vtbl->buffer_manager(r))
+#define render_tex_new(r, data, tex_type) ((r)->vtbl->tex_new((r), (data), (tex_type)))
+#define render_char_new(r, ch, face) ((r)->vtbl->char_new((r), (ch), (face)))
+#define render_free(r) ((r) ? (r)->vtbl->free(r) : (void)0)
+#define render_init(r) ((r)->vtbl->init(r))
+#define render_set_view_entity(r, e) ((r)->vtbl->set_view_entity((r), (e)))
+#define render_draw_begin(r) ((r)->vtbl->draw_begin(r))
+#define render_draw_end(r) ((r)->vtbl->draw_end(r))
+#define render_set_viewport(r, w, h) ((r)->vtbl->set_viewport((r), (w), (h)))
+#define render_print_compute_stats(r) ((r)->vtbl->print_compute_stats(r))
+#define render_counter_new(r, name, type) ((r)->vtbl->counter_new((r), (name), (type)))
+#define render_counter_submit(r, id) ((r)->vtbl->counter_submit((r), (id)))
+#define render_screenshot(r, data, w, h) ((r)->vtbl->screenshot((r), (data), (w), (h)))

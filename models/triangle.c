@@ -62,7 +62,7 @@ struct Object* CreateTriangle(struct Render* r, struct Config* cfg) {
     struct Triangle* tr = calloc(1, sizeof(struct Triangle));
     tr->base.vtbl = &object_vtbl;
 
-    struct PipelineBuilder* pl = r->pipeline(r);
+    struct PipelineBuilder* pl = render_pipeline(r);
     struct ShaderCode vertex_shader = {
         .glsl = models_triangle_vert,
         .spir_v = models_triangle_vert_spv,
@@ -74,7 +74,7 @@ struct Object* CreateTriangle(struct Render* r, struct Config* cfg) {
         .size = models_triangle_frag_spv_size,
     };
 
-    tr->b = r->buffer_manager(r);
+    tr->b = render_buffer_manager(r);
     tr->pl = pl
 
         ->set_bmgr(pl, tr->b)

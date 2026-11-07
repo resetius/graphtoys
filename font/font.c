@@ -51,7 +51,7 @@ static void char_load(struct Render* r, struct Char* chars[], FT_Face face, wcha
         printf("Cannot render glyph: %d\n", error);
         exit(1);
     }
-    *out = rend_char_new(r, ch, face);
+    *out = render_char_new(r, ch, face);
 }
 
 struct Font* font_new(struct Render* r, int char_w, int char_h, int dev_w, int dev_h) {
@@ -111,9 +111,9 @@ struct Font* font_new(struct Render* r, int char_w, int char_h, int dev_w, int d
         .size = font_font_frag_spv_size,
     };
 
-    t->b = r->buffer_manager(r);
+    t->b = render_buffer_manager(r);
 
-    struct PipelineBuilder* p = r->pipeline(r);
+    struct PipelineBuilder* p = render_pipeline(r);
     struct Pipeline* pl = p
         ->set_bmgr(p, t->b)
 

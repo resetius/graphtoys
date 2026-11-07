@@ -196,7 +196,7 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
     struct Particles* t = calloc(1, sizeof(struct Particles));
     t->base.vtbl = &object_vtbl;
 
-    struct PipelineBuilder* pl = r->pipeline(r);
+    struct PipelineBuilder* pl = render_pipeline(r);
     struct ShaderCode compute_shader = {
         .spir_v = models_particles3_poisson_comp_spv,
         .size = models_particles3_poisson_comp_spv_size,
@@ -207,7 +207,7 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
     };
 
     t->r = r;
-    t->b = r->buffer_manager(r);
+    t->b = render_buffer_manager(r);
 
     printf("Build comp shader\n");
     t->comp_poisson = pl
@@ -225,7 +225,7 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
 
         ->build(pl);
 
-    pl = r->pipeline(r);
+    pl = render_pipeline(r);
     t->comp_poisson2 = pl
         ->set_bmgr(pl, t->b)
         ->begin_program(pl)
