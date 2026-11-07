@@ -600,7 +600,7 @@ static void screenshot_(struct Render* r, void** data, int* w, int* h) {
 }
 
 struct PipelineBuilder* pipeline_builder_vulkan(struct Render* r);
-struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm);
+struct Char* render_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm);
 
 static const struct RenderVtbl render_vtbl = {
     .free = free_,
@@ -610,7 +610,7 @@ static const struct RenderVtbl render_vtbl = {
     .draw_end = draw_end_,
     .set_viewport = set_viewport_,
     .pipeline = pipeline_builder_vulkan,
-    .char_new =  rend_vulkan_char_new,
+    .char_new =  render_vulkan_char_new,
     .buffer_manager = buf_mgr_vulkan_new,
     .tex_new = vk_tex_new,
     .print_compute_stats = print_compute_stats_,

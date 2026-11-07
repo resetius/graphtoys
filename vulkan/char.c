@@ -37,7 +37,7 @@ static const struct CharVtbl char_vtbl = {
     .texture = char_texture_,
 };
 
-struct Char* rend_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm) {
+struct Char* render_vulkan_char_new(struct Render* r1, wchar_t ch, void* bm) {
     struct CharImpl* c = calloc(1, sizeof(*c));
     struct RenderImpl* r = (struct RenderImpl*)r1;
     FT_Face face = (FT_Face)bm;

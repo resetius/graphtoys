@@ -74,7 +74,7 @@ static const struct CharVtbl char_vtbl = {
     .free = char_free_
 };
 
-static struct Char* rend_char_new_(struct Render* r, wchar_t ch, void* bm) {
+static struct Char* render_char_new_(struct Render* r, wchar_t ch, void* bm) {
     struct CharImpl* c = calloc(1, sizeof(*c));
     FT_Face face = (FT_Face)bm;
     FT_Bitmap bitmap = face->glyph->bitmap;
@@ -108,7 +108,7 @@ static struct Char* rend_char_new_(struct Render* r, wchar_t ch, void* bm) {
     return (struct Char*)c;
 };
 
-static void rend_free_(struct Render* r1) {
+static void render_free_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
     glDeleteQueries(256, r->queries);
     free(r);
@@ -319,8 +319,8 @@ struct PipelineBuilder* pipeline_builder_opengl(struct Render*);
 
 
 static const struct RenderVtbl render_vtbl = {
-    .free = rend_free_,
-    .char_new = rend_char_new_,
+    .free = render_free_,
+    .char_new = render_char_new_,
     .set_view_entity = set_view_entity_,
     .draw_begin = draw_begin_,
     .draw_end = draw_end_,
