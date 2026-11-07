@@ -16,7 +16,7 @@
 
 #include <lib/verify.h>
 
-struct Program* prog_opengl_new();
+struct Program* prog_opengl_new(void);
 struct BufferManager* buf_mgr_opengl_new(struct Render* r);
 
 struct CharImpl {
