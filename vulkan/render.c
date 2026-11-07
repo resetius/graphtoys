@@ -537,6 +537,10 @@ struct Render* rend_vulkan_new(struct RenderConfig cfg) {
         .counter_submit = counter_submit_,
         .screenshot = screenshot_,
     };
+    if (!glfwVulkanSupported()) {
+        fprintf(stderr, "Cannot find the Vulkan loader (libvulkan)\n");
+        exit(-1);
+    }
     uint32_t extensionCount = 0;
     const char** glfwExtensionNames = glfwGetRequiredInstanceExtensions(&extensionCount);
 
