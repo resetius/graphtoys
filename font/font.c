@@ -159,7 +159,7 @@ void font_free(struct Font* o) {
     if (f) {
         for (i = 0; i < sizeof(f->chars)/sizeof(struct Char*); i++) {
             if (f->chars[i]) {
-                f->chars[i]->free(f->chars[i]);
+                char_free(f->chars[i]);
             }
         }
         f->pl->free(f->pl);
@@ -308,7 +308,7 @@ void label_render(struct Label* l)
             if (changed) {
                 buffer_update(f->b, l->buf[i].id, vertices, 0, sizeof(vertices));
             }
-            f->pl->use_texture(f->pl, ch->texture(ch));
+            f->pl->use_texture(f->pl, char_texture(ch));
             f->pl->draw(f->pl, l->buf[i].vao);
         }
         if (!ch) {
