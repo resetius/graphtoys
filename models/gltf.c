@@ -336,13 +336,13 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
 //char* gltf_file_by_name(struct Gltf* gltf, const char* name, int64_t* size); // TODO
 void* gltf_load_image_uri(const char* fname); // TODO
 
+static const struct ObjectVtbl object_vtbl = {
+    .draw = t_draw,
+    .free = t_free,
+};
+
 struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProducer* events) {
     struct Model* t = calloc(1, sizeof(struct Model));
-    struct Object base = {
-        .draw = t_draw,
-        .free = t_free,
-    };
-
     struct ShaderCode vertex_shader = {
         .glsl = models_base_vert,
         .spir_v = models_base_vert_spv,
@@ -354,7 +354,7 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
         .size = models_base_frag_spv_size,
     };
 
-    t->base = base;
+    t->base.vtbl = &object_vtbl;
     vec4 light = {0, -40, 0, 1};
     vec4_dup(t->light, light);
 

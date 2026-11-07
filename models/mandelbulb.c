@@ -120,6 +120,18 @@ struct Vertex {
     vec3 pos;
 };
 
+static const struct ObjectVtbl object_vtbl = {
+    .draw = t_draw,
+    .free = t_free,
+    .move_left = t_left,
+    .move_right = t_right,
+    .move_up = t_up,
+    .move_down = t_down,
+    .zoom_in = t_zoom_in,
+    .zoom_out = t_zoom_out,
+    .mode = t_mode
+};
+
 struct Object* CreateMandelbulb(struct Render* r, struct Config* cfg) {
     struct Mandelbulb* t = calloc(1, sizeof(struct Mandelbulb));
     struct Vertex vertices[] = {
@@ -133,18 +145,6 @@ struct Object* CreateMandelbulb(struct Render* r, struct Config* cfg) {
     };
     int n_vertices = 6;
 
-    struct Object base = {
-        .draw = t_draw,
-        .free = t_free,
-        .move_left = t_left,
-        .move_right = t_right,
-        .move_up = t_up,
-        .move_down = t_down,
-        .zoom_in = t_zoom_in,
-        .zoom_out = t_zoom_out,
-        .mode = t_mode
-    };
-
     struct ShaderCode vertex_shader = {
         .glsl =models_mandelbulb_vert,
         .spir_v =models_mandelbulb_vert_spv,
@@ -157,7 +157,7 @@ struct Object* CreateMandelbulb(struct Render* r, struct Config* cfg) {
     };
 
     t->b = r->buffer_manager(r);
-    t->base = base;
+    t->base.vtbl = &object_vtbl;
     t->T[0] = t->T[1] = 0.0; t->T[2] = 2.0;
 
     struct PipelineBuilder* p = r->pipeline(r);
