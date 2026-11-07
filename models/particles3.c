@@ -192,6 +192,11 @@ static void mouse_move_event(struct EventConsumer* cons, struct InputEvent* ev) 
 
 }
 
+static const struct EventConsumerVtbl key_consumer_vtbl = {
+    .key_event = key_event,
+    .mouse_move_event = mouse_move_event
+};
+
 static void move_left(struct Object* obj, int mods) {
     struct Particles* t = (struct Particles*)obj;
 
@@ -916,9 +921,8 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     t->plot_interval = cfg_geti_def(cfg, "plot_interval", -1);
 
     t->cons.t = t;
-    t->cons.cons.key_event = key_event;
-    t->cons.cons.mouse_move_event = mouse_move_event;
-    events->subscribe(events, (struct EventConsumer*)&t->cons);
+    t->cons.cons.vtbl = &key_consumer_vtbl;
+    ev_subscribe(events, (struct EventConsumer*)&t->cons);
 
     return (struct Object*)t;
 }

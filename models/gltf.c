@@ -441,7 +441,7 @@ struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProd
     free(images); // TODO
 
     cam_event_consumer_init(&t->cons, &t->cam);
-    events->subscribe(events, (struct EventConsumer*) &t->cons);
+    ev_subscribe(events, (struct EventConsumer*) &t->cons);
 
     return (struct Object*)t;
 }
