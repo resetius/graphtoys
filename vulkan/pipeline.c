@@ -295,14 +295,16 @@ static void start_compute(struct Pipeline* p1, int sx, int sy, int sz) {
         VK_STRUCTURE_TYPE_MEMORY_BARRIER,
         NULL,
         VK_ACCESS_MEMORY_WRITE_BIT,
-        VK_ACCESS_MEMORY_READ_BIT
+        VK_ACCESS_MEMORY_READ_BIT|VK_ACCESS_MEMORY_WRITE_BIT
     };
 
+    // Compute-queue stages only: later dispatches and update_sync transfers wait for this one;
+    // graphics waits on compute_semaphore instead.
     // maybe use BufferMemoryBarrier?
     vkCmdPipelineBarrier(
         r->compute_buffer,
-        VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT|VK_PIPELINE_STAGE_TRANSFER_BIT,
         0,
         1, &barrier,
         0, NULL,
