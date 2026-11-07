@@ -187,7 +187,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 static void free_(struct Object* obj) {
     struct Particles* t = (struct Particles*)obj;
     t->pl->free(t->pl);
-    t->b->free(t->b);
+    buffer_mgr_free(t->b);
     free(obj);
 }
 
@@ -257,14 +257,14 @@ struct Object* CreateParticles2(struct Render* r, struct Config* cfg) {
     int size = t->particles*4*sizeof(float);
 
     t->dirty = clear_frames;
-    t->indices = t->b->create(t->b, BUFFER_ARRAY, MEMORY_STATIC, data.indices, t->particles*sizeof(int));
+    t->indices = buffer_create(t->b, BUFFER_ARRAY, MEMORY_STATIC, data.indices, t->particles*sizeof(int));
 
-    t->uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
+    t->uniform = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
 
-    t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
-    t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.vels, size);
-    t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.accel, size);
-    t->new_pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
+    t->pos = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
+    t->vel = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.vels, size);
+    t->accel = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.accel, size);
+    t->new_pos = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
 
     t->indices_vao = t->pl->buffer_assign(t->pl, 0, t->indices);
 

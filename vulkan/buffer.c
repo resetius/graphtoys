@@ -24,7 +24,7 @@ static int create(
 {
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
     struct RenderImpl* r = b->r;
-    struct BufferImpl* buf = (struct BufferImpl*)b->base.iface.acquire(mgr, size);
+    struct BufferImpl* buf = (struct BufferImpl*)buffer_acquire(mgr, size);
     int i;
 
     buf->size = size;
@@ -110,7 +110,7 @@ static void update(
     size_t size)
 {
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
-    struct BufferImpl* buf = (struct BufferImpl*)mgr->get(mgr, id);
+    struct BufferImpl* buf = (struct BufferImpl*)buffer_get(mgr, id);
     struct RenderImpl* r = b->r;
     void* dest;
     int i = (buf->n_buffers == 1)
@@ -132,7 +132,7 @@ static void update_sync(
     int flags)
 {
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
-    struct BufferImpl* buf = (struct BufferImpl*)mgr->get(mgr, id);
+    struct BufferImpl* buf = (struct BufferImpl*)buffer_get(mgr, id);
     struct RenderImpl* r = b->r;
     int i = (buf->n_buffers == 1)
         ? 0
@@ -175,14 +175,18 @@ static void release(struct BufferManager* mgr, void* buf1) {
     }
 }
 
+// no read: reading buffers back is not implemented for Vulkan
+static const struct BufferManagerVtbl buffer_vtbl = {
+    .create = create,
+    .release = release,
+    .update = update,
+    .update_sync = update_sync,
+};
+
 struct BufferManager* buf_mgr_vulkan_new(struct Render* r) {
     struct BufferManagerImpl* b = calloc(1, sizeof(*b));
     buffermanager_base_ctor(&b->base, sizeof(struct BufferImpl));
-
-    b->base.iface.create = create;
-    b->base.iface.release = release;
-    b->base.iface.update = update;
-    b->base.iface.update_sync = update_sync;
+    b->base.iface.vtbl = &buffer_vtbl;
 
     b->r = (struct RenderImpl*)r;
 

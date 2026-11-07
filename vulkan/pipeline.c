@@ -141,7 +141,7 @@ static int buffer_assign(struct Pipeline* p1, int id, int buffer_id) {
     int logical_id = p->n_buffers++; // logical id
     struct Buffer* buf = &p->buffers[logical_id];
     memset(buf, 0, sizeof(*buf));
-    memcpy(&buf->base, p->b->get(p->b, buffer_id), sizeof(buf->base));
+    memcpy(&buf->base, buffer_get(p->b, buffer_id), sizeof(buf->base));
 
     buf->stride = descr->stride;
     buf->n_vertices = buf->base.size / descr->stride;
@@ -159,7 +159,7 @@ static void uniform_assign(struct Pipeline* p1, int uniform_id, int buffer_id)
         p->descriptorSetFlags[i] = 0; // rebuild descriptor set
     }
     memcpy(&p->uniforms[uniform_id].base,
-           p->b->get(p->b, buffer_id),
+           buffer_get(p->b, buffer_id),
            sizeof(p->uniforms[uniform_id].base));
 }
 
@@ -380,7 +380,7 @@ static void draw_indexed(struct Pipeline* p1, int id, int index, int index_byte_
     if (id < p->n_buffers /*&& index_byte_size > 1*/) {
         VkDeviceSize offset = 0;
         struct Buffer* buf = &p->buffers[id];
-        struct BufferImpl* ibuf = (struct BufferImpl*)p->b->get(p->b, index);
+        struct BufferImpl* ibuf = (struct BufferImpl*)buffer_get(p->b, index);
         int n_vertices = ibuf->size / index_byte_size;
 
         //printf("Draw %d %d\n", id, n_vertices);

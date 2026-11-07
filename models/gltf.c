@@ -117,7 +117,7 @@ static void t_free(struct Object* obj) {
         }
     }
     free(t->nodes);
-    t->b->free(t->b);
+    buffer_mgr_free(t->b);
     free(t);
 }
 

@@ -65,8 +65,7 @@ static int create(
     const void* data,
     size_t size)
 {
-    struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
-    struct BufferImpl* buf = (struct BufferImpl*)b->base.iface.acquire(mgr, size);
+    struct BufferImpl* buf = (struct BufferImpl*)buffer_acquire(mgr, size);
     int btype = buffer_type(type);
     int mtype = memory_type(mem_type);
     buf->type = btype;
@@ -86,7 +85,7 @@ static void update(
     size_t offset,
     size_t size)
 {
-    struct BufferImpl* buf = (struct BufferImpl*)mgr->get(mgr, id);
+    struct BufferImpl* buf = (struct BufferImpl*)buffer_get(mgr, id);
     glBindBuffer(buf->type, buf->buffer);
     glBufferSubData(buf->type, offset, size, data);
     glBindBuffer(buf->type, 0);
@@ -110,7 +109,7 @@ static void read(
     size_t offset,
     size_t size)
 {
-    struct BufferImpl* buf = (struct BufferImpl*)mgr->get(mgr, id);
+    struct BufferImpl* buf = (struct BufferImpl*)buffer_get(mgr, id);
     glBindBuffer(buf->type, buf->buffer);
     glGetBufferSubData(buf->type, offset, size, data);
     glBindBuffer(buf->type, 0);
@@ -124,15 +123,18 @@ static void release(struct BufferManager* mgr, void* buf1) {
     }
 }
 
+static const struct BufferManagerVtbl buffer_vtbl = {
+    .create = create,
+    .release = release,
+    .update = update,
+    .update_sync = update_sync,
+    .read = read,
+};
+
 struct BufferManager* buf_mgr_opengl_new(struct Render* r) {
     struct BufferManagerImpl* b = calloc(1, sizeof(*b));
     buffermanager_base_ctor(&b->base, sizeof(struct BufferImpl));
-
-    b->base.iface.create = create;
-    b->base.iface.release = release;
-    b->base.iface.update = update;
-    b->base.iface.update_sync = update_sync;
-    b->base.iface.read = read;
+    b->base.iface.vtbl = &buffer_vtbl;
 
     return (struct BufferManager*)b;
 }

@@ -24,6 +24,10 @@ enum BufferMemoryType {
 // использоваться в разных pipeline с разными binding_id/descriptor_set
 // Перед использованием буфера шлем descriptorset в сommand buffer или делаем bind
 struct BufferManager {
+    const struct BufferManagerVtbl* vtbl;
+};
+
+struct BufferManagerVtbl {
     // uniform create per-image
     // dynamic create per-image?
     int (*create)(
@@ -58,29 +62,20 @@ struct BufferManager {
         size_t offset,
         size_t size);
 
-    void (*destroy)(struct BufferManager* mgr, int id);
-
     // internal handler
-    void* (*get)(struct BufferManager* mgr, int id);
     void (*release)(struct BufferManager* mgr, void* buffer);
-    struct BufferBase* (*acquire)(struct BufferManager* mgr, size_t buffer_size);
-
-    void (*free)(struct BufferManager* mgr);
 };
 
-int buffer_create(
-    struct BufferManager* b,
-    enum BufferType type,
-    enum BufferMemoryType mem_type,
-    const void* data,
-    size_t size);
+#define buffer_create(b, type, mem_type, data, size) ((b)->vtbl->create((b), (type), (mem_type), (data), (size)))
+#define buffer_update(b, id, data, offset, size) ((b)->vtbl->update((b), (id), (data), (offset), (size)))
+#define buffer_update_sync(b, id, data, offset, size, flags) ((b)->vtbl->update_sync((b), (id), (data), (offset), (size), (flags)))
+#define buffer_read(b, id, data, offset, size) ((b)->vtbl->read((b), (id), (data), (offset), (size)))
 
-void buffer_update(
-    struct BufferManager* b,
-    int id,
-    const void* data,
-    size_t offset,
-    size_t size);
+// Not virtual: the same for all backends (render/buffer.c).
+void buffer_destroy(struct BufferManager* mgr, int id);
+void* buffer_get(struct BufferManager* mgr, int id);
+struct BufferBase* buffer_acquire(struct BufferManager* mgr, size_t buffer_size);
+void buffer_mgr_free(struct BufferManager* mgr);
 
 // buffer_id
 // local_buffer_id (buffer_id in pipeline)

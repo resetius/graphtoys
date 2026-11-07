@@ -260,7 +260,7 @@ static void maybe_debug_output(struct Particles* t, const char* name, int index)
     int size = nn*nn*nn*sizeof(float);
     float* data = malloc(size);
 
-    t->b->read(t->b, index, data, 0, size);
+    buffer_read(t->b, index, data, 0, size);
 
     FILE* f = fopen(buf, "wb");
 #define off(i,k,j) ((i)*nn*nn+(k)*nn+(j))
@@ -318,7 +318,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     int nn = t->vert.nn;
 /*
-    t->b->read(t->b, t->pos, t->pos_data, 0, 4*t->particles*sizeof(float));
+    buffer_read(t->b, t->pos, t->pos_data, 0, 4*t->particles*sizeof(float));
     for (int i = 0; i < t->particles; i++) {
         float* p = &t->pos_data[i*4];
         printf("%d: %e %e %e\n", i, p[0], p[1], p[2]);
@@ -351,7 +351,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
     } else {
         for (int stage = 1; stage <= 7; stage ++) {
             t->comp_set.stage = stage;
-            t->b->update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
+            buffer_update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
 
             if (t->poisson_type == 0) {
                 int groups = nn/16;
@@ -374,12 +374,12 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
     if (t->pp_enabled) {
         t->comp_pp_set.stage = 1;
-        t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
+        buffer_update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
         t->comp_pp_sort->start_compute(t->comp_pp_sort, 1, 1, 1);
         render_counter_submit(t->r, t->counter_pp_sort);
 
         t->comp_pp_set.stage = 2;
-        t->b->update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
+        buffer_update_sync(t->b, t->comp_pp_settings, &t->comp_pp_set, 0, sizeof(t->comp_pp_set), 1);
         t->comp_pp->start_compute(t->comp_pp, 32, 32, 32);
         render_counter_submit(t->r, t->counter_pp);
     }
@@ -455,7 +455,7 @@ static void free_(struct Object* obj) {
     t->comp_strength->free(t->comp_strength);
     t->comp_pp->free(t->comp_pp);
     t->comp_pp_sort->free(t->comp_pp_sort);
-    t->b->free(t->b);
+    buffer_mgr_free(t->b);
     free(t->psi);
     free(t->pos_data);
     free(t->density);
@@ -745,15 +745,15 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     t->density = NULL;
     //t->density = malloc(nn*nn*nn*sizeof(float));
     //distribute(nn, 1, t->density, data.coords, t->particles, h, origin);
-    t->density_index = t->b->create(t->b, BUFFER_SHADER_STORAGE,
+    t->density_index = buffer_create(t->b, BUFFER_SHADER_STORAGE,
                                     t->debug ? MEMORY_DYNAMIC_READ : MEMORY_STATIC,
                                     NULL /*t->density*/,
                                     nlists*nn*nn*nn*sizeof(float));
     t->psi = malloc(nn*nn*nn*sizeof(float));
-    t->psi_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL,
+    t->psi_index = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL,
                                 nn*nn*nn*sizeof(float));
 
-    t->e_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL,
+    t->e_index = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL,
                               4*nn*nn*nn*sizeof(float));
 
     int n = t->comp_set.n;
@@ -782,18 +782,18 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     }
 #undef off
 
-    t->fft_table_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, fft_table, fft_table_size);
+    t->fft_table_index = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, fft_table, fft_table_size);
     free(fft_table);
     // TODO: improve memory usage
     // 1 -- input
     // 2 -- output
     // 3 -- temporary buffer 1
     // 4 -- temporary buffer 2
-    t->work_index = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, 4*nn*nn*nn*sizeof(float));
+    t->work_index = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, 4*nn*nn*nn*sizeof(float));
 
-    t->indices = t->b->create(t->b, BUFFER_ARRAY, MEMORY_STATIC, data.indices, t->particles*sizeof(int));
+    t->indices = buffer_create(t->b, BUFFER_ARRAY, MEMORY_STATIC, data.indices, t->particles*sizeof(int));
 
-    t->uniform = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct VertBlock));
+    t->uniform = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct VertBlock));
 
     t->pos_data = malloc(size);
 
@@ -806,10 +806,10 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     printf("> %e %e %e %e %e\n", t->rho, mass, h, l, l*l*l);
     //abort();
 
-    t->pos = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
-    t->vel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.vels, size);
-    t->accel = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.accel, size);
-    t->color = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.color, size);
+    t->pos = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.coords, size);
+    t->vel = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.vels, size);
+    t->accel = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.accel, size);
+    t->color = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, data.color, size);
 
     t->comp_pp_set.nn = 64; // t->comp_set.nn; // 32;
     memcpy(t->comp_pp_set.origin, t->comp_set.origin, sizeof(t->comp_pp_set.origin));
@@ -823,20 +823,20 @@ struct Object* CreateParticles3(struct Render* r, struct Config* cfg, struct Eve
     t->comp_set.nlists = t->comp_pp_set.nlists = nlists;
 
     // TODO: don't allocate it for pp-only
-    t->pp_force = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);
+    t->pp_force = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, size);
 
     if (t->pp_enabled) {
         int cells_size =
             t->comp_pp_set.nn*t->comp_pp_set.nn*t->comp_pp_set.nn*
             t->comp_pp_set.cell_size*sizeof(int);
 
-        t->cells = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,NULL,cells_size);
+        t->cells = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC,NULL,cells_size);
     }
 
-    t->list = t->b->create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, (t->particles+64*32*32)*sizeof(int));
+    t->list = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, (t->particles+64*32*32)*sizeof(int));
 
-    t->comp_settings = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, &t->comp_set, sizeof(t->comp_set));
-    t->comp_pp_settings = t->b->create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, &t->comp_pp_set, sizeof(t->comp_pp_set));
+    t->comp_settings = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, &t->comp_set, sizeof(t->comp_set));
+    t->comp_pp_settings = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, &t->comp_pp_set, sizeof(t->comp_pp_set));
 
     t->indices_vao = t->pl->buffer_assign(t->pl, 0, t->indices);
 
