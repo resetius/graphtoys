@@ -889,23 +889,24 @@ static struct PipelineBuilder* set_geometry(struct PipelineBuilder* p1, enum Geo
     return p1;
 }
 
+static const struct PipelineVtbl pipeline_vtbl = {
+    .buffer_assign = buffer_assign,
+    .storage_swap = storage_swap,
+    .storage_assign = uniform_assign,
+    .uniform_assign = uniform_assign,
+    .free = pipeline_free,
+    .start_compute = start_compute,
+    .start = start,
+    .use_texture = use_texture,
+    .draw = draw,
+    .draw_indexed = draw_indexed,
+};
+
 static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     struct PipelineImpl* pl = calloc(1, sizeof(*pl));
     struct RenderImpl* r = p->r;
-    struct Pipeline base = {
-        .buffer_assign = buffer_assign,
-        .storage_swap = storage_swap,
-        .storage_assign = uniform_assign,
-        .uniform_assign = uniform_assign,
-        .free = pipeline_free,
-        .start_compute = start_compute,
-        .start = start,
-        .use_texture = use_texture,
-        .draw = draw,
-        .draw_indexed = draw_indexed,
-    };
-    pl->base = base;
+    pl->base.vtbl = &pipeline_vtbl;
     pl->r = r;
 
     // TODO: check end state

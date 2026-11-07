@@ -162,7 +162,7 @@ void font_free(struct Font* o) {
                 char_free(f->chars[i]);
             }
         }
-        f->pl->free(f->pl);
+        pl_free(f->pl);
         buffer_mgr_free(f->b);
         free(f);
     }
@@ -274,7 +274,7 @@ void label_render(struct Label* l)
         //f->b->update_sync(f->b, f->uniform_id, &uniform, 0, sizeof(uniform), 0);
         buffer_update(f->b, f->uniform_id, &uniform, 0, sizeof(uniform));
     }
-    f->pl->start(f->pl);
+    pl_start(f->pl);
 
     for (i = 0; i < l->len; i++) {
         uint32_t symbol = l->text[i];
@@ -308,8 +308,8 @@ void label_render(struct Label* l)
             if (changed) {
                 buffer_update(f->b, l->buf[i].id, vertices, 0, sizeof(vertices));
             }
-            f->pl->use_texture(f->pl, char_texture(ch));
-            f->pl->draw(f->pl, l->buf[i].vao);
+            pl_use_texture(f->pl, char_texture(ch));
+            pl_draw(f->pl, l->buf[i].vao);
         }
         if (!ch) {
             continue;

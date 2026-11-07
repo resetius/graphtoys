@@ -587,22 +587,23 @@ static struct PipelineBuilder* set_bmgr(struct PipelineBuilder* p1, struct Buffe
     return p1;
 }
 
+static const struct PipelineVtbl pipeline_vtbl = {
+    .free = pipeline_free,
+    .storage_assign = uniform_assign,
+    .uniform_assign = uniform_assign,
+    .buffer_assign = buffer_assign,
+    .storage_swap = storage_swap,
+    .start = start,
+    .start_compute = start_compute,
+    .draw = draw,
+    .draw_indexed = draw_indexed,
+    .use_texture = use_texture
+};
+
 static struct Pipeline* build(struct PipelineBuilder* p1) {
     struct PipelineBuilderImpl* p = (struct PipelineBuilderImpl*)p1;
     struct PipelineImpl* pl = calloc(1, sizeof(*pl));
-    struct Pipeline base = {
-        .free = pipeline_free,
-        .storage_assign = uniform_assign,
-        .uniform_assign = uniform_assign,
-        .buffer_assign = buffer_assign,
-        .storage_swap = storage_swap,
-        .start = start,
-        .start_compute = start_compute,
-        .draw = draw,
-        .draw_indexed = draw_indexed,
-        .use_texture = use_texture
-    };
-    pl->base = base;
+    pl->base.vtbl = &pipeline_vtbl;
     pl->n_programs = p->n_programs;
     pl->programs = malloc(pl->n_programs*sizeof(struct Program*));
     memcpy(pl->programs, p->programs, pl->n_programs*sizeof(struct Program*));

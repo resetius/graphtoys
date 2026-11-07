@@ -104,14 +104,14 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     memcpy(t->uniform.T, t->T, sizeof(t->T));
     memcpy(&t->uniform.next, &t->cur_type, 4);
 
-    t->pl->start(t->pl);
+    pl_start(t->pl);
     buffer_update(t->b, t->uniform_id, &t->uniform, 0, sizeof(t->uniform));
-    t->pl->draw(t->pl, t->model);
+    pl_draw(t->pl, t->model);
 }
 
 static void t_free(struct Object* obj) {
     struct Mandelbulb* t = (struct Mandelbulb*)obj;
-    t->pl->free(t->pl);
+    pl_free(t->pl);
     buffer_mgr_free(t->b);
     free(t);
 }

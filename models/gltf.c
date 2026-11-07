@@ -86,12 +86,12 @@ static void draw_node(struct Model* t, struct Node* n, mat4x4 v, mat4x4 p) {
 
     mat4x4_mul_vec4(n->uniform.light, v, t->light);
 
-    n->pl->start(n->pl);
+    pl_start(n->pl);
     if (n->tex) {
-        n->pl->use_texture(n->pl, n->tex);
+        pl_use_texture(n->pl, n->tex);
     }
     buffer_update(t->b, n->uniform_id, &n->uniform, 0, sizeof(n->uniform));
-    n->pl->draw_indexed(n->pl, n->model, n->index, n->index_byte_size);
+    pl_draw_indexed(n->pl, n->model, n->index, n->index_byte_size);
 }
 
 static void t_draw(struct Object* obj, struct DrawContext* ctx) {
@@ -113,7 +113,7 @@ static void t_free(struct Object* obj) {
     struct Model* t = (struct Model*)obj;
     for (int i = 0; i < t->n_nodes; i++) {
         if (!t->nodes[i].skip) {
-            t->nodes[i].pl->free(t->nodes[i].pl);
+            pl_free(t->nodes[i].pl);
         }
     }
     free(t->nodes);
@@ -325,7 +325,7 @@ void load_node(struct Render* r, struct BufferManager* b, struct Node* n, int i,
         ->build(pl);
 
     n->uniform_id = buffer_create(b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct UniformBlock));
-    n->pl->uniform_assign(n->pl, 0, n->uniform_id);
+    pl_uniform_assign(n->pl, 0, n->uniform_id);
 
     int model_buffer_id = buffer_create(b, BUFFER_ARRAY, MEMORY_STATIC, vertices, k*sizeof(struct Vertex));
     n->model = pl_buffer_assign(n->pl, 0, model_buffer_id);

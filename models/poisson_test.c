@@ -91,7 +91,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         int stage = 0;
         t->comp_set.stage = stage;
         buffer_update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
-        t->comp_poisson->start_compute(t->comp_poisson, 1, 1, 1);
+        pl_start_compute(t->comp_poisson, 1, 1, 1);
     } else {
         for (int stage = 1; stage <= 7; stage ++) {
             t->comp_set.stage = stage;
@@ -100,10 +100,10 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
             if (t->poisson_type == 1) {
                 int groups = nn / 4; // must be synchronized
                                      // with local_size_x/local_size_y
-                t->comp_poisson->start_compute(t->comp_poisson, groups, groups, 1);
+                pl_start_compute(t->comp_poisson, groups, groups, 1);
             } else if (t->poisson_type == 2) {
                 int groups = nn;
-                t->comp_poisson2->start_compute(t->comp_poisson2, groups, groups, 1);
+                pl_start_compute(t->comp_poisson2, groups, groups, 1);
             }
         }
     }
@@ -160,7 +160,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 	//t->comp_set.stage = 10; // ok
 	t->comp_set.stage = 11;
         buffer_update_sync(t->b, t->comp_settings, &t->comp_set, 0, sizeof(t->comp_set), 1);
-        t->comp_poisson2->start_compute(t->comp_poisson2, 1, 1, 1);
+        pl_start_compute(t->comp_poisson2, 1, 1, 1);
         buffer_read(t->b, t->psi_index, t->psi, 0, nn*sizeof(float));
         for (int i = 0; i < nn; i++) {
             if (fabs(output[i] - t->psi[i]) > 1e-4) {
@@ -180,7 +180,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 
 static void free_(struct Object* obj) {
     struct Particles* t = (struct Particles*)obj;
-    t->comp_poisson->free(t->comp_poisson);
+    pl_free(t->comp_poisson);
     buffer_mgr_free(t->b);
     free(t->psi);
     free(t->density);
@@ -299,16 +299,16 @@ struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
     t->work_index = buffer_create(t->b, BUFFER_SHADER_STORAGE, MEMORY_STATIC, NULL, 4*nn*nn*nn*sizeof(float));
     t->comp_settings = buffer_create(t->b, BUFFER_UNIFORM, MEMORY_DYNAMIC, NULL, sizeof(struct CompSettings));
 
-    t->comp_poisson->uniform_assign(t->comp_poisson, 0, t->comp_settings);
-    t->comp_poisson->storage_assign(t->comp_poisson, 1, t->fft_table_index);
-    t->comp_poisson->storage_assign(t->comp_poisson, 2, t->work_index);
-    t->comp_poisson->storage_assign(t->comp_poisson, 3, t->density_index);
-    t->comp_poisson->storage_assign(t->comp_poisson, 4, t->psi_index);
+    pl_uniform_assign(t->comp_poisson, 0, t->comp_settings);
+    pl_storage_assign(t->comp_poisson, 1, t->fft_table_index);
+    pl_storage_assign(t->comp_poisson, 2, t->work_index);
+    pl_storage_assign(t->comp_poisson, 3, t->density_index);
+    pl_storage_assign(t->comp_poisson, 4, t->psi_index);
 
-    t->comp_poisson2->uniform_assign(t->comp_poisson2, 0, t->comp_settings);
-    t->comp_poisson2->storage_assign(t->comp_poisson2, 1, t->fft_table_index);
-    t->comp_poisson2->storage_assign(t->comp_poisson2, 2, t->density_index);
-    t->comp_poisson2->storage_assign(t->comp_poisson2, 3, t->psi_index);
+    pl_uniform_assign(t->comp_poisson2, 0, t->comp_settings);
+    pl_storage_assign(t->comp_poisson2, 1, t->fft_table_index);
+    pl_storage_assign(t->comp_poisson2, 2, t->density_index);
+    pl_storage_assign(t->comp_poisson2, 3, t->psi_index);
 
     return (struct Object*)t;
 }
