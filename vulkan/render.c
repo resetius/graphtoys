@@ -155,6 +155,22 @@ static void counter_submit_(struct Render* r1, int id)
     }
 }
 
+static void viewport_from_extent_(struct RenderImpl* r) {
+    int w = r->sc.extent.width;
+    int h = r->sc.extent.height;
+    VkViewport viewport = {
+        .x = 0,
+        .y = h,
+        .width = w,
+        .height = -h,
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f
+    };
+    r->viewport = viewport;
+    VkRect2D scissor = {{0, 0}, r->sc.extent};
+    r->scissor = scissor;
+}
+
 static void recreate_swapchain_(struct RenderImpl* r) {
     vkDeviceWaitIdle(r->log_dev);
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(r->phy_dev, r->surface, &r->caps);
@@ -179,8 +195,8 @@ static void recreate_swapchain_(struct RenderImpl* r) {
     rp_init(&r->rp, r->log_dev, r->sc.im_format, r->sc.depth_format);
     rt_init(&r->rt, r);
     r->update_viewport = 0;
-    VkRect2D scissor = {{0, 0}, r->sc.extent};
-    r->scissor = scissor;
+    // Recreation can start from an acquire or present result before the resize callback.
+    viewport_from_extent_(r);
 }
 
 static void draw_begin_(struct Render* r1) {
@@ -497,19 +513,7 @@ static void init_(struct Render* r1) {
         frame_init(&r->frames[i], r);
     }
 
-    int w = r->sc.extent.width;
-    int h = r->sc.extent.height;
-    VkViewport viewport = {
-        .x = 0,
-        .y = h,
-        .width = w,
-        .height = -h,
-        .minDepth = 0.0f,
-        .maxDepth = 1.0f
-    };
-    r->viewport = viewport;
-    VkRect2D scissor = {{0, 0}, r->sc.extent};
-    r->scissor = scissor;
+    viewport_from_extent_(r);
 
     r->stats = vk_stats_new(r);
 
