@@ -162,11 +162,18 @@ static void draw_begin_(struct Render* r1) {
         vkDeviceWaitIdle(r->log_dev);
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(r->phy_dev, r->surface, &r->caps);
 
+        int n_images = r->sc.n_images;
         rt_destroy(&r->rt);
         rp_destroy(&r->rp);
         sc_destroy(&r->sc);
 
         sc_init(&r->sc, r);
+        // Frames, uniform buffers and descriptor sets are created once for n_images.
+        if (r->sc.n_images != n_images) {
+            fprintf(stderr, "Swapchain image count changed from %d to %d on recreation, this is not supported\n",
+                    n_images, r->sc.n_images);
+            exit(-1);
+        }
         rp_init(&r->rp, r->log_dev, r->sc.im_format, r->sc.depth_format);
         rt_init(&r->rt, r);
         r->update_viewport = 0;
@@ -428,6 +435,12 @@ static void init_(struct Render* r1) {
     printf("Logical device created\n");
 
     sc_init(&r->sc, r);
+    int max_images = sizeof(r->frames)/sizeof(r->frames[0]);
+    if (r->sc.n_images > max_images) {
+        fprintf(stderr, "Swapchain has %d images, at most %d are supported\n",
+                r->sc.n_images, max_images);
+        exit(-1);
+    }
     printf("Swapchain initialized\n");
     rp_init(&r->rp, r->log_dev, r->sc.im_format, r->sc.depth_format);
     printf("Renderpass initialized\n");
