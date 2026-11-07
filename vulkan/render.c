@@ -440,7 +440,7 @@ static void init_(struct Render* r1) {
     };
 
     // compute {
-    cb_init(&r->compute_cmd, r);
+    cb_init(&r->compute_cmd, r, r->compute_family);
     vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->compute_semaphore);
     // compute }
 

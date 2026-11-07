@@ -4,10 +4,10 @@
 #include "commandbuffer.h"
 #include "render_impl.h"
 
-void cb_init(struct CommandBuffer* d, struct RenderImpl* r) {
+void cb_init(struct CommandBuffer* d, struct RenderImpl* r, uint32_t family) {
     VkCommandPoolCreateInfo cpInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-        .queueFamilyIndex = r->graphics_family,
+        .queueFamilyIndex = family,
         .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
     };
 
