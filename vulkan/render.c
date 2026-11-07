@@ -30,7 +30,6 @@ static void free_(struct Render* r1) {
     rt_destroy(&r->rt);
     rp_destroy(&r->rp);
     sc_destroy(&r->sc);
-    cb_destroy(&r->compute_cmd);
     vk_stats_free(r->stats);
 
     for (i = 0; i < r->sc.n_images; i++) {
@@ -199,8 +198,9 @@ static void draw_begin_(struct Render* r1) {
     r->buffer = frame_cb(r->frame);
     cb_begin(&r->frame->cb, r->buffer);
 
-    r->compute_buffer = cb_acquire(&r->compute_cmd);
-    cb_begin(&r->compute_cmd, r->compute_buffer);
+    // Safe to reset after the frame fence: the graphics submit waits on compute_semaphore.
+    r->compute_buffer = frame_compute_cb(r->frame);
+    cb_begin(&r->frame->compute_cb, r->compute_buffer);
 
     vkCmdSetViewport(r->buffer, 0, 1, &r->viewport);
     vkCmdSetScissor(r->buffer, 0, 1, &r->scissor);
@@ -225,7 +225,7 @@ static void draw_end_(struct Render* r1) {
 
     rp_end(&r->rp, r->buffer);
     cb_end(&r->frame->cb, r->buffer);
-    cb_end(&r->compute_cmd, r->compute_buffer);
+    cb_end(&r->frame->compute_cb, r->compute_buffer);
 
     VkPipelineStageFlags computeWaitStages[] = {VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT};
 
@@ -240,7 +240,6 @@ static void draw_end_(struct Render* r1) {
         .pSignalSemaphores = &r->compute_semaphore,
     };
     vkQueueSubmit(r->c_queue, 1, &computeSubmitInfo, VK_NULL_HANDLE);
-    //cb_reset(&r->compute_cmd);
 
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     VkSemaphore waitSemaphores[] = {
@@ -440,7 +439,6 @@ static void init_(struct Render* r1) {
     };
 
     // compute {
-    cb_init(&r->compute_cmd, r, r->compute_family);
     vkCreateSemaphore(r->log_dev, &semaphoreInfo, NULL, &r->compute_semaphore);
     // compute }
 

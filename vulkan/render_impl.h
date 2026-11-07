@@ -64,7 +64,6 @@ struct RenderImpl {
     VkCommandBuffer buffer;
 
     // compute {
-    struct CommandBuffer compute_cmd;
     VkCommandBuffer compute_buffer;
     VkSemaphore compute_semaphore;
     // compute }
