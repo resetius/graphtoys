@@ -111,7 +111,6 @@ SOURCES=main.c\
 	lib/camera.c\
 	lib/config.c\
 	lib/object.c\
-	lib/ref.c\
 	font/font.c\
 	contrib/json/json.c\
 	$(KTX_SOURCES)
