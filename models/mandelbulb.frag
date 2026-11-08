@@ -7,6 +7,8 @@ layout (std140) uniform MatrixBlock {
     uniform vec4 T;
     uniform int NextType;
     uniform float Ratio;
+    uniform int Camera;
+    uniform float Dist;
 };
 
 layout (location = 0) in vec2 coord;
@@ -86,11 +88,14 @@ vec3 next_point(vec3 p, vec3 p0, inout float dr) {
     }
 }
 
-float DE(vec3 p0) {
+// trap: the minimum of |p|^2 along the orbit (orbit trap), used for coloring
+float DE(vec3 p0, out float trap) {
     vec3 p = vec3(0,0,0);
     float dr = 1.0;
+    trap = 1e10;
     for (int i = 1; i < 32; i++) {
         p = next_point(p, p0, dr);
+        trap = min(trap, dot(p, p));
         if (dot(p, p) > 4) {
             break;
         }
@@ -102,24 +107,41 @@ float DE(vec3 p0) {
     return 0.5*log(r)*r/dr;
 }
 
+float DE(vec3 p0) {
+    float trap;
+    return DE(p0, trap);
+}
 
-bool check_point(vec2 p0, out vec3 n) {
+
+// ao: 1 for a ray that hit at once, towards 0 for one that needed many steps (crevices)
+bool check_point(vec2 p0, out vec3 n, out float ao, out float trap) {
     bool flag = false;
     float dist = 0;
     vec4 p1 = vec4(0,0,0,0);
 
-    vec3 ray = (Rot*vec4(0,0,-1,0)).xyz;
-    vec3 p = (Rot*vec4(p0.x,p0.y,2,0)).xyz;
+    vec3 ray, p;
+    if (Camera != 0) {
+        // perspective camera at distance Dist from the center, p0 is the tangent of the view angle
+        ray = (Rot*vec4(normalize(vec3(p0, -1)), 0)).xyz;
+        p = (Rot*vec4(0, 0, Dist, 0)).xyz;
+    } else {
+        ray = (Rot*vec4(0,0,-1,0)).xyz;
+        p = (Rot*vec4(p0.x,p0.y,2,0)).xyz;
+    }
     float td = 0; int i; int max_iters = 200;
     for (i = 0; td < 10 && i < max_iters; i++) {
         dist = DE(p);
-        if (abs(dist) < 0.0001) {
+        // with the camera a pixel grows with the distance, so does the hit threshold
+        float thr = Camera != 0 ? 5e-5*T.z*td : 0.0001;
+        if (abs(dist) <= thr) {
             flag = true;
             break;
         }
         td += dist;
         p += ray * dist;
     }
+    ao = 1.0 - float(i)/float(max_iters);
+    trap = 0.0;
     p1 = vec4(p.x,p.y,p.z,0);
 
     dist = length(p1);
@@ -127,10 +149,11 @@ bool check_point(vec2 p0, out vec3 n) {
     n = vec3(Rot*vec4(0,0,1,0));
 
     if (flag) {
-        float eps = 1e-2*T.z;
+        float eps = 1e-2*T.z*(Camera != 0 ? td : 1.0);
         vec2 h = vec2(1,-1);
         //vec3 p = vec3(p0, z0);
         vec3 p = vec3(p1);
+        DE(p, trap);
         n = normalize(
             h.xyy*DE(p + h.xyy*eps) +
             h.yyx*DE(p + h.yyx*eps) +
@@ -143,39 +166,45 @@ bool check_point(vec2 p0, out vec3 n) {
     return flag;
 }
 
+// n is in camera space: the viewer looks along -z
+vec3 shade(vec3 n, float ao, float trap) {
+    //float colorRegulator = 20*l;
+    //vec3 color = vec3(0.95 + .012*colorRegulator , 1.0, .2+.4*(1.0+sin(.3*colorRegulator)));
+    //vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    //vec3 m = abs(fract(color.xxx + K.xyz) * 6.0 - K.www);
+
+    //float r = 0.5*(z+1.0);
+    //float b = 0.5*(z+1.0);
+    //fragColor = 0.5*(z+1.0)*vec4(r, 1.0, b, 1.0);
+    //return;
+    vec3 albedo = 0.55 + 0.45*cos(6.2831853*(1.2*sqrt(trap) + vec3(0.0, 0.15, 0.3)));
+
+    vec3 s = normalize(vec3(-0.4, 0.6, 0.7)); // key light: upper left, in front
+    vec3 h = normalize(s + vec3(0.0, 0.0, 1.0));
+    float diff = max(dot(n, s), 0.0);
+    float spec = pow(max(dot(n, h), 0.0), 32.0);
+
+    return (albedo*(0.3 + 0.9*diff) + 0.3*spec)*ao;
+
+    //fragColor = 0.5*(z+1.0)*vec4(1.0, 1.0, 0, 1.0);
+    //float light = 0.5*(z+1.0);
+    //float light = l;
+    //fragColor = light*vec4(color.z * mix(K.xxx, clamp(m - K.xxx, 0.0, 1.0), color.y), 1.0);
+}
+
+const int SS = 2; // SS x SS rays per pixel
+
 void main() {
-    vec2 p = coord;
-    vec3 n = vec3(0,0,0);
-    bool ans = check_point(p, n);
-    if (ans) {
-        //float colorRegulator = 20*l;
-        //vec3 color = vec3(0.95 + .012*colorRegulator , 1.0, .2+.4*(1.0+sin(.3*colorRegulator)));
-        //vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-        //vec3 m = abs(fract(color.xxx + K.xyz) * 6.0 - K.www);
-
-        //float r = 0.5*(z+1.0);
-        //float b = 0.5*(z+1.0);
-        //fragColor = 0.5*(z+1.0)*vec4(r, 1.0, b, 1.0);
-        //return;
-        vec4 LightPosition = vec4(0.0, 0.0, 20.0, 1.0);
-        vec3 tnorm = n;
-        //vec4 eyeCoords = Rot*vec4(.0, 0.0, 30.0, 1.0);
-
-        //vec3 s = normalize(vec3(LightPosition - eyeCoords));
-        vec3 s = normalize(vec3(LightPosition));
-
-        vec3 Kd = vec3(1.0, 1.0, 1.0);
-        vec3 Ld = vec3(0.9, 0.5, 0.3);
-
-        fragColor = vec4(Ld * Kd * max( dot( s, tnorm ), 0.0 ), 1.0);
-
-        //fragColor = 0.5*(z+1.0)*vec4(1.0, 1.0, 0, 1.0);
-        //float light = 0.5*(z+1.0);
-        //float light = l;
-        //fragColor = light*vec4(color.z * mix(K.xxx, clamp(m - K.xxx, 0.0, 1.0), color.y), 1.0);
-
-
-    } else {
-        fragColor = vec4(0.0, 0.0, 0.0, 0.0);
+    float pix = fwidth(coord.x); // pixel size in world units; must stay outside branches
+    vec4 color = vec4(0.0);
+    for (int sx = 0; sx < SS; sx++) {
+        for (int sy = 0; sy < SS; sy++) {
+            vec2 off = (vec2(sx, sy) + 0.5)/float(SS) - 0.5;
+            vec3 n; float ao, trap;
+            if (check_point(coord + off*pix, n, ao, trap)) {
+                color += vec4(shade(n, ao, trap), 1.0);
+            }
+        }
     }
+    fragColor = color/float(SS*SS);
 }
