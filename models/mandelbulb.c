@@ -8,15 +8,16 @@
 #include <models/mandelbulb.frag.spv.h>
 #include <lib/object.h>
 #include <lib/linmath.h>
+#include <lib/config.h>
 
 #include <render/pipeline.h>
 
 struct UniformBlock {
-    mat4x4 mvp;
     mat4x4 rot;
     mat4x4 inv_rot;
     vec4 T;
     int next;
+    float ratio;
 };
 
 struct Mandelbulb {
@@ -46,12 +47,12 @@ static void t_right(struct Object* obj, int mods) {
 
 static void t_up(struct Object* obj, int mods) {
     struct Mandelbulb* t = (struct Mandelbulb*)obj;
-    t->T[1] += t->T[2]*0.01;
+    t->T[1] -= t->T[2]*0.01;
 }
 
 static void t_down(struct Object* obj, int mods) {
     struct Mandelbulb* t = (struct Mandelbulb*)obj;
-    t->T[1] -= t->T[2]*0.01;
+    t->T[1] += t->T[2]*0.01;
 }
 
 static void t_zoom_in(struct Object* obj, int mods) {
@@ -72,23 +73,6 @@ static void t_mode(struct Object* obj) {
 static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     struct Mandelbulb* t = (struct Mandelbulb*)obj;
     //vec3 T = {0.0f, 0.0f, 2.0f};
-    mat4x4 m, v, mv, p, mvp;
-    mat4x4_identity(m);
-    //mat4x4_rotate_X(m, m, (float)glfwGetTime());
-    //mat4x4_rotate_Y(m, m, (float)glfwGetTime());
-    //mat4x4_rotate_Z(m, m, (float)glfwGetTime());
-
-    //mat4x4_rotate_Z(m, m, (float)glfwGetTime());
-    //mat4x4_ortho(p, -ctx->ratio, ctx->ratio, -1.f, 1.f, 1.f, -1.f);
-    //mat4x4_mul(mvp, p, m);
-    vec3 eye = {.0f, .0f, -1.f};
-    vec3 center = {.0f, .0f, .0f};
-    vec3 up = {.0f, 1.f, .0f};
-    mat4x4_look_at(v, eye, center, up);
-    mat4x4_mul(mv, v, m);
-    mat4x4_perspective(p, 70./2./M_PI, ctx->ratio, 0.3f, 100.f);
-    mat4x4_mul(mvp, p, mv);
-
     mat4x4 rot;
     mat4x4_identity(rot);
     mat4x4_rotate_X(rot, rot, 0.5*ctx->time);
@@ -98,11 +82,11 @@ static void t_draw(struct Object* obj, struct DrawContext* ctx) {
     //mat3x3 norm;
     //mat3x3_from_mat4x4(norm, rot);
 
-    memcpy(t->uniform.mvp, mvp, sizeof(mvp));
     memcpy(t->uniform.rot, rot, sizeof(rot));
     mat4x4_invert(t->uniform.inv_rot, rot);
     memcpy(t->uniform.T, t->T, sizeof(t->T));
     memcpy(&t->uniform.next, &t->cur_type, 4);
+    t->uniform.ratio = ctx->ratio;
 
     pl_start(t->pl);
     buffer_update(t->b, t->uniform_id, &t->uniform, 0, sizeof(t->uniform));
@@ -184,6 +168,10 @@ struct Object* CreateMandelbulb(struct Render* r, struct Config* cfg) {
     t->model = pl_buffer_assign(t->pl, 0, model_buffer_id);
 
     t->n_types = 4;
-    t->cur_type = 0;
+    t->cur_type = cfg_geti_def(cfg, "type", 0);
+    if (t->cur_type < 0 || t->cur_type >= t->n_types) {
+        fprintf(stderr, "mandelbulb: type must be in [0, %d), got %d\n", t->n_types, t->cur_type);
+        t->cur_type = 0;
+    }
     return (struct Object*)t;
 }

@@ -2,11 +2,11 @@
 // precision highp float;
 
 layout (std140) uniform MatrixBlock {
-    uniform mat4 MVP;
     uniform mat4 Rot;
     uniform mat4 InvRot;
     uniform vec4 T;
     uniform int NextType;
+    uniform float Ratio;
 };
 
 layout (location = 0) in vec2 coord;
@@ -68,7 +68,7 @@ vec3 next_quintic(vec3 p, vec3 p0, inout float dr) {
     float zn = z*z4 - 10*z3*(x2 + A*x*y + y2) +5*z*(x4 + B*x3*y + C*x2*y2 + B*x*y3 + y4)
         + D*z2*x*y*(x+y);
 
-    float power = 8;
+    float power = 5;
     dr = pow(length(p), power-1.0)*power*dr + 1.0;
 
     return vec3(xn, yn, zn) + p0;
@@ -94,6 +94,9 @@ float DE(vec3 p0) {
         if (dot(p, p) > 4) {
             break;
         }
+    }
+    if (dot(p, p) <= 4) {
+        return 0.0; // the orbit did not escape: the point is inside the set
     }
     float r = length(p);
     return 0.5*log(r)*r/dr;
@@ -124,7 +127,7 @@ bool check_point(vec2 p0, out vec3 n) {
     n = vec3(Rot*vec4(0,0,1,0));
 
     if (flag) {
-        float eps = 2e-2;
+        float eps = 1e-2*T.z;
         vec2 h = vec2(1,-1);
         //vec3 p = vec3(p0, z0);
         vec3 p = vec3(p1);
@@ -134,7 +137,7 @@ bool check_point(vec2 p0, out vec3 n) {
             h.yxy*DE(p + h.yxy*eps) +
             h.xxx*DE(p + h.xxx*eps));
         //n = vec3(inverse(Rot)*vec4(n,1));
-        n = vec3(InvRot*vec4(n,1));
+        n = vec3(InvRot*vec4(n,0));
     }
 
     return flag;
