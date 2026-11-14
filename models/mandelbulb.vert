@@ -7,7 +7,6 @@ layout (std140) uniform MatrixBlock {
     uniform int NextType;
     uniform float Ratio;
     uniform int Camera;
-    uniform float Dist;
 };
 
 layout (location = 1) in vec3 vPos;

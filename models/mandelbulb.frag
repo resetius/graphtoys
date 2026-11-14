@@ -8,7 +8,6 @@ layout (std140) uniform MatrixBlock {
     uniform int NextType;
     uniform float Ratio;
     uniform int Camera;
-    uniform float Dist;
 };
 
 layout (location = 0) in vec2 coord;
@@ -89,6 +88,7 @@ vec3 next_point(vec3 p, vec3 p0, inout float dr) {
 }
 
 // trap: the minimum of |p|^2 along the orbit (orbit trap), used for coloring
+// mandelbulb.c has a CPU copy (distance_estimate) for the camera speed, keep them in sync
 float DE(vec3 p0, out float trap) {
     vec3 p = vec3(0,0,0);
     float dr = 1.0;
@@ -121,9 +121,9 @@ bool check_point(vec2 p0, out vec3 n, out float ao, out float trap) {
 
     vec3 ray, p;
     if (Camera != 0) {
-        // perspective camera at distance Dist from the center, p0 is the tangent of the view angle
+        // perspective camera: the translation of Rot is its position, p0 is the tangent of the view angle
         ray = (Rot*vec4(normalize(vec3(p0, -1)), 0)).xyz;
-        p = (Rot*vec4(0, 0, Dist, 0)).xyz;
+        p = (Rot*vec4(0, 0, 0, 1)).xyz;
     } else {
         ray = (Rot*vec4(0,0,-1,0)).xyz;
         p = (Rot*vec4(p0.x,p0.y,2,0)).xyz;
