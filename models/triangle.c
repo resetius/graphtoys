@@ -58,7 +58,7 @@ static const struct ObjectVtbl object_vtbl = {
     .free = tr_free
 };
 
-struct Object* CreateTriangle(struct Render* r, struct Config* cfg) {
+struct Object* CreateTriangle(struct Render* r, struct Config* cfg, struct EventProducer* events) {
     struct Triangle* tr = calloc(1, sizeof(struct Triangle));
     tr->base.vtbl = &object_vtbl;
 

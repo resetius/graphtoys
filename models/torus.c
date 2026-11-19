@@ -164,7 +164,7 @@ static const struct ObjectVtbl object_vtbl = {
     .free = t_free
 };
 
-struct Object* CreateTorus(struct Render* r, struct Config* cfg) {
+struct Object* CreateTorus(struct Render* r, struct Config* cfg, struct EventProducer* events) {
     struct Torus* t = calloc(1, sizeof(struct Torus));
     struct Vertex* vertices;
     int nvertices;

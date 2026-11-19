@@ -4,4 +4,5 @@
 
 struct Render;
 struct Config;
-struct Object* CreateParticles2(struct Render* r, struct Config* config);
+struct EventProducer;
+struct Object* CreateParticles2(struct Render* r, struct Config* config, struct EventProducer*);

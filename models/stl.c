@@ -242,7 +242,7 @@ static const struct ObjectVtbl object_vtbl = {
     .zoom_out = zoom_out,
 };
 
-struct Object* CreateStl(struct Render* r, struct Config* cfg) {
+struct Object* CreateStl(struct Render* r, struct Config* cfg, struct EventProducer* events) {
     struct Stl* t = calloc(1, sizeof(struct Stl));
     struct StlVertex* vertices;
     int nvertices;

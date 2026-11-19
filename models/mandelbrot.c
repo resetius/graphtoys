@@ -107,7 +107,7 @@ static const struct ObjectVtbl object_vtbl = {
     .zoom_out = t_zoom_out
 };
 
-struct Object* CreateMandelbrot(struct Render* r, struct Config* cfg) {
+struct Object* CreateMandelbrot(struct Render* r, struct Config* cfg, struct EventProducer* events) {
     struct Mandelbrot* t = calloc(1, sizeof(struct Mandelbrot));
     struct Vertex vertices[] = {
         {{ 1.0f,-1.0f,0.0f}},

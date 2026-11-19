@@ -199,7 +199,7 @@ static const struct ObjectVtbl object_vtbl = {
     .free = free_
 };
 
-struct Object* CreateParticles(struct Render* r, struct Config* cfg) {
+struct Object* CreateParticles(struct Render* r, struct Config* cfg, struct EventProducer* events) {
     struct Particles* t = calloc(1, sizeof(struct Particles));
     t->base.vtbl = &object_vtbl;
 
