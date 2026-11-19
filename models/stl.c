@@ -227,6 +227,7 @@ static void zoom_out(struct Object* obj, int mods) {
 static void t_free(struct Object* obj) {
     struct Stl* t = (struct Stl*)obj;
     pl_free(t->pl);
+    pl_free(t->plt);
     buffer_mgr_free(t->b);
     free(t);
 }

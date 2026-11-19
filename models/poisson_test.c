@@ -181,6 +181,7 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
 static void free_(struct Object* obj) {
     struct Particles* t = (struct Particles*)obj;
     pl_free(t->comp_poisson);
+    pl_free(t->comp_poisson2);
     buffer_mgr_free(t->b);
     free(t->psi);
     free(t->density);
