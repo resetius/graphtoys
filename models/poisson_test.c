@@ -109,7 +109,6 @@ static void draw_(struct Object* obj, struct DrawContext* ctx) {
         }
     }
 
-    // OpenGL only yet!
     // check accuracy and exit
     buffer_read(t->b, t->psi_index, t->psi, 0, nn*nn*nn*sizeof(float));
     double nrm = 0;

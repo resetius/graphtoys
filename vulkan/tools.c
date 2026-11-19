@@ -33,7 +33,8 @@ void create_buffer(
     VkBuffer* buffer,
     VkDeviceMemory* bufferMemory,
     int n_families,
-    const uint32_t* families)
+    const uint32_t* families,
+    VkMemoryPropertyFlags* memoryFlags)
 {
     VkBufferCreateInfo bufferInfo = {
         .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -56,15 +57,19 @@ void create_buffer(
     VkMemoryRequirements memrequirements;
     vkGetBufferMemoryRequirements(logicalDevice, *buffer, &memrequirements);
 
+    uint32_t typeIndex = findMemoryTypeIndex(&props, memrequirements.memoryTypeBits, properties);
     VkMemoryAllocateInfo allocInfo = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
         .allocationSize = memrequirements.size,
-        .memoryTypeIndex = findMemoryTypeIndex(&props, memrequirements.memoryTypeBits, properties)
+        .memoryTypeIndex = typeIndex
     };
 
     if (vkAllocateMemory(logicalDevice, &allocInfo, NULL, bufferMemory) != VK_SUCCESS) {
         fprintf(stderr, "Failed to allocate vertex buffer memory\n");
         exit(-1);
+    }
+    if (memoryFlags) {
+        *memoryFlags = props.memoryTypes[typeIndex].propertyFlags;
     }
 
     vkBindBufferMemory(logicalDevice, *buffer, *bufferMemory, 0);

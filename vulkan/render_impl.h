@@ -62,6 +62,8 @@ struct RenderImpl {
     //
     uint32_t image_index;
     VkCommandBuffer buffer;
+    // Set between draw_begin and draw_end, while buffer and compute_buffer are recording.
+    int in_frame;
 
     // compute {
     VkCommandBuffer compute_buffer;
@@ -98,3 +100,7 @@ struct RenderImpl {
     int ncounters;
     int query2counter[32];
 };
+
+// Submits the compute work recorded so far in this frame, waits for it on the host
+// and starts a new compute_buffer. Only between draw_begin and draw_end.
+void vk_compute_flush(struct RenderImpl* r);
