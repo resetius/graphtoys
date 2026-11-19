@@ -5,4 +5,5 @@
 #include <lib/object.h>
 #include <lib/config.h>
 
-struct Object* CreateStl(struct Render* r, struct Config* cfg);
+struct EventProducer;
+struct Object* CreateStl(struct Render* r, struct Config* cfg, struct EventProducer*);

@@ -13,6 +13,7 @@
 #include <lib/config.h>
 #include <lib/linmath.h>
 #include <lib/object.h>
+#include <lib/event.h>
 
 struct CompSettings {
     vec4 origin;
@@ -193,7 +194,7 @@ static const struct ObjectVtbl object_vtbl = {
     .free = free_
 };
 
-struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg) {
+struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg, struct EventProducer* events) {
     struct Particles* t = calloc(1, sizeof(struct Particles));
     t->base.vtbl = &object_vtbl;
 

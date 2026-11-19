@@ -22,8 +22,8 @@
 #include <models/particles2.h>
 #include <models/particles3.h>
 
-struct Object* CreateGltf(struct Render* r, struct Config* cfg);
-struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg);
+struct Object* CreateGltf(struct Render* r, struct Config* cfg, struct EventProducer* events);
+struct Object* CreatePoissonTest(struct Render* r, struct Config* cfg, struct EventProducer* events);
 
 struct App {
     struct EventProducer events;
@@ -205,21 +205,21 @@ int main(int argc, char** argv)
     long long frames = 0;
     int enable_labels = 0;
     struct ObjectAndConstructor constructors[] = {
-        {"torus", (ConstructorT)CreateTorus},
-        {"triangle", (ConstructorT)CreateTriangle},
-        {"mandelbrot", (ConstructorT)CreateMandelbrot},
-        {"mandelbulb", (ConstructorT)CreateMandelbulb},
-        {"stl", (ConstructorT)CreateStl},
-        {"particles", (ConstructorT)CreateParticles},
-        {"particles2", (ConstructorT)CreateParticles2},
-        {"particles3", (ConstructorT)CreateParticles3},
-        {"poisson", (ConstructorT)CreatePoissonTest},
-        {"gltf", (ConstructorT)CreateGltf},
+        {"torus", CreateTorus},
+        {"triangle", CreateTriangle},
+        {"mandelbrot", CreateMandelbrot},
+        {"mandelbulb", CreateMandelbulb},
+        {"stl", CreateStl},
+        {"particles", CreateParticles},
+        {"particles2", CreateParticles2},
+        {"particles3", CreateParticles3},
+        {"poisson", CreatePoissonTest},
+        {"gltf", CreateGltf},
         {"test", NULL},
         {NULL, NULL}
     };
     int i, j;
-    ConstructorT constr = (ConstructorT)CreateTorus;
+    ConstructorT constr = CreateTorus;
     const char* name = "torus";
     const char* cfg_file_name = "main.ini";
     memset(&app, 0, sizeof(app));
@@ -321,8 +321,8 @@ int main(int argc, char** argv)
     setbuf(stdout, NULL);
 
     if (constr == NULL) {
-        ovec_add(&app.objs, CreateTriangle(render, cfg_section(cfg, "triangle")));
-        ovec_add(&app.objs, CreateTorus(render, cfg_section(cfg, "torus")));
+        ovec_add(&app.objs, CreateTriangle(render, cfg_section(cfg, "triangle"), (struct EventProducer*) &app));
+        ovec_add(&app.objs, CreateTorus(render, cfg_section(cfg, "torus"), (struct EventProducer*) &app));
     } else {
         ovec_add(&app.objs, constr(render, cfg_section(cfg, name), (struct EventProducer*) &app));
     }

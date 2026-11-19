@@ -5,4 +5,5 @@
 #include <lib/object.h>
 
 struct Config;
-struct Object* CreateTorus(struct Render* r, struct Config* cfg);
+struct EventProducer;
+struct Object* CreateTorus(struct Render* r, struct Config* cfg, struct EventProducer*);

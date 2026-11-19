@@ -4,4 +4,5 @@
 
 struct Render;
 struct Config;
-struct Object* CreateTriangle(struct Render* r, struct Config*);
+struct EventProducer;
+struct Object* CreateTriangle(struct Render* r, struct Config*, struct EventProducer*);
