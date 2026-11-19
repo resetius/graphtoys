@@ -11,7 +11,8 @@ void create_buffer(
     VkBuffer* buffer,
     VkDeviceMemory* bufferMemory,
     int n_families,
-    const uint32_t* families);
+    const uint32_t* families,
+    VkMemoryPropertyFlags* memoryFlags); // nullable: flags of the chosen memory type
 
 void copy_buffer(
     int graphics_family,

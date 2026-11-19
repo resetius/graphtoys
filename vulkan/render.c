@@ -278,11 +278,51 @@ static void draw_begin_(struct Render* r1) {
         r->sc.extent);
 
     compute_counters_begin_(r);
+    r->in_frame = 1;
+}
+
+void vk_compute_flush(struct RenderImpl* r) {
+    cb_end(&r->frame->compute_cb, r->compute_buffer);
+
+    // The recorded commands may also read or copy buffers that the previous graphics
+    // submit wrote, so the wait covers all stages, not only compute shaders.
+    VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    VkSubmitInfo submitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .waitSemaphoreCount = r->graphics_semaphore_signaled ? 1 : 0,
+        .pWaitSemaphores = &r->graphics_semaphore,
+        .pWaitDstStageMask = &waitStage,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &r->compute_buffer,
+    };
+    VkFenceCreateInfo fenceInfo = {
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO
+    };
+    VkFence fence;
+
+    if (vkCreateFence(r->log_dev, &fenceInfo, NULL, &fence) != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create compute flush fence\n");
+        exit(-1);
+    }
+    if (vkQueueSubmit(r->c_queue, 1, &submitInfo, fence) != VK_SUCCESS) {
+        fprintf(stderr, "Failed to submit compute command buffer\n");
+        exit(-1);
+    }
+    // This submit consumed the signal, so the compute submit in draw_end must not wait again.
+    r->graphics_semaphore_signaled = 0;
+
+    vkWaitForFences(r->log_dev, 1, &fence, VK_TRUE, UINT64_MAX);
+    vkDestroyFence(r->log_dev, fence, NULL);
+
+    // The buffer is no longer pending, so its pool can be reset for the rest of the frame.
+    r->compute_buffer = frame_compute_cb(r->frame);
+    cb_begin(&r->frame->compute_cb, r->compute_buffer);
 }
 
 static void draw_end_(struct Render* r1) {
     struct RenderImpl* r = (struct RenderImpl*)r1;
 
+    r->in_frame = 0;
     rp_end(&r->rp, r->buffer);
     cb_end(&r->frame->cb, r->buffer);
     cb_end(&r->frame->compute_cb, r->compute_buffer);

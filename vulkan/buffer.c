@@ -66,7 +66,8 @@ static int create(
             &stagingBuffer,
             &stagingBufferMemory,
             n_families,
-            families);
+            families,
+            &buf->memory_flags);
 
         if (data) {
             void* dst;
@@ -79,14 +80,16 @@ static int create(
             buf->buffer[i] = stagingBuffer;
             buf->memory[i] = stagingBufferMemory;
         } else {
+            // TRANSFER_SRC: read copies the buffer to a host-visible staging buffer.
             create_buffer(
                 r->memory_properties, r->log_dev,
                 size,
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT|vk_type,
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_TRANSFER_SRC_BIT|vk_type,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 &buf->buffer[i],
                 &buf->memory[i],
-                n_families, families);
+                n_families, families,
+                &buf->memory_flags);
 
             copy_buffer(
                 r->graphics_family,
@@ -164,6 +167,104 @@ static void update_sync(
         );
 }
 
+// Like glGetBufferSubData: the result includes the compute work recorded so far in
+// this frame, so that work is submitted and waited for first.
+static void read(
+    struct BufferManager* mgr,
+    int id,
+    void* data,
+    size_t offset,
+    size_t size)
+{
+    struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
+    struct BufferImpl* buf = (struct BufferImpl*)buffer_get(mgr, id);
+    struct RenderImpl* r = b->r;
+    int i = (buf->n_buffers == 1)
+        ? 0
+        : r->image_index;
+    VkDeviceMemory memory = buf->memory[i];
+    VkMemoryPropertyFlags flags = buf->memory_flags;
+    VkBuffer staging = VK_NULL_HANDLE;
+    VkDeviceMemory staging_memory = VK_NULL_HANDLE;
+    void* src;
+
+    if (!r->in_frame) {
+        fprintf(stderr, "Vulkan buffer read is supported only between draw_begin and draw_end\n");
+        exit(-1);
+    }
+
+    VkMemoryBarrier barrier = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+        .srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT,
+        .dstAccessMask = VK_ACCESS_HOST_READ_BIT,
+    };
+
+    if (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
+        vkCmdPipelineBarrier(
+            r->compute_buffer,
+            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+            VK_PIPELINE_STAGE_HOST_BIT,
+            0, 1, &barrier, 0, NULL, 0, NULL);
+    } else {
+        // Used only on the compute queue, so no concurrent sharing.
+        create_buffer(
+            r->memory_properties, r->log_dev,
+            size,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            &staging,
+            &staging_memory,
+            0, NULL,
+            &flags);
+
+        barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        vkCmdPipelineBarrier(
+            r->compute_buffer,
+            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0, 1, &barrier, 0, NULL, 0, NULL);
+
+        VkBufferCopy region = {
+            .srcOffset = offset,
+            .dstOffset = 0,
+            .size = size
+        };
+        vkCmdCopyBuffer(r->compute_buffer, buf->buffer[i], staging, 1, &region);
+
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
+        vkCmdPipelineBarrier(
+            r->compute_buffer,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_HOST_BIT,
+            0, 1, &barrier, 0, NULL, 0, NULL);
+
+        memory = staging_memory;
+        offset = 0;
+    }
+
+    vk_compute_flush(r);
+
+    // The whole range keeps the invalidate aligned to nonCoherentAtomSize.
+    vkMapMemory(r->log_dev, memory, 0, VK_WHOLE_SIZE, 0, &src);
+    if (!(flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
+        VkMappedMemoryRange range = {
+            .sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+            .memory = memory,
+            .offset = 0,
+            .size = VK_WHOLE_SIZE
+        };
+        vkInvalidateMappedMemoryRanges(r->log_dev, 1, &range);
+    }
+    memcpy(data, (char*)src + offset, size);
+    vkUnmapMemory(r->log_dev, memory);
+
+    if (staging != VK_NULL_HANDLE) {
+        vkDestroyBuffer(r->log_dev, staging, NULL);
+        vkFreeMemory(r->log_dev, staging_memory, NULL);
+    }
+}
+
 static void release(struct BufferManager* mgr, void* buf1) {
     int i;
     struct BufferManagerImpl* b = (struct BufferManagerImpl*)mgr;
@@ -175,12 +276,12 @@ static void release(struct BufferManager* mgr, void* buf1) {
     }
 }
 
-// no read: reading buffers back is not implemented for Vulkan
 static const struct BufferManagerVtbl buffer_vtbl = {
     .create = create,
     .release = release,
     .update = update,
     .update_sync = update_sync,
+    .read = read,
 };
 
 struct BufferManager* buf_mgr_vulkan_new(struct Render* r) {

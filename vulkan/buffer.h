@@ -10,6 +10,7 @@ struct BufferImpl {
     VkDeviceMemory memory[10]; // used for uniform buffers
     int n_buffers;
     VkDeviceSize size;
+    VkMemoryPropertyFlags memory_flags; // of memory[], the same for all of them
 };
 
 struct Render;

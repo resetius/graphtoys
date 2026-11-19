@@ -42,6 +42,7 @@ L2_FUNC(vkAllocateDescriptorSets);
 L2_FUNC(vkCmdBlitImage);
 L2_FUNC(vkMapMemory);
 L2_FUNC(vkUnmapMemory);
+L2_FUNC(vkInvalidateMappedMemoryRanges);
 L2_FUNC(vkGetDeviceQueue);
 L2_FUNC(vkDeviceWaitIdle);
 L2_FUNC(vkDestroyDevice);
